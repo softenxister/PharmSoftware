@@ -1,0 +1,202 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #f6f8f6;
+}
+
+.content {
+  box-sizing: border-box;
+  min-height: 100%;
+  width: 100%;
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.pageTitle {
+  color: #101c14;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pageSubtitle {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.statusGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusPill,
+.shiftPill {
+  border: 1px solid #dde5e0;
+  border-radius: 4px;
+  background: #fff;
+  padding: 6px 12px;
+}
+
+.statusPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #3d9664;
+}
+
+.statusText {
+  color: #2e7d52;
+  font-size: 12px;
+}
+
+.mutedText {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.splitGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.bottomGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid #dde5e0;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.paddedCard {
+  border: 1px solid #dde5e0;
+  border-radius: 6px;
+  background: #fff;
+  padding: 20px;
+}
+
+.kpiCard {
+  border: 1px solid #dde5e0;
+  border-radius: 6px;
+  background: #fff;
+  padding: 16px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cardTitle {
+  color: #101c14;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cardSubtitle {
+  color: #65746b;
+  font-size: 11px;
+}
+
+.chartBoxTall {
+  width: 100%;
+  height: clamp(190px, 24vh, 280px);
+}
+
+.chartBoxShort {
+  width: 100%;
+  height: clamp(150px, 20vh, 220px);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendLineToday,
+.legendLineYesterday {
+  width: 10px;
+  height: 2px;
+}
+
+.legendLineToday {
+  background: #3d9664;
+}
+
+.legendLineYesterday {
+  background: #c8d5cc;
+}
+
+.legendText {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.tooltip {
+  border: 1px solid #2d4035;
+  border-radius: 4px;
+  background: #1e2d24;
+  padding: 8px 12px;
+}
+
+.tooltipLabel {
+  margin-bottom: 4px;
+  color: #9cb8a4;
+  font-size: 11px;
+}
+
+.tooltipLine {
+  font-size: 12px;
+}
+
+.sectionDivider {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eef1ef;
+}
+
+.spaceY3 > * + * {
+  margin-top: 12px;
+}
+
+.spaceY25 > * + * {
+  margin-top: 10px;
+}
