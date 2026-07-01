@@ -1,5 +1,5 @@
-import { BlankFeaturePage } from "@/features/events/components/layout/BlankFeaturePage";
+import { SalesHome } from "./SalesHome";
 
 export default function SalesPage() {
-  return <BlankFeaturePage />;
+  return <SalesHome />;
 }

@@ -9,6 +9,9 @@ export const distributors = [
   "Greenline Healthcare",
   "Nova Drug Wholesale",
   "Wellcare Logistics",
+  "TPD Thanom Pharma Distribution",
+  "Buymed Thailand",
+  "VORAMIT DRUG CENTER"
 ];
 
 export const uploadedRows = [
