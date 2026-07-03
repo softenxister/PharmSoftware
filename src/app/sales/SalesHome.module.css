@@ -213,6 +213,19 @@
   background: #fbfdfb;
 }
 
+.rowPending {
+  cursor: pointer;
+}
+
+.rowPending:hover {
+  background: #f4faf6;
+}
+
+.rowPending:focus-visible {
+  outline: 2px solid rgba(47, 124, 78, 0.35);
+  outline-offset: -2px;
+}
+
 .billCell,
 .customerMeta {
   display: flex;

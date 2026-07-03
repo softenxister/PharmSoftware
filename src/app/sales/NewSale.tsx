@@ -4,7 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Settings } from 'lucide-react';
 import styles from './NewSale.module.css';
-import { salesProducts } from './salesData';
+import { salesProducts, type ParentPack, type ProductPack } from './salesData';
+import morningReminderIcon from '@/styles/vector/morning.png';
+import noonReminderIcon from '@/styles/vector/noon.png';
+import eveningReminderIcon from '@/styles/vector/evening.png';
+import nightReminderIcon from '@/styles/vector/night.png';
 
 /* ════════════════════════════════════════════════════════════════════
    Types — swap for generated API types once the backend contracts land.
@@ -12,6 +16,11 @@ import { salesProducts } from './salesData';
 
 type PurchaseMethod = 'pickup' | 'delivery';
 type DiscountType = 'percent' | 'thb';
+type AppliedDiscount = { type: DiscountType; value: number };
+type SaveMode = 'save' | 'save-print' | 'save-new';
+type BillStatus = 'paid' | 'pending';
+type ReminderDoses = [number, number, number, number];
+type ReminderState = { enabled: boolean; activeTime: number; doses: ReminderDoses };
 
 interface Owner {
   id: string;
@@ -28,6 +37,8 @@ interface Customer {
   name: string;
   mobile: string;
   isMember: boolean;
+  points: number;
+  membershipRank: 'Platinum' | 'Gold' | 'Silver' | 'Regular';
   topItemIds?: string[]; // this customer's personal top-10 purchased items
 }
 
@@ -39,14 +50,25 @@ interface Batch {
   stock: number;
 }
 
+interface SellPack {
+  key: string;
+  unit: string;
+  label: string;
+  relationLabel: string;
+  displayLabel: string;
+  priceMultiplier: number;
+}
+
 interface CatalogItem {
   id: string;
-  code: string;
   barcode: string;
+  categoryShortcut: string;
   category: string;
   name: string;
   brand: string;
-  unit: string; // e.g. "Tab · 10/box"
+  packLabel: string;
+  packUnit: string;
+  sellPacks: SellPack[];
   loc: string;
   image: string;
   batches: Batch[];
@@ -56,7 +78,8 @@ interface CartLine {
   lineId: string;
   itemId: string;
   itemName: string;
-  unit: string;
+  packLabel: string;
+  packMultiplier: number;
   loc: string;
   batch: Batch;
   qty: number;
@@ -65,8 +88,52 @@ interface CartLine {
 interface EditorState {
   item: CatalogItem;
   batch: Batch;
+  sellPack: SellPack;
   qty: string;
   batchCardOpen: boolean;
+}
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
+type InvoiceCreated = {
+  invoiceNo: string;
+  amountPaid: number;
+  changeDue: number;
+  paymentMode: string;
+  createdAt: string;
+};
+
+type SavedSale = {
+  id: string;
+  billNo: string;
+  date: string;
+  customerName: string;
+  isMember: boolean;
+  itemCount: number;
+  paymentMethod: string;
+  purchaseMethod: PurchaseMethod;
+  netTotal: number;
+  status: BillStatus;
+  ownerId: string;
+  billDate: string;
+  pharmacistId: string;
+  customerId: string | null;
+  lines: CartLine[];
+  discount: AppliedDiscount | null;
+};
+
+const REMINDER_TIMES = [
+  { label: '8 AM', icon: morningReminderIcon.src },
+  { label: '1 PM', icon: noonReminderIcon.src },
+  { label: '7 PM', icon: eveningReminderIcon.src },
+  { label: '10 PM', icon: nightReminderIcon.src },
+] as const;
+
+function createDefaultReminder(totalTabs = 1): ReminderState {
+  return { enabled: true, activeTime: 0, doses: [Math.max(1, totalTabs), 0, 0, 0] };
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -89,67 +156,60 @@ const PHARMACISTS: Pharmacist[] = [
 ];
 
 const CUSTOMERS: Customer[] = [
-  { id: 'c1', name: 'Suchada Wong', mobile: '081-234-5566', isMember: true, topItemIds: ['i1', 'i3', 'i5', 'i2', 'i7'] },
-  { id: 'c2', name: 'Kridsada Phan', mobile: '089-771-2201', isMember: true, topItemIds: ['i4', 'i6', 'i1', 'i8', 'i2'] },
-  { id: 'c3', name: 'Areeya Somboon', mobile: '086-005-9981', isMember: true, topItemIds: ['i2', 'i9', 'i10', 'i3'] },
-  { id: 'c4', name: 'Natthapong Lee', mobile: '090-441-7723', isMember: true, topItemIds: ['i7', 'i1', 'i4'] },
+  { id: 'c1', name: 'Suchada Wong', mobile: '081-234-5566', isMember: true, points: 4280, membershipRank: 'Platinum', topItemIds: ['p-sara', 'p-tiffy', 'p-airx', 'p-gaviscon', 'p-betadine'] },
+  { id: 'c2', name: 'Kridsada Phan', mobile: '089-771-2201', isMember: true, points: 2150, membershipRank: 'Gold', topItemIds: ['p-blackmores-c', 'p-natc', 'p-nivea-sun', 'p-dentiste', 'p-nexcare'] },
+  { id: 'c3', name: 'Areeya Somboon', mobile: '086-005-9981', isMember: true, points: 980, membershipRank: 'Silver', topItemIds: ['p-zyrtec', 'p-tylenol', 'p-ors', 'p-smooth-e'] },
+  { id: 'c4', name: 'Natthapong Lee', mobile: '090-441-7723', isMember: true, points: 310, membershipRank: 'Regular', topItemIds: ['p-gaviscon', 'p-sara', 'p-durex'] },
 ];
 
-const CATALOG: CatalogItem[] = [
-  { id: 'i1', code: 'gy', barcode: '8850123001127', category: 'Pain relief', name: 'Paracetamol 500mg', brand: 'Tylenol', unit: 'Tab · 10/box', loc: 'A1-03', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b1', batchNo: 'PCM-2401', exp: '2026-11-30', sellPrice: 25, stock: 120 },
-      { batchId: 'b2', batchNo: 'PCM-2405', exp: '2027-03-31', sellPrice: 25, stock: 300 },
-    ] },
-  { id: 'i2', code: 'g+99', barcode: '8850123004371', category: 'Allergy', name: 'Cetirizine 10mg', brand: 'Zyrtec', unit: 'Tab · 10/strip', loc: 'A2-11', image: 'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b3', batchNo: 'CTZ-2402', exp: '2026-08-15', sellPrice: 45, stock: 40 },
-      { batchId: 'b4', batchNo: 'CTZ-2406', exp: '2027-01-20', sellPrice: 45, stock: 150 },
-    ] },
-  { id: 'i3', code: 'gp3', barcode: '8850123009012', category: 'Digestive', name: 'Omeprazole 20mg', brand: 'Losec', unit: 'Cap · 14/strip', loc: 'B1-02', image: 'https://images.unsplash.com/photo-1550572017-9f8f4d1e1e5c?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b5', batchNo: 'OMZ-2312', exp: '2026-07-10', sellPrice: 89, stock: 18 },
-      { batchId: 'b6', batchNo: 'OMZ-2404', exp: '2026-12-05', sellPrice: 89, stock: 60 },
-    ] },
-  { id: 'i4', code: 'gx7', barcode: '8850123002223', category: 'Antibiotic', name: 'Amoxicillin 500mg', brand: 'Amoxil', unit: 'Cap · 10/strip', loc: 'C1-05', image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b7', batchNo: 'AMX-2403', exp: '2026-09-28', sellPrice: 120, stock: 55 },
-    ] },
-  { id: 'i5', code: 'gv1', barcode: '8850123006543', category: 'Vitamin', name: 'Vitamin C 1000mg', brand: 'Blackmores', unit: 'Tab · 30/bottle', loc: 'D3-01', image: 'https://images.unsplash.com/photo-1616671276441-2f2d276abdc8?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b8', batchNo: 'VTC-2405', exp: '2027-06-30', sellPrice: 210, stock: 90 },
-    ] },
-  { id: 'i6', code: 'go2', barcode: '8850123007891', category: 'Digestive', name: 'ORS Rehydration Sachet', brand: 'Dhamra', unit: 'Sachet · 1/pc', loc: 'B2-08', image: 'https://images.unsplash.com/photo-1550572017-37b3f2c1b1a4?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b9', batchNo: 'ORS-2404', exp: '2026-10-18', sellPrice: 12, stock: 400 },
-    ] },
-  { id: 'i7', code: 'gi4', barcode: '8850123003340', category: 'Pain relief', name: 'Ibuprofen 400mg', brand: 'Brufen', unit: 'Tab · 10/strip', loc: 'A1-07', image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b10', batchNo: 'IBU-2401', exp: '2026-08-02', sellPrice: 38, stock: 25 },
-      { batchId: 'b11', batchNo: 'IBU-2406', exp: '2027-02-14', sellPrice: 38, stock: 200 },
-    ] },
-  { id: 'i8', code: 'gl6', barcode: '8850123008765', category: 'Digestive', name: 'Loperamide 2mg', brand: 'Imodium', unit: 'Cap · 6/strip', loc: 'B1-09', image: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b12', batchNo: 'LPM-2403', exp: '2026-11-11', sellPrice: 32, stock: 70 },
-    ] },
-  { id: 'i9', code: 'gd8', barcode: '8850123005432', category: 'Digestive', name: 'Domperidone 10mg', brand: 'Motilium', unit: 'Tab · 10/strip', loc: 'B1-04', image: 'https://images.unsplash.com/photo-1550572017-0c7a3b2c1f2b?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b13', batchNo: 'DMP-2402', exp: '2026-07-25', sellPrice: 54, stock: 15 },
-    ] },
-  { id: 'i10', code: 'gc9', barcode: '8850123009999', category: 'Cough & cold', name: 'Dextromethorphan Syrup', brand: 'Tuseran', unit: 'Bottle · 60ml', loc: 'C2-02', image: 'https://images.unsplash.com/photo-1587854692441-0c7a4c1cf1a1?w=200&h=200&fit=crop',
-    batches: [
-      { batchId: 'b14', batchNo: 'DXM-2404', exp: '2026-12-30', sellPrice: 68, stock: 45 },
-    ] },
-];
+function pluralChildUnit(unit: string, qty: number): string {
+  if (unit === 'tab') return qty === 1 ? 'tab' : 'tabs';
+  if (unit === 'caplet') return qty === 1 ? 'caplet' : 'caplets';
+  if (unit === 'piece') return qty === 1 ? 'piece' : 'pieces';
+  return unit;
+}
+
+function displayPackUnit(unit: string): string {
+  if (unit === 'blisterpack') return 'blister packs';
+  return unit;
+}
+
+function sellPackButtonLabel(unit: string): string {
+  if (unit === 'blisterpack') return 'blister';
+  return unit;
+}
+
+function amountLabel(pack: ProductPack): string {
+  return `${pack.childQuantity} ${pluralChildUnit(pack.childUnit, pack.childQuantity)}`;
+}
 
 const THAI_CATALOG: CatalogItem[] = salesProducts.map((product) => ({
   id: product.id,
-  code: product.shortCode,
   barcode: product.barcode,
+  categoryShortcut: product.categoryShortcut,
   category: product.category,
   name: product.itemName,
   brand: product.brandName,
-  unit: product.unit,
+  packLabel: amountLabel(product.pack),
+  packUnit: product.pack.packUnit,
+  sellPacks: [
+    {
+      key: product.pack.packUnit,
+      unit: product.pack.packUnit,
+      label: sellPackButtonLabel(product.pack.packUnit),
+      relationLabel: product.pack.label,
+      displayLabel: `${product.pack.childQuantity} / ${displayPackUnit(product.pack.packUnit)}`,
+      priceMultiplier: 1,
+    },
+    ...product.parentPacks.map((pack: ParentPack) => ({
+      key: pack.packUnit,
+      unit: pack.packUnit,
+      label: sellPackButtonLabel(pack.packUnit),
+      relationLabel: pack.label,
+      displayLabel: `${pack.childPackQuantity} / ${displayPackUnit(pack.packUnit)}`,
+      priceMultiplier: pack.priceMultiplier,
+    })),
+  ],
   loc: product.location,
   image: product.imageUrl,
   batches: product.batches.map((batch) => ({
@@ -185,22 +245,93 @@ function nearestExpiryBatch(batches: Batch[]): Batch | null {
   return [...inStock].sort((a, b) => new Date(a.exp).getTime() - new Date(b.exp).getTime())[0];
 }
 
-/** Supports plain codes ("gy"), barcodes, and "c, <term>" category search. */
+function nearestExpiryBatchForPack(batches: Batch[], pack: SellPack): Batch | null {
+  const inStock = batches.filter((b) => availableStockForPack(b, pack) > 0);
+  if (inStock.length === 0) return null;
+  return [...inStock].sort((a, b) => new Date(a.exp).getTime() - new Date(b.exp).getTime())[0];
+}
+
+function availableStockForPack(batch: Batch, pack: SellPack): number {
+  return Math.floor(batch.stock / pack.priceMultiplier);
+}
+
+function sellPriceForPack(batch: Batch, pack: SellPack): number {
+  return batch.sellPrice * pack.priceMultiplier;
+}
+
+function catalogItemForLine(line: CartLine): CatalogItem | undefined {
+  return THAI_CATALOG.find((item) => item.id === line.itemId);
+}
+
+function totalTabsForLine(line: CartLine): number {
+  const catalogItem = catalogItemForLine(line);
+  if (!catalogItem || !/(tab|caplet)/i.test(catalogItem.packLabel)) return 0;
+  const childQty = parseInt(catalogItem.packLabel.match(/\d+/)?.[0] ?? '1', 10);
+  return line.qty * line.packMultiplier * childQty;
+}
+
+function maxQtyForCartLine(line: CartLine): number {
+  const catalogItem = catalogItemForLine(line);
+  const pack = catalogItem?.sellPacks.find((sellPack) => (
+    sellPack.displayLabel === line.packLabel &&
+    sellPack.priceMultiplier === line.packMultiplier
+  ));
+  if (!catalogItem || !pack) {
+    return Math.max(1, Math.floor(line.batch.stock / line.packMultiplier));
+  }
+  return Math.max(1, catalogItem.batches.reduce((sum, batch) => sum + availableStockForPack(batch, pack), 0));
+}
+
+function mergeCartLinesByItemPack(lines: CartLine[]): { lines: CartLine[]; changed: boolean } {
+  const mergedLines: CartLine[] = [];
+  const lineIndexByKey = new Map<string, number>();
+  let changed = false;
+
+  lines.forEach((line) => {
+    const key = `${line.itemId}|${line.packLabel}|${line.packMultiplier}`;
+    const existingIndex = lineIndexByKey.get(key);
+    if (existingIndex === undefined) {
+      lineIndexByKey.set(key, mergedLines.length);
+      mergedLines.push(line);
+      return;
+    }
+
+    changed = true;
+    const existingLine = mergedLines[existingIndex];
+    if (!existingLine) return;
+    mergedLines[existingIndex] = {
+      ...existingLine,
+      qty: Math.min(maxQtyForCartLine(existingLine), existingLine.qty + line.qty),
+    };
+  });
+
+  return { lines: mergedLines, changed };
+}
+
+function calculateDiscountAmount(discount: AppliedDiscount | null, subtotal: number): number {
+  if (!discount) return 0;
+  const raw = discount.type === 'percent' ? (subtotal * discount.value) / 100 : discount.value;
+  return Math.min(Math.max(raw, 0), subtotal);
+}
+
+/** Supports barcode, product name, brand, pack, and "c, <term>" category search. */
 function matchesQuery(item: CatalogItem, rawQuery: string): boolean {
   const q = rawQuery.trim().toLowerCase();
   if (!q) return false;
 
   if (q.startsWith('c,') || q.startsWith('c ')) {
     const term = q.slice(2).trim();
-    return term.length === 0 || item.category.toLowerCase().includes(term);
+    return term.length === 0 || item.category.toLowerCase().includes(term) || item.categoryShortcut.toLowerCase() === term;
   }
   if (/^\d{5,}$/.test(q)) {
     return item.barcode.includes(q);
   }
   return (
-    item.code.toLowerCase().startsWith(q) ||
     item.name.toLowerCase().includes(q) ||
-    item.brand.toLowerCase().includes(q)
+    item.brand.toLowerCase().includes(q) ||
+    item.categoryShortcut.toLowerCase().startsWith(q) ||
+    item.packLabel.toLowerCase().includes(q) ||
+    item.sellPacks.some((pack) => pack.unit.toLowerCase().startsWith(q))
   );
 }
 
@@ -221,6 +352,67 @@ function useClickOutside<T extends HTMLElement>(onOutside: () => void) {
     return () => document.removeEventListener('mousedown', handle);
   }, [onOutside]);
   return ref;
+}
+
+function CustomSelect({
+  ariaLabel,
+  value,
+  options,
+  onChange,
+  className,
+}: {
+  ariaLabel: string;
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  function choose(nextValue: string) {
+    onChange(nextValue);
+    setOpen(false);
+  }
+
+  return (
+    <div className={`${styles.customSelect} ${className ?? ''}`} ref={ref}>
+      <button
+        type="button"
+        className={styles.customSelectButton}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
+        <span className={styles.customSelectValue}>{selected?.label ?? ''}</span>
+        <IconChevronDown className={open ? styles.chevronOpen : ''} />
+      </button>
+      {open && (
+        <div className={styles.customSelectMenu} role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              className={`${styles.customSelectOption} ${option.value === value ? styles.customSelectOptionActive : ''}`}
+              onClick={() => choose(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -248,6 +440,15 @@ const IconGear = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const IconPill = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 22 22" width="16" height="16" className={className} aria-hidden="true">
+    <g transform="rotate(-35 11 11)">
+      <rect x="3.5" y="7" width="15" height="8" rx="4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M11 7v8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </g>
+  </svg>
+);
+
 const IconSearch = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" width="16" height="16" className={className} aria-hidden="true">
     <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -261,12 +462,28 @@ const IconClose = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const IconTick = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" width="26" height="26" className={className} aria-hidden="true">
+    <path d="M5 12.4l4.2 4.1L19 7" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconPrint = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" width="16" height="16" className={className} aria-hidden="true">
+    <path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M18 12h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+  </svg>
+);
+
 /* ════════════════════════════════════════════════════════════════════
    Main component
    ════════════════════════════════════════════════════════════════════ */
 
 export default function NewSale(): React.ReactElement {
   const router = useRouter();
+
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [editingBillNo, setEditingBillNo] = useState<string | null>(null);
 
   // Row 1 — toolbar
   const [ownerId, setOwnerId] = useState(OWNERS[0].id);
@@ -287,11 +504,17 @@ export default function NewSale(): React.ReactElement {
   const [itemQuery, setItemQuery] = useState('');
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
   const itemFieldRef = useClickOutside<HTMLDivElement>(() => setItemDropdownOpen(false));
+  const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const qtyInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cart
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
+  const [cartQtyDrafts, setCartQtyDrafts] = useState<Record<string, string>>({});
+
+  // Pill reminder modal
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderRows, setReminderRows] = useState<Record<string, ReminderState>>({});
 
   // Top items rail
   const [heldItemId, setHeldItemId] = useState<string | null>(null);
@@ -301,11 +524,18 @@ export default function NewSale(): React.ReactElement {
   const [discountOpen, setDiscountOpen] = useState(false);
   const [discountType, setDiscountType] = useState<DiscountType>('percent');
   const [discountInput, setDiscountInput] = useState('');
-  const [appliedDiscount, setAppliedDiscount] = useState<{ type: DiscountType; value: number } | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
+  const [customerPayInput, setCustomerPayInput] = useState('');
+  const [customerPayEdited, setCustomerPayEdited] = useState(false);
+  const customerPayInputRef = useRef<HTMLInputElement | null>(null);
+  const [invoiceCreated, setInvoiceCreated] = useState<InvoiceCreated | null>(null);
+  const newSaleButtonRef = useRef<HTMLButtonElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [billingDevice, setBillingDevice] = useState('Front Counter Thermal Printer');
+  const [cashDrawerDevice, setCashDrawerDevice] = useState('Front Counter Cash Drawer');
   const [paperSize, setPaperSize] = useState('80mm thermal');
   const [autoPrint, setAutoPrint] = useState(true);
+  const [autoOpenCashDrawer, setAutoOpenCashDrawer] = useState(true);
 
   /* ── Derived values ─────────────────────────────────────────────── */
 
@@ -323,15 +553,29 @@ export default function NewSale(): React.ReactElement {
 
   const totalQty = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty, 0), [cartLines]);
   const uniqueItemCount = cartLines.length;
-  const subtotal = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty * l.batch.sellPrice, 0), [cartLines]);
+  const subtotal = useMemo(
+    () => cartLines.reduce((sum, l) => sum + l.qty * l.batch.sellPrice * l.packMultiplier, 0),
+    [cartLines]
+  );
 
   const discountAmount = useMemo(() => {
-    if (!appliedDiscount) return 0;
-    const raw = appliedDiscount.type === 'percent' ? (subtotal * appliedDiscount.value) / 100 : appliedDiscount.value;
-    return Math.min(Math.max(raw, 0), subtotal);
+    return calculateDiscountAmount(appliedDiscount, subtotal);
   }, [appliedDiscount, subtotal]);
 
   const netPayable = Math.max(subtotal - discountAmount, 0);
+  const draftDiscountAmount = useMemo(() => {
+    const value = parseFloat(discountInput);
+    if (Number.isNaN(value) || value <= 0) return discountAmount;
+    return calculateDiscountAmount({ type: discountType, value }, subtotal);
+  }, [discountAmount, discountInput, discountType, subtotal]);
+  const draftNetPayable = Math.max(subtotal - draftDiscountAmount, 0);
+  const customerPaidAmount = parseFloat(customerPayInput);
+  const liveChangeDue = Number.isNaN(customerPaidAmount) ? 0 : Math.max(customerPaidAmount - draftNetPayable, 0);
+  const canSaveSale = cartLines.length > 0 && Number.isFinite(netPayable) && netPayable > 0;
+  const canOpenInvoiceBreakdown = canSaveSale;
+  const reminderEligibleLines = useMemo(() => {
+    return cartLines.filter((line) => totalTabsForLine(line) > 0);
+  }, [cartLines]);
 
   const topItemIds = useMemo(() => {
     if (customer && customer.isMember && customer.topItemIds?.length) return customer.topItemIds;
@@ -359,12 +603,72 @@ export default function NewSale(): React.ReactElement {
     [editor]
   );
 
+  useEffect(() => {
+    if (!discountOpen) return;
+    window.setTimeout(() => {
+      customerPayInputRef.current?.focus();
+      customerPayInputRef.current?.select();
+    }, 0);
+  }, [discountOpen]);
+
+  useEffect(() => {
+    if (!discountOpen || customerPayEdited) return;
+    setCustomerPayInput(draftNetPayable.toFixed(2));
+  }, [customerPayEdited, discountOpen, draftNetPayable]);
+
+  useEffect(() => {
+    if (!invoiceCreated) return;
+    window.setTimeout(() => {
+      newSaleButtonRef.current?.focus();
+    }, 0);
+  }, [invoiceCreated]);
+
+  useEffect(() => {
+    setCartLines((prev) => {
+      const merged = mergeCartLinesByItemPack(prev);
+      return merged.changed ? merged.lines : prev;
+    });
+  }, [cartLines]);
+
+  useEffect(() => {
+    const billId = new URLSearchParams(window.location.search).get('billId');
+    if (!billId) return;
+
+    const savedSales = window.localStorage.getItem(SAVED_SALES_KEY);
+    if (!savedSales) return;
+
+    try {
+      const savedBills = JSON.parse(savedSales) as SavedSale[];
+      const savedBill = savedBills.find((bill) => bill.id === billId && bill.status === 'pending');
+      if (!savedBill || !Array.isArray(savedBill.lines) || savedBill.lines.length === 0) return;
+
+      setEditingBillId(savedBill.id);
+      setEditingBillNo(savedBill.billNo);
+      setOwnerId(savedBill.ownerId ?? OWNERS[0].id);
+      setPaymentMethod(savedBill.paymentMethod ?? PAYMENT_METHODS[0]);
+      setPurchaseMethod(savedBill.purchaseMethod ?? 'pickup');
+      setBillDate(savedBill.billDate ?? savedBill.date.slice(0, 10));
+      setPharmacistId(savedBill.pharmacistId ?? PHARMACISTS[0].id);
+      setCustomer(CUSTOMERS.find((c) => c.id === savedBill.customerId) ?? null);
+      setCustomerQuery('');
+      setCartLines(savedBill.lines);
+      setCartQtyDrafts({});
+      setAppliedDiscount(savedBill.discount ?? null);
+      if (savedBill.discount) {
+        setDiscountType(savedBill.discount.type);
+        setDiscountInput(String(savedBill.discount.value));
+      }
+    } catch {
+      // Ignore malformed local drafts; real API loading will handle errors explicitly.
+    }
+  }, []);
+
   /* ── Handlers ───────────────────────────────────────────────────── */
 
   function openEditorForItem(item: CatalogItem) {
     const batch = nearestExpiryBatch(item.batches);
     if (!batch) return; // out of stock — nothing to sell
-    setEditor({ item, batch, qty: '1', batchCardOpen: false });
+    setEditor({ item, batch, sellPack: item.sellPacks[0], qty: '1', batchCardOpen: false });
     setItemQuery('');
     setItemDropdownOpen(false);
     window.setTimeout(() => {
@@ -375,7 +679,24 @@ export default function NewSale(): React.ReactElement {
 
   function handleSelectBatch(batch: Batch) {
     if (!editor) return;
-    setEditor({ ...editor, batch, batchCardOpen: false });
+    const maxQty = availableStockForPack(batch, editor.sellPack);
+    const currentQty = parseInt(editor.qty, 10) || 1;
+    setEditor({ ...editor, batch, qty: String(Math.max(1, Math.min(currentQty, maxQty || 1))), batchCardOpen: false });
+    window.setTimeout(() => {
+      qtyInputRef.current?.focus();
+      qtyInputRef.current?.select();
+    }, 0);
+  }
+
+  function handleSelectSellPack(pack: SellPack) {
+    if (!editor) return;
+    const nextBatch = availableStockForPack(editor.batch, pack) > 0
+      ? editor.batch
+      : nearestExpiryBatchForPack(editor.item.batches, pack);
+    if (!nextBatch) return;
+    const maxQty = availableStockForPack(nextBatch, pack);
+    const currentQty = parseInt(editor.qty, 10) || 1;
+    setEditor({ ...editor, sellPack: pack, batch: nextBatch, qty: String(Math.max(1, Math.min(currentQty, maxQty))) });
     window.setTimeout(() => {
       qtyInputRef.current?.focus();
       qtyInputRef.current?.select();
@@ -384,28 +705,130 @@ export default function NewSale(): React.ReactElement {
 
   function commitEditorToCart() {
     if (!editor) return;
-    const qty = Math.max(1, parseInt(editor.qty, 10) || 1);
-    setCartLines((prev) => [
-      ...prev,
-      {
-        lineId: `${editor.item.id}-${editor.batch.batchId}-${Date.now()}`,
-        itemId: editor.item.id,
-        itemName: editor.item.name,
-        unit: editor.item.unit,
-        loc: editor.item.loc,
-        batch: editor.batch,
-        qty,
-      },
-    ]);
+    const maxQty = availableStockForPack(editor.batch, editor.sellPack);
+    if (maxQty <= 0) return;
+    const qty = Math.max(1, Math.min(parseInt(editor.qty, 10) || 1, maxQty));
+    setCartLines((prev) => {
+      const existingLine = prev.find((line) => (
+        line.itemId === editor.item.id &&
+        line.packLabel === editor.sellPack.displayLabel &&
+        line.packMultiplier === editor.sellPack.priceMultiplier
+      ));
+
+      if (existingLine) {
+        const mergedQty = Math.min(maxQtyForCartLine(existingLine), existingLine.qty + qty);
+        return prev.map((line) => {
+          if (line.lineId !== existingLine.lineId) return line;
+          return { ...line, qty: mergedQty };
+        });
+      }
+
+      return [
+        ...prev,
+        {
+          lineId: `${editor.item.id}-${editor.sellPack.key}-${Date.now()}`,
+          itemId: editor.item.id,
+          itemName: editor.item.name,
+          packLabel: editor.sellPack.displayLabel,
+          packMultiplier: editor.sellPack.priceMultiplier,
+          loc: editor.item.loc,
+          batch: editor.batch,
+          qty,
+        },
+      ];
+    });
     setEditor(null);
+    setItemQuery('');
+    setItemDropdownOpen(false);
+    window.setTimeout(() => {
+      itemSearchInputRef.current?.focus();
+    }, 0);
   }
 
   function removeCartLine(lineId: string) {
     setCartLines((prev) => prev.filter((l) => l.lineId !== lineId));
+    setCartQtyDrafts((prev) => {
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
+    setReminderRows((prev) => {
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
   }
 
   function updateCartQty(lineId: string, qty: number) {
-    setCartLines((prev) => prev.map((l) => (l.lineId === lineId ? { ...l, qty: Math.max(1, qty) } : l)));
+    setCartLines((prev) => prev.map((l) => {
+      if (l.lineId !== lineId) return l;
+      const maxQty = maxQtyForCartLine(l);
+      return { ...l, qty: Math.min(maxQty, Math.max(1, qty)) };
+    }));
+    setCartQtyDrafts((prev) => {
+      const next = { ...prev };
+      delete next[lineId];
+      return next;
+    });
+  }
+
+  function updateReminderRow(lineId: string, updater: (row: ReminderState) => ReminderState) {
+    setReminderRows((prev) => {
+      const current = prev[lineId] ?? createDefaultReminder();
+      return { ...prev, [lineId]: updater(current) };
+    });
+  }
+
+  function openReminderCard() {
+    setReminderRows((prev) => {
+      const next = { ...prev };
+      reminderEligibleLines.forEach((line) => {
+        const totalTabs = totalTabsForLine(line);
+        if (!next[line.lineId]) {
+          next[line.lineId] = createDefaultReminder(totalTabs);
+          return;
+        }
+        next[line.lineId] = {
+          ...next[line.lineId],
+          doses: [Math.max(1, totalTabs), next[line.lineId].doses[1], next[line.lineId].doses[2], next[line.lineId].doses[3]],
+        };
+      });
+      return next;
+    });
+    setReminderOpen(true);
+  }
+
+  function toggleReminderLine(lineId: string) {
+    updateReminderRow(lineId, (row) => ({ ...row, enabled: !row.enabled }));
+  }
+
+  function setReminderTime(lineId: string, timeIndex: number) {
+    updateReminderRow(lineId, (row) => ({ ...row, activeTime: timeIndex }));
+  }
+
+  function focusReminderCell(lineId: string, timeIndex: number) {
+    window.setTimeout(() => {
+      document
+        .querySelector<HTMLButtonElement>(`[data-reminder-line="${lineId}"][data-reminder-time="${timeIndex}"]`)
+        ?.focus();
+    }, 0);
+  }
+
+  function navigateReminderTime(lineId: string, currentTimeIndex: number, direction: -1 | 1) {
+    const nextTimeIndex = (currentTimeIndex + direction + REMINDER_TIMES.length) % REMINDER_TIMES.length;
+    updateReminderRow(lineId, (row) => ({
+      ...row,
+      activeTime: nextTimeIndex,
+    }));
+    focusReminderCell(lineId, nextTimeIndex);
+  }
+
+  function changeReminderDose(lineId: string, timeIndex: number, delta: -1 | 1) {
+    updateReminderRow(lineId, (row) => {
+      const doses = [...row.doses] as ReminderDoses;
+      doses[timeIndex] = Math.max(0, Math.min(9, doses[timeIndex] + delta));
+      return { ...row, activeTime: timeIndex, doses };
+    });
   }
 
   function handleTopItemTap(item: CatalogItem) {
@@ -425,45 +848,105 @@ export default function NewSale(): React.ReactElement {
   }
 
   function openDiscountDrawer() {
+    if (!canOpenInvoiceBreakdown) return;
     if (appliedDiscount) {
       setDiscountType(appliedDiscount.type);
       setDiscountInput(String(appliedDiscount.value));
     }
+    setCustomerPayInput(netPayable.toFixed(2));
+    setCustomerPayEdited(false);
     setDiscountOpen(true);
   }
 
-  function applyDiscount() {
+  function openCashDrawer(reason: string) {
+    if (!autoOpenCashDrawer) return;
+    if (cashDrawerDevice === 'No Cash Drawer') return;
+    console.log('Opening cash drawer', {
+      cashDrawerDevice,
+      billingDevice,
+      reason,
+    });
+  }
+
+  function handleCustomerPayEnter() {
+    submitInvoicePayment();
+  }
+
+  function addCustomerCash(amount: number) {
+    const currentPaid = parseFloat(customerPayInput);
+    const basePaid = customerPayEdited && !Number.isNaN(currentPaid) ? currentPaid : 0;
+    const nextPaid = basePaid + amount;
+    setCustomerPayEdited(true);
+    setCustomerPayInput(String(nextPaid));
+    window.setTimeout(() => {
+      customerPayInputRef.current?.focus();
+    }, 0);
+  }
+
+  function readDraftDiscount(): AppliedDiscount | null {
     const value = parseFloat(discountInput);
     if (Number.isNaN(value) || value <= 0) {
-      setAppliedDiscount(null);
-    } else {
-      setAppliedDiscount({ type: discountType, value });
+      return null;
     }
-    setDiscountOpen(false);
+    return { type: discountType, value };
   }
 
-  function clearDiscount() {
+  function resetForNewWalkIn() {
+    setCartLines([]);
+    setCartQtyDrafts({});
+    setReminderRows({});
+    setReminderOpen(false);
+    setEditor(null);
     setAppliedDiscount(null);
     setDiscountInput('');
+    setCustomerPayInput('');
+    setCustomerPayEdited(false);
+    setCustomer(null);
+    setCustomerQuery('');
+    setItemQuery('');
+    setItemDropdownOpen(false);
     setDiscountOpen(false);
+    setInvoiceCreated(null);
+    setEditingBillId(null);
+    setEditingBillNo(null);
+    setBillDate(new Date().toISOString().slice(0, 10));
   }
 
-  function handleSave(mode: 'save' | 'save-print' | 'save-new') {
+  function persistSale(mode: SaveMode, overrides: {
+    discount?: AppliedDiscount | null;
+    netPayable?: number;
+    customerPaid?: number | null;
+    changeDue?: number;
+    status?: BillStatus;
+  } = {}): InvoiceCreated {
     const billDateTime = new Date();
+    const effectiveNetPayable = overrides.netPayable ?? netPayable;
+    const effectiveCustomerPaid = overrides.customerPaid !== undefined
+      ? overrides.customerPaid
+      : parseFloat(customerPayInput) || null;
+    const effectiveChangeDue = overrides.changeDue ?? liveChangeDue;
+    const saleStatus = overrides.status ?? 'paid';
+    const invoiceNo = editingBillNo ?? `INV-${billDateTime
+      .toISOString()
+      .slice(2, 10)
+      .replace(/-/g, '')}-${String(billDateTime.getTime()).slice(-4)}`;
     const savedBill = {
-      id: `saved-${billDateTime.getTime()}`,
-      billNo: `INV-${billDateTime
-        .toISOString()
-        .slice(2, 10)
-        .replace(/-/g, '')}-${String(billDateTime.getTime()).slice(-4)}`,
+      id: editingBillId ?? `saved-${billDateTime.getTime()}`,
+      billNo: invoiceNo,
       date: billDateTime.toISOString(),
       customerName: customer?.name ?? 'Walk-in Customer',
       isMember: customer?.isMember ?? false,
       itemCount: cartLines.length,
       paymentMethod,
       purchaseMethod,
-      netTotal: netPayable,
-      status: 'paid',
+      netTotal: effectiveNetPayable,
+      status: saleStatus,
+      ownerId,
+      billDate,
+      pharmacistId,
+      customerId: customer?.id ?? null,
+      lines: cartLines,
+      discount: overrides.discount ?? appliedDiscount,
     };
 
     const savedSales = window.localStorage.getItem(SAVED_SALES_KEY);
@@ -473,7 +956,8 @@ export default function NewSale(): React.ReactElement {
     } catch {
       previousSales = [];
     }
-    window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify([savedBill, ...previousSales].slice(0, 30)));
+    const otherSales = previousSales.filter((bill: SavedSale) => bill.id !== savedBill.id);
+    window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify([savedBill, ...otherSales].slice(0, 30)));
 
     // TODO: wire to POST /api/sales — payload below is the shape the endpoint expects.
     const payload = {
@@ -485,20 +969,69 @@ export default function NewSale(): React.ReactElement {
       customerId: customer?.id ?? null,
       lines: cartLines,
       subtotal,
-      discount: appliedDiscount,
-      netPayable,
+      discount: overrides.discount ?? appliedDiscount,
+      netPayable: effectiveNetPayable,
+      customerPaid: effectiveCustomerPaid,
+      changeDue: effectiveChangeDue,
       billingDevice,
+      cashDrawerDevice,
       paperSize,
       autoPrint,
+      autoOpenCashDrawer,
       mode,
+      status: saleStatus,
     };
     console.log('Saving sale', payload);
+
+    return {
+      invoiceNo,
+      amountPaid: effectiveCustomerPaid ?? effectiveNetPayable,
+      changeDue: effectiveChangeDue,
+      paymentMode: paymentMethod,
+      createdAt: billDateTime.toISOString(),
+    };
+  }
+
+  function submitInvoicePayment() {
+    if (!canSaveSale) return;
+    const nextDiscount = readDraftDiscount();
+    const nextDiscountAmount = calculateDiscountAmount(nextDiscount, subtotal);
+    const nextNetPayable = Math.max(subtotal - nextDiscountAmount, 0);
+    const paid = parseFloat(customerPayInput);
+    const nextChangeDue = Number.isNaN(paid) ? 0 : Math.max(paid - nextNetPayable, 0);
+
+    if (!Number.isNaN(paid) && paid >= nextNetPayable) {
+      openCashDrawer('customer payment submitted');
+    }
+
+    const createdInvoice = persistSale('save-new', {
+      discount: nextDiscount,
+      netPayable: nextNetPayable,
+      customerPaid: Number.isNaN(paid) ? null : paid,
+      changeDue: nextChangeDue,
+      status: 'paid',
+    });
+    setAppliedDiscount(nextDiscount);
+    setDiscountOpen(false);
+    setInvoiceCreated(createdInvoice);
+  }
+
+  function clearDiscount() {
+    setAppliedDiscount(null);
+    setDiscountInput('');
+    setDiscountOpen(false);
+  }
+
+  function handleSave(mode: SaveMode) {
+    if (!canSaveSale) return;
+    persistSale(mode, {
+      status: 'pending',
+      customerPaid: null,
+      changeDue: 0,
+    });
     setSaveMenuOpen(false);
     if (mode === 'save-new') {
-      setCartLines([]);
-      setEditor(null);
-      setAppliedDiscount(null);
-      setDiscountInput('');
+      resetForNewWalkIn();
       return;
     }
     router.push('/sales');
@@ -517,33 +1050,52 @@ export default function NewSale(): React.ReactElement {
         </div>
 
         <div className={styles.toolbarControls}>
-          <label className={styles.selectField}>
-            <select aria-label="Owner" value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={styles.select}>
-              {OWNERS.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-            </select>
-          </label>
+          <CustomSelect
+            ariaLabel="Owner"
+            value={ownerId}
+            options={OWNERS.map((owner) => ({ value: owner.id, label: owner.name }))}
+            onChange={setOwnerId}
+          />
 
-          <label className={styles.selectField}>
-            <select aria-label="Payment method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className={styles.select}>
-              {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </label>
+          <CustomSelect
+            ariaLabel="Payment method"
+            value={paymentMethod}
+            options={PAYMENT_METHODS.map((method) => ({ value: method, label: method }))}
+            onChange={setPaymentMethod}
+          />
 
-          <label className={styles.selectField}>
-            <select aria-label="Fulfilment" value={purchaseMethod} onChange={(e) => setPurchaseMethod(e.target.value as PurchaseMethod)} className={styles.select}>
-              <option value="pickup">Pickup</option>
-              <option value="delivery">Delivery</option>
-            </select>
-          </label>
+          <button
+            type="button"
+            className={styles.reminderButton}
+            onClick={openReminderCard}
+            aria-haspopup="dialog"
+          >
+            <IconPill />
+            <span>Reminder</span>
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.fulfilmentToggle} ${purchaseMethod === 'delivery' ? styles.fulfilmentToggleDelivery : ''}`}
+            onClick={() => setPurchaseMethod((current) => (current === 'pickup' ? 'delivery' : 'pickup'))}
+            aria-label="Toggle fulfilment method"
+            aria-pressed={purchaseMethod === 'delivery'}
+          >
+            <span className={styles.fulfilmentLabel}>{purchaseMethod === 'pickup' ? 'Pickup' : 'Delivery'}</span>
+            <span className={styles.fulfilmentSwitch} aria-hidden="true">
+              <span className={styles.fulfilmentSwitchThumb} />
+            </span>
+          </button>
 
           <div className={styles.saveSplit} ref={saveMenuRef}>
-            <button type="button" className={styles.saveMain} onClick={() => handleSave('save')}>
+            <button type="button" className={styles.saveMain} onClick={() => handleSave('save')} disabled={!canSaveSale}>
               Save
             </button>
             <button
               type="button"
               className={styles.saveChevron}
               onClick={() => setSaveMenuOpen((v) => !v)}
+              disabled={!canSaveSale}
               aria-haspopup="menu"
               aria-expanded={saveMenuOpen}
               aria-label="More save options"
@@ -552,8 +1104,8 @@ export default function NewSale(): React.ReactElement {
             </button>
             {saveMenuOpen && (
               <div className={styles.saveMenu} role="menu">
-                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save-print')}>Save &amp; print</button>
-                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save-new')}>Save &amp; start new sale</button>
+                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save')} disabled={!canSaveSale}>Save as pending</button>
+                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save-new')} disabled={!canSaveSale}>Save pending &amp; new</button>
               </div>
             )}
           </div>
@@ -572,19 +1124,21 @@ export default function NewSale(): React.ReactElement {
 
       {/* Row 2 — bill meta */}
       <div className={styles.metaRow}>
-        <label className={styles.metaField}>
+        <label className={`${styles.metaField} ${styles.dateField}`}>
           <span className={styles.metaLabel}>Bill date</span>
           <input type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} className={styles.dateInput} />
         </label>
 
-        <div className={styles.metaField} ref={customerFieldRef} style={{ position: 'relative' }}>
+        <div className={`${styles.metaField} ${styles.customerField}`} ref={customerFieldRef}>
           <span className={styles.metaLabel}>Customer</span>
           {customer ? (
             <div className={styles.customerChip}>
               <span className={styles.avatar}>{initials(customer.name)}</span>
               <div className={styles.customerChipMeta}>
                 <span className={styles.customerChipName}>{customer.name}</span>
-                <span className={styles.customerChipMobile}>{customer.mobile}{customer.isMember ? ' · Member' : ''}</span>
+                <span className={styles.customerChipMobile}>
+                  {customer.mobile} · {customer.membershipRank} · {customer.points.toLocaleString('en-US')} pts
+                </span>
               </div>
               <button
                 type="button"
@@ -620,7 +1174,9 @@ export default function NewSale(): React.ReactElement {
                       <span className={styles.avatar}>{initials(c.name)}</span>
                       <div className={styles.customerChipMeta}>
                         <span className={styles.customerChipName}>{c.name}</span>
-                        <span className={styles.customerChipMobile}>{c.mobile}{c.isMember ? ' · Member' : ''}</span>
+                        <span className={styles.customerChipMobile}>
+                          {c.mobile} · {c.membershipRank} · {c.points.toLocaleString('en-US')} pts
+                        </span>
                       </div>
                     </button>
                   ))}
@@ -630,12 +1186,15 @@ export default function NewSale(): React.ReactElement {
           )}
         </div>
 
-        <label className={styles.metaField}>
+        <div className={`${styles.metaField} ${styles.pharmacistField}`}>
           <span className={styles.metaLabel}>Pharmacist</span>
-          <select value={pharmacistId} onChange={(e) => setPharmacistId(e.target.value)} className={styles.select}>
-            {PHARMACISTS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
+          <CustomSelect
+            ariaLabel="Pharmacist"
+            value={pharmacistId}
+            options={PHARMACISTS.map((pharmacist) => ({ value: pharmacist.id, label: pharmacist.name }))}
+            onChange={setPharmacistId}
+          />
+        </div>
       </div>
 
       {/* Scrollable body */}
@@ -645,6 +1204,7 @@ export default function NewSale(): React.ReactElement {
           <div className={styles.itemSearchField}>
             <IconSearch className={styles.itemSearchIcon} />
             <input
+              ref={itemSearchInputRef}
               type="text"
               value={itemQuery}
               onChange={(e) => { setItemQuery(e.target.value); setItemDropdownOpen(true); }}
@@ -655,7 +1215,7 @@ export default function NewSale(): React.ReactElement {
                   openEditorForItem(itemMatches[0]);
                 }
               }}
-              placeholder="Search item — code, barcode, or c, category"
+              placeholder="Search item — barcode, product name, etc."
               className={styles.itemSearchInput}
             />
           </div>
@@ -669,7 +1229,7 @@ export default function NewSale(): React.ReactElement {
                     <img src={it.image} alt="" className={styles.itemOptionThumb} />
                     <div className={styles.itemOptionMeta}>
                       <span className={styles.itemOptionName}>{it.name}</span>
-                      <span className={styles.itemOptionSub}>{it.brand} · {it.unit} · {it.loc}</span>
+                      <span className={styles.itemOptionSub}>{it.brand} · {it.packLabel} · {it.loc}</span>
                     </div>
                     <span className={styles.itemOptionPrice}>
                       {nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}
@@ -689,7 +1249,23 @@ export default function NewSale(): React.ReactElement {
                 <IconBin />
               </button>
               <span className={styles.itemNameCell}>{editor.item.name}</span>
-              <span className={styles.muted}>{editor.item.unit}</span>
+              <span className={styles.packChoice} aria-label="Sell unit">
+                {editor.item.sellPacks.map((pack) => {
+                  const hasStockForPack = editor.item.batches.some((batch) => availableStockForPack(batch, pack) > 0);
+                  return (
+                    <button
+                      key={pack.key}
+                      type="button"
+                      className={`${styles.packButton} ${pack.key === editor.sellPack.key ? styles.packButtonActive : ''}`}
+                      onClick={() => handleSelectSellPack(pack)}
+                      title={pack.relationLabel}
+                      disabled={!hasStockForPack}
+                    >
+                      {pack.label}
+                    </button>
+                  );
+                })}
+              </span>
               <span className={styles.muted}>{editor.item.loc}</span>
               <button
                 type="button"
@@ -700,7 +1276,7 @@ export default function NewSale(): React.ReactElement {
                 <IconChevronDown className={editor.batchCardOpen ? styles.chevronOpen : ''} />
               </button>
               <span className={styles.muted}>{formatExp(editor.batch.exp)}</span>
-              <span className={styles.alignRight}>฿{formatBaht(editor.batch.sellPrice)}</span>
+              <span className={styles.alignRight}>฿{formatBaht(sellPriceForPack(editor.batch, editor.sellPack))}</span>
               <input
                 ref={qtyInputRef}
                 type="text"
@@ -721,20 +1297,25 @@ export default function NewSale(): React.ReactElement {
                 }}
                 onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/\D/g, '');
+                  const maxQty = availableStockForPack(editor.batch, editor.sellPack);
                   const clampedQty = digitsOnly
-                    ? String(Math.min(editor.batch.stock, Math.max(1, parseInt(digitsOnly, 10))))
+                    ? String(Math.min(maxQty || 1, Math.max(1, parseInt(digitsOnly, 10))))
                     : '';
                   setEditor({ ...editor, qty: clampedQty });
                 }}
                 className={styles.qtyInputSmall}
               />
+              <button type="button" className={styles.addButton} onClick={commitEditorToCart}>
+                <span className={styles.addButtonIcon} aria-hidden="true">+</span>
+                <span>Add</span>
+              </button>
             </div>
 
             {editor.batchCardOpen && (
               <div className={styles.batchCard}>
                 <p className={styles.batchCardLabel}>Choose a batch — nearest expiry is pre-selected</p>
                 <div className={styles.batchOptions}>
-                  {editor.item.batches.filter((b) => b.stock > 0).map((b) => (
+                  {editor.item.batches.filter((b) => availableStockForPack(b, editor.sellPack) > 0).map((b) => (
                     <button
                       key={b.batchId}
                       type="button"
@@ -746,19 +1327,13 @@ export default function NewSale(): React.ReactElement {
                         {b.batchId === recommendedBatchId && <span className={styles.recommendedTag}>Nearest exp.</span>}
                       </span>
                       <span className={styles.batchOptionRow}><span className={styles.muted}>Exp.</span> {formatExp(b.exp)}</span>
-                      <span className={styles.batchOptionRow}><span className={styles.muted}>Sell</span> ฿{formatBaht(b.sellPrice)}</span>
-                      <span className={styles.batchOptionRow}><span className={styles.muted}>Stock</span> {b.stock}</span>
+                      <span className={styles.batchOptionRow}><span className={styles.muted}>Sell</span> ฿{formatBaht(sellPriceForPack(b, editor.sellPack))}</span>
+                      <span className={styles.batchOptionRow}><span className={styles.muted}>Stock</span> {availableStockForPack(b, editor.sellPack)} {displayPackUnit(editor.sellPack.unit)}</span>
                     </button>
                   ))}
                 </div>
               </div>
             )}
-
-            <div className={styles.editorFooter}>
-              <button type="button" className={styles.addButton} onClick={commitEditorToCart}>
-                Add to sale
-              </button>
-            </div>
           </div>
         )}
 
@@ -770,7 +1345,7 @@ export default function NewSale(): React.ReactElement {
                 <tr>
                   <th aria-hidden="true" />
                   <th>Item</th>
-                  <th>Unit / pack</th>
+                  <th>Pack</th>
                   <th>Loc.</th>
                   <th>Batch</th>
                   <th>Exp.</th>
@@ -788,23 +1363,59 @@ export default function NewSale(): React.ReactElement {
                       </button>
                     </td>
                     <td className={styles.itemNameCell}>{line.itemName}</td>
-                    <td className={styles.muted}>{line.unit}</td>
+                    <td className={styles.packCell}>
+                      <span className={styles.packCellUnit}>{line.packLabel}</span>
+                    </td>
                     <td className={styles.muted}>{line.loc}</td>
                     <td className={styles.muted}>{line.batch.batchNo}</td>
                     <td className={styles.muted}>{formatExp(line.batch.exp)}</td>
-                    <td className={styles.alignRight}>฿{formatBaht(line.batch.sellPrice)}</td>
+                    <td className={styles.alignRight}>฿{formatBaht(line.batch.sellPrice * line.packMultiplier)}</td>
                     <td className={styles.alignRight}>
-                      <input
-                        type="number"
-                        min={1}
-                        value={line.qty}
-                        onFocus={(e) => e.currentTarget.select()}
-                        onChange={(e) => updateCartQty(line.lineId, parseInt(e.target.value, 10) || 1)}
-                        className={styles.qtyInputSmall}
-                      />
+                      <div className={styles.qtyStepper}>
+                        <button
+                          type="button"
+                          className={styles.qtyStepButton}
+                          onClick={() => updateCartQty(line.lineId, line.qty - 1)}
+                          aria-label={`Decrease ${line.itemName} quantity`}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={cartQtyDrafts[line.lineId] ?? String(line.qty)}
+                          onFocus={(e) => e.currentTarget.select()}
+                          onBlur={() => {
+                            setCartQtyDrafts((prev) => {
+                              if (prev[line.lineId] !== '') return prev;
+                              const next = { ...prev };
+                              delete next[line.lineId];
+                              return next;
+                            });
+                          }}
+                          onChange={(e) => {
+                            const digitsOnly = e.target.value.replace(/\D/g, '');
+                            if (!digitsOnly) {
+                              setCartQtyDrafts((prev) => ({ ...prev, [line.lineId]: '' }));
+                              return;
+                            }
+                            setCartQtyDrafts((prev) => ({ ...prev, [line.lineId]: digitsOnly }));
+                            updateCartQty(line.lineId, parseInt(digitsOnly, 10));
+                          }}
+                          className={styles.qtyStepperInput}
+                        />
+                        <button
+                          type="button"
+                          className={styles.qtyStepButton}
+                          onClick={() => updateCartQty(line.lineId, line.qty + 1)}
+                          aria-label={`Increase ${line.itemName} quantity`}
+                        >
+                          +
+                        </button>
+                      </div>
                     </td>
                     <td className={styles.alignRight}>
-                      <span className={styles.lineTotal}>฿{formatBaht(line.qty * line.batch.sellPrice)}</span>
+                      <span className={styles.lineTotal}>฿{formatBaht(line.qty * line.batch.sellPrice * line.packMultiplier)}</span>
                     </td>
                   </tr>
                 ))}
@@ -816,35 +1427,45 @@ export default function NewSale(): React.ReactElement {
         {/* Top items rail */}
         {topItems.length > 0 && (
           <div className={styles.topItemsSection}>
-            <p className={styles.topItemsLabel}>{topItemsLabel}</p>
             <div className={styles.topItemsRail}>
               {topItems.map((it) => {
-                const isHeld = heldItemId === it.id;
+                const nearest = nearestExpiryBatch(it.batches);
                 return (
                   <button
                     key={it.id}
                     type="button"
-                    className={`${styles.topItemCard} ${isHeld ? styles.topItemCardHeld : ''}`}
+                    className={styles.topItemCard}
                     onMouseDown={() => startHold(it.id)}
                     onMouseUp={endHold}
                     onMouseLeave={endHold}
                     onTouchStart={() => startHold(it.id)}
                     onTouchEnd={endHold}
-                    onClick={() => !isHeld && handleTopItemTap(it)}
+                    onClick={() => handleTopItemTap(it)}
                   >
-                    <img src={it.image} alt="" className={styles.topItemImage} />
-                    {isHeld ? (
-                      <div className={styles.topItemHeldInfo}>
-                        <span className={styles.topItemHeldName}>{it.name}</span>
-                        <span className={styles.topItemHeldSub}>{it.brand} | {it.unit} | {it.loc}</span>
+                    <img src={it.image} alt={it.name} className={styles.topItemImage} />
+                    <span className={styles.topItemDetail} aria-hidden="true">
+                      <span className={styles.topItemDetailName}>{it.name}</span>
+                      <span className={styles.topItemDetailSub}>{it.brand} | {it.packLabel} | {it.loc}</span>
+                      <span className={styles.topItemDetailBottom}>
+                        <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
+                        <span>{nearest ? `Stock ${nearest.stock} ${displayPackUnit(it.packUnit)}` : 'Stock 0'}</span>
+                      </span>
+                    </span>
+                    {heldItemId === it.id && (
+                      <div className={styles.topItemTouchPreview}>
+                        <span className={styles.topItemDetailName}>{it.name}</span>
+                        <span className={styles.topItemDetailSub}>{it.brand} | {it.packLabel} | {it.loc}</span>
+                        <span className={styles.topItemDetailBottom}>
+                          <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
+                          <span>{nearest ? `Stock ${nearest.stock} ${displayPackUnit(it.packUnit)}` : 'Stock 0'}</span>
+                        </span>
                       </div>
-                    ) : (
-                      <span className={styles.topItemName}>{it.name}</span>
                     )}
                   </button>
                 );
               })}
             </div>
+            <p className={styles.topItemsLabel}>{topItemsLabel}</p>
           </div>
         )}
       </div>
@@ -861,7 +1482,13 @@ export default function NewSale(): React.ReactElement {
           <span className={styles.summaryStatValue}>{uniqueItemCount}</span>
         </div>
         <div className={styles.summaryDivider} />
-        <button type="button" className={styles.netPayableCell} onClick={openDiscountDrawer}>
+        <button
+          type="button"
+          className={styles.netPayableCell}
+          onClick={openDiscountDrawer}
+          disabled={!canOpenInvoiceBreakdown}
+          aria-disabled={!canOpenInvoiceBreakdown}
+        >
           <span className={styles.summaryStatLabel}>
             Net payable {appliedDiscount && <span className={styles.discountBadge}>discount applied</span>}
           </span>
@@ -869,10 +1496,107 @@ export default function NewSale(): React.ReactElement {
         </button>
       </div>
 
+      {/* Pill reminder */}
+      {reminderOpen && (
+        <div className={styles.reminderBackdrop} onClick={() => setReminderOpen(false)}>
+          <div className={styles.reminderCard} role="dialog" aria-modal="true" aria-labelledby="pill-reminder-title" onClick={(e) => e.stopPropagation()}>
+            <div className={styles.drawerHeader}>
+              <h2 id="pill-reminder-title" className={styles.drawerTitle}>Pill Reminder</h2>
+              <button type="button" className={styles.drawerClose} onClick={() => setReminderOpen(false)} aria-label="Close pill reminder">
+                <IconClose />
+              </button>
+            </div>
+
+            {reminderEligibleLines.length === 0 ? (
+              <div className={styles.reminderEmpty}>No tablet or caplet items in this bill.</div>
+            ) : (
+              <div className={styles.reminderTableWrap}>
+                <table className={styles.reminderTable}>
+                  <thead>
+                    <tr>
+                      <th>Drug</th>
+                      {REMINDER_TIMES.map((time) => (
+                        <th key={time.label}>
+                          <span className={styles.reminderTimeHead}>
+                            <img src={time.icon} alt={time.label} className={styles.reminderTimeIcon} />
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reminderEligibleLines.map((line) => {
+                      const catalogItem = THAI_CATALOG.find((item) => item.id === line.itemId);
+                      const reminder = reminderRows[line.lineId] ?? createDefaultReminder();
+                      const totalTabs = totalTabsForLine(line);
+                      return (
+                        <tr key={line.lineId} className={!reminder.enabled ? styles.reminderRowMuted : ''}>
+                          <td>
+                            <label className={styles.reminderDrug}>
+                              <input
+                                type="checkbox"
+                                checked={reminder.enabled}
+                                onChange={() => toggleReminderLine(line.lineId)}
+                              />
+                              <span className={styles.reminderDrugText}>
+                                <span className={styles.reminderDrugName}>{line.itemName}</span>
+                                <span className={styles.reminderDrugSub}>
+                                  {totalTabs.toLocaleString('en-US')} tabs total | {catalogItem?.packLabel ?? line.packLabel} | {line.packLabel} | {line.loc}
+                                </span>
+                              </span>
+                            </label>
+                          </td>
+                          {REMINDER_TIMES.map((time, index) => (
+                            <td key={time.label}>
+                              <button
+                                type="button"
+                                className={`${styles.reminderDoseButton} ${reminder.activeTime === index ? styles.reminderDoseButtonActive : ''}`}
+                                data-reminder-line={line.lineId}
+                                data-reminder-time={index}
+                                onClick={() => setReminderTime(line.lineId, index)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'ArrowLeft') {
+                                    e.preventDefault();
+                                    navigateReminderTime(line.lineId, index, -1);
+                                    return;
+                                  }
+                                  if (e.key === 'ArrowRight') {
+                                    e.preventDefault();
+                                    navigateReminderTime(line.lineId, index, 1);
+                                    return;
+                                  }
+                                  if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    changeReminderDose(line.lineId, index, 1);
+                                    return;
+                                  }
+                                  if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    changeReminderDose(line.lineId, index, -1);
+                                  }
+                                }}
+                                disabled={!reminder.enabled}
+                                aria-label={`${line.itemName}, ${time.label}, ${reminder.doses[index]} tab`}
+                              >
+                                {reminder.doses[index]}
+                              </button>
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Sale settings */}
       {settingsOpen && (
-        <div className={styles.drawerBackdrop} onClick={() => setSettingsOpen(false)}>
-          <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.settingsBackdrop} onClick={() => setSettingsOpen(false)}>
+          <div className={styles.settingsPanel} onClick={(e) => e.stopPropagation()}>
             <div className={styles.drawerHeader}>
               <h2 className={styles.drawerTitle}>Sale settings</h2>
               <button type="button" className={styles.drawerClose} onClick={() => setSettingsOpen(false)} aria-label="Close">
@@ -881,25 +1605,53 @@ export default function NewSale(): React.ReactElement {
             </div>
 
             <p className={styles.drawerSectionLabel}>Billing device</p>
-            <label className={styles.settingsField}>
+            <div className={styles.settingsField}>
               <span className={styles.settingsLabel}>Receipt printer</span>
-              <select value={billingDevice} onChange={(e) => setBillingDevice(e.target.value)} className={styles.settingsSelect}>
-                <option>Front Counter Thermal Printer</option>
-                <option>Back Counter Thermal Printer</option>
-                <option>PDF Preview Only</option>
-                <option>USB Receipt Printer</option>
-              </select>
-            </label>
+              <CustomSelect
+                ariaLabel="Receipt printer"
+                value={billingDevice}
+                options={[
+                  { value: 'Front Counter Thermal Printer', label: 'Front Counter Thermal Printer' },
+                  { value: 'Back Counter Thermal Printer', label: 'Back Counter Thermal Printer' },
+                  { value: 'PDF Preview Only', label: 'PDF Preview Only' },
+                  { value: 'USB Receipt Printer', label: 'USB Receipt Printer' },
+                ]}
+                onChange={setBillingDevice}
+                className={styles.settingsCustomSelect}
+              />
+            </div>
 
-            <label className={styles.settingsField}>
+            <div className={styles.settingsField}>
               <span className={styles.settingsLabel}>Paper size</span>
-              <select value={paperSize} onChange={(e) => setPaperSize(e.target.value)} className={styles.settingsSelect}>
-                <option>80mm thermal</option>
-                <option>58mm thermal</option>
-                <option>A5 invoice</option>
-                <option>A4 invoice</option>
-              </select>
-            </label>
+              <CustomSelect
+                ariaLabel="Paper size"
+                value={paperSize}
+                options={[
+                  { value: '80mm thermal', label: '80mm thermal' },
+                  { value: '58mm thermal', label: '58mm thermal' },
+                  { value: 'A5 invoice', label: 'A5 invoice' },
+                  { value: 'A4 invoice', label: 'A4 invoice' },
+                ]}
+                onChange={setPaperSize}
+                className={styles.settingsCustomSelect}
+              />
+            </div>
+
+            <div className={styles.settingsField}>
+              <span className={styles.settingsLabel}>Cash drawer</span>
+              <CustomSelect
+                ariaLabel="Cash drawer"
+                value={cashDrawerDevice}
+                options={[
+                  { value: 'Front Counter Cash Drawer', label: 'Front Counter Cash Drawer' },
+                  { value: 'Back Counter Cash Drawer', label: 'Back Counter Cash Drawer' },
+                  { value: 'Printer-connected Drawer', label: 'Printer-connected Drawer' },
+                  { value: 'No Cash Drawer', label: 'No Cash Drawer' },
+                ]}
+                onChange={setCashDrawerDevice}
+                className={styles.settingsCustomSelect}
+              />
+            </div>
 
             <label className={styles.settingsToggle}>
               <span>
@@ -913,10 +1665,23 @@ export default function NewSale(): React.ReactElement {
               />
             </label>
 
+            <label className={styles.settingsToggle}>
+              <span>
+                <span className={styles.settingsLabel}>Auto open cash drawer after payment</span>
+                <span className={styles.settingsHelp}>Uses the selected cash drawer when Customer pay is enough.</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={autoOpenCashDrawer}
+                onChange={(e) => setAutoOpenCashDrawer(e.target.checked)}
+              />
+            </label>
+
             <div className={styles.devicePreview}>
               <span className={styles.muted}>Current setup</span>
               <strong>{billingDevice}</strong>
               <span>{paperSize} {autoPrint ? '| auto print on' : '| auto print off'}</span>
+              <span>{cashDrawerDevice} {autoOpenCashDrawer ? '| drawer auto open on' : '| drawer auto open off'}</span>
             </div>
 
             <div className={styles.drawerActions}>
@@ -946,7 +1711,7 @@ export default function NewSale(): React.ReactElement {
               <span>฿{formatBaht(discountAmount)}</span>
             </div>
 
-            <p className={styles.drawerSectionLabel}>Bill discount — for a loyal customer, or a one-off price break</p>
+            <p className={styles.drawerSectionLabel}>Bill discount</p>
             <div className={styles.discountTypeToggle}>
               <button
                 type="button"
@@ -975,11 +1740,69 @@ export default function NewSale(): React.ReactElement {
             <div className={styles.drawerRow}>
               <span className={styles.muted}>Net payable</span>
               <span className={styles.drawerNetPayable}>
-                ฿{formatBaht(
-                  discountInput
-                    ? Math.max(subtotal - (discountType === 'percent' ? (subtotal * (parseFloat(discountInput) || 0)) / 100 : parseFloat(discountInput) || 0), 0)
-                    : subtotal
-                )}
+                ฿{formatBaht(draftNetPayable)}
+              </span>
+            </div>
+
+            <p className={styles.drawerSectionLabel}>Customer pay</p>
+            <input
+              ref={customerPayInputRef}
+              type="number"
+              min={0}
+              value={customerPayInput}
+              onChange={(e) => {
+                setCustomerPayEdited(true);
+                setCustomerPayInput(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCustomerPayEnter();
+                }
+              }}
+              placeholder="Key amount paid"
+              className={styles.customerPayInput}
+            />
+
+            {paymentMethod === 'Cash' && (
+              <div className={styles.cashNoteRow} aria-label="Quick cash amount">
+                {[
+                  { amount: 100, className: styles.cashNote100 },
+                  { amount: 500, className: styles.cashNote500 },
+                  { amount: 1000, className: styles.cashNote1000 },
+                ].map(({ amount, className }) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    className={`${styles.cashNoteButton} ${className}`}
+                    onClick={() => addCustomerCash(amount)}
+                    aria-label={`Add ${amount} Thai baht`}
+                  >
+                    <span className={styles.cashNoteGraphic} aria-hidden="true">
+                      <span className={styles.cashNoteSeal}>฿</span>
+                      <span className={styles.cashNoteLines}>
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    </span>
+                    <strong>{amount}</strong>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className={styles.changePanel}>
+              <span className={styles.muted}>Change</span>
+              <strong>฿{formatBaht(liveChangeDue)}</strong>
+            </div>
+
+            <div className={styles.cashDrawerStatus}>
+              <span className={styles.cashDrawerDot} />
+              <span>
+                {autoOpenCashDrawer
+                  ? `Cash drawer auto open: ${cashDrawerDevice}`
+                  : 'Cash drawer auto open: off'}
               </span>
             </div>
 
@@ -987,8 +1810,64 @@ export default function NewSale(): React.ReactElement {
               {appliedDiscount && (
                 <button type="button" className={styles.drawerSecondaryBtn} onClick={clearDiscount}>Remove discount</button>
               )}
-              <button type="button" className={styles.drawerPrimaryBtn} onClick={applyDiscount}>Submit</button>
+              <button type="button" className={styles.drawerPrimaryBtn} onClick={submitInvoicePayment}>Submit</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {invoiceCreated && (
+        <div className={styles.invoiceCreatedBackdrop}>
+          <div className={styles.invoiceCreatedCard} role="status" aria-live="polite">
+            <div className={styles.invoiceCreatedIcon}>
+              <IconTick />
+            </div>
+            <h2 className={styles.invoiceCreatedTitle}>Invoice created!</h2>
+            <p className={styles.invoiceCreatedSub}>Payment received successfully</p>
+
+            <div className={styles.invoiceCreatedDetails}>
+              <div className={styles.invoiceCreatedRow}>
+                <span>Invoice no.</span>
+                <strong className={styles.invoiceCreatedNo}>{invoiceCreated.invoiceNo}</strong>
+              </div>
+              <div className={styles.invoiceCreatedRow}>
+                <span>Amount paid</span>
+                <strong>฿{formatBaht(invoiceCreated.amountPaid)}</strong>
+              </div>
+              <div className={styles.invoiceCreatedRow}>
+                <span>Change</span>
+                <strong>฿{formatBaht(invoiceCreated.changeDue)}</strong>
+              </div>
+              <div className={styles.invoiceCreatedRow}>
+                <span>Method</span>
+                <strong>{invoiceCreated.paymentMode}</strong>
+              </div>
+              <div className={styles.invoiceCreatedRow}>
+                <span>Time</span>
+                <strong className={styles.invoiceCreatedTime}>
+                  {new Date(invoiceCreated.createdAt).toLocaleString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </strong>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className={styles.printReceiptBtn}
+              onClick={() => console.log('Print receipt', invoiceCreated)}
+            >
+              <IconPrint />
+              Print Receipt
+            </button>
+            <button ref={newSaleButtonRef} type="button" className={styles.newSaleBtn} onClick={resetForNewWalkIn}>
+              <span className={styles.newSaleBtnIcon} aria-hidden="true">+</span>
+              <span>New</span>
+            </button>
           </div>
         </div>
       )}

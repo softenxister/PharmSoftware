@@ -25,24 +25,11 @@ interface RecentBill {
   status: BillStatus;
 }
 
-/**
- * ── Mock data ──────────────────────────────────────────────────────────
- * Replace with a fetch to GET /api/sales?limit=… on mount.
- */
-const MOCK_BILLS: RecentBill[] = [
-  { id: 'b1', billNo: 'INV-240702-014', date: '2026-07-02T09:12:00', customerName: 'Suchada Wong', isMember: true, itemCount: 4, paymentMethod: 'Cash', purchaseMethod: 'pickup', netTotal: 386, status: 'paid' },
-  { id: 'b2', billNo: 'INV-240702-013', date: '2026-07-02T08:47:00', customerName: 'Walk-in Customer', isMember: false, itemCount: 1, paymentMethod: 'PromptPay', purchaseMethod: 'pickup', netTotal: 45, status: 'paid' },
-  { id: 'b3', billNo: 'INV-240701-041', date: '2026-07-01T18:03:00', customerName: 'Kridsada Phan', isMember: true, itemCount: 7, paymentMethod: 'Credit card', purchaseMethod: 'delivery', netTotal: 1240, status: 'pending' },
-  { id: 'b4', billNo: 'INV-240701-040', date: '2026-07-01T17:22:00', customerName: 'Areeya Somboon', isMember: true, itemCount: 2, paymentMethod: 'Cash', purchaseMethod: 'pickup', netTotal: 128, status: 'paid' },
-  { id: 'b5', billNo: 'INV-240701-039', date: '2026-07-01T15:55:00', customerName: 'Walk-in Customer', isMember: false, itemCount: 3, paymentMethod: 'PromptPay', purchaseMethod: 'pickup', netTotal: 210, status: 'void' },
-  { id: 'b6', billNo: 'INV-240701-038', date: '2026-07-01T14:10:00', customerName: 'Natthapong Lee', isMember: true, itemCount: 5, paymentMethod: 'Cash', purchaseMethod: 'delivery', netTotal: 567, status: 'paid' },
-];
-
 const SAVED_SALES_KEY = 'pharm_recent_sales';
 
 const STATUS_LABEL: Record<BillStatus, string> = {
   paid: 'Paid',
-  pending: 'Pending',
+  pending: 'Pending payment',
   void: 'Void',
 };
 
@@ -69,17 +56,21 @@ export default function SaleHome(): React.ReactElement {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [bills, setBills] = useState<RecentBill[]>(MOCK_BILLS);
+  const [bills, setBills] = useState<RecentBill[]>([]);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(SAVED_SALES_KEY);
     if (!saved) return;
 
     try {
-      const savedBills = JSON.parse(saved) as RecentBill[];
-      setBills([...savedBills, ...MOCK_BILLS]);
+      const savedBills = JSON.parse(saved) as Array<RecentBill & { lines?: unknown[] }>;
+      const reopenableBills = savedBills.filter((bill) => Array.isArray(bill.lines) && bill.lines.length > 0);
+      if (reopenableBills.length !== savedBills.length) {
+        window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify(reopenableBills));
+      }
+      setBills(reopenableBills);
     } catch {
-      setBills(MOCK_BILLS);
+      setBills([]);
     }
   }, []);
 
@@ -103,6 +94,10 @@ export default function SaleHome(): React.ReactElement {
   const pendingCount = bills.filter((bill) => bill.status === 'pending').length;
 
   const goToNewSale = () => router.push('/sales/new');
+  const openPendingBill = (bill: RecentBill) => {
+    if (bill.status !== 'pending') return;
+    router.push(`/sales/new?billId=${encodeURIComponent(bill.id)}`);
+  };
 
   return (
     <div className={styles.page}>
@@ -195,8 +190,25 @@ export default function SaleHome(): React.ReactElement {
                 </tr>
               </thead>
               <tbody>
-                {filteredBills.map((bill) => (
-                  <tr key={bill.id} className={styles.row} tabIndex={0}>
+                {filteredBills.map((bill) => {
+                  const isPending = bill.status === 'pending';
+                  return (
+                    <tr
+                      key={bill.id}
+                      className={`${styles.row} ${isPending ? styles.rowPending : ''}`}
+                      tabIndex={isPending ? 0 : undefined}
+                      role={isPending ? 'button' : undefined}
+                      aria-label={isPending ? `Open pending bill ${bill.billNo}` : undefined}
+                      title={isPending ? 'Open pending bill' : undefined}
+                      onClick={() => openPendingBill(bill)}
+                      onKeyDown={(e) => {
+                        if (!isPending) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openPendingBill(bill);
+                        }
+                      }}
+                    >
                     <td>
                       <div className={styles.billCell}>
                         <span className={styles.billNo}>{bill.billNo}</span>
@@ -224,7 +236,8 @@ export default function SaleHome(): React.ReactElement {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
 

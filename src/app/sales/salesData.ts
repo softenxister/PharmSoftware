@@ -14,14 +14,28 @@ export type ProductBatch = {
   availableStock: number;
 };
 
+export type ProductPack = {
+  packUnit: string;
+  childUnit: string;
+  childQuantity: number;
+  label: string;
+};
+
+export type ParentPack = {
+  packUnit: string;
+  childPackUnit: string;
+  childPackQuantity: number;
+  label: string;
+  priceMultiplier: number;
+};
+
 export type SalesProduct = {
   id: string;
   itemName: string;
   brandName: string;
-  unit: string;
+  pack: ProductPack;
+  parentPacks: ParentPack[];
   location: string;
-  shortCode: string;
-  internalCode: string;
   barcode: string;
   categoryShortcut: string;
   category: string;
@@ -74,10 +88,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-sara",
     itemName: "Sara Paracetamol 500 mg Tablet",
     brandName: "Sara",
-    unit: "Blister pack",
+    pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 10, label: "10 tabs" },
+    parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 10, label: "1 box = 10 blisterpack", priceMultiplier: 10 }],
     location: "A1-02",
-    shortCode: "sa",
-    internalCode: "g+01",
     barcode: "8850001000014",
     categoryShortcut: "c",
     category: "Pain Relief",
@@ -93,10 +106,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-tylenol",
     itemName: "Tylenol 500 mg Caplet",
     brandName: "Tylenol",
-    unit: "Blister pack",
+    pack: { packUnit: "blisterpack", childUnit: "caplet", childQuantity: 10, label: "10 caplets" },
+    parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 10, label: "1 box = 10 blisterpack", priceMultiplier: 10 }],
     location: "A1-04",
-    shortCode: "ty",
-    internalCode: "g+02",
     barcode: "8850001000021",
     categoryShortcut: "c",
     category: "Pain Relief",
@@ -111,10 +123,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-tiffy",
     itemName: "Tiffy Dey Cold Tablet",
     brandName: "Tiffy",
-    unit: "Blister pack",
+    pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 4, label: "4 tabs" },
+    parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 25, label: "1 box = 25 blisterpack", priceMultiplier: 25 }],
     location: "B2-01",
-    shortCode: "tf",
-    internalCode: "g+03",
     barcode: "8850001000038",
     categoryShortcut: "a",
     category: "Allergy & Cold",
@@ -129,10 +140,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-zyrtec",
     itemName: "Zyrtec Cetirizine 10 mg Tablet",
     brandName: "Zyrtec",
-    unit: "Blister pack",
+    pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 10, label: "10 tabs" },
+    parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 1, label: "1 box = 1 blisterpack", priceMultiplier: 1 }],
     location: "B2-03",
-    shortCode: "zy",
-    internalCode: "g+04",
     barcode: "8850001000045",
     categoryShortcut: "a",
     category: "Allergy & Cold",
@@ -147,10 +157,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-airx",
     itemName: "Air-X Simethicone Chewable Tablet",
     brandName: "Air-X",
-    unit: "Blister pack",
+    pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 10, label: "10 tabs" },
+    parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 10, label: "1 box = 10 blisterpack", priceMultiplier: 10 }],
     location: "C1-01",
-    shortCode: "ax",
-    internalCode: "g+05",
     barcode: "8850001000069",
     categoryShortcut: "g",
     category: "Gastrointestinal",
@@ -165,10 +174,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-gaviscon",
     itemName: "Gaviscon Double Action Liquid Sachet",
     brandName: "Gaviscon",
-    unit: "Sachet",
+    pack: { packUnit: "sachet", childUnit: "ml", childQuantity: 10, label: "10 ml" },
+    parentPacks: [{ packUnit: "box", childPackUnit: "sachet", childPackQuantity: 24, label: "1 box = 24 sachet", priceMultiplier: 24 }],
     location: "C1-03",
-    shortCode: "gy",
-    internalCode: "g+99",
     barcode: "93483924388",
     categoryShortcut: "g",
     category: "Gastrointestinal",
@@ -183,10 +191,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-ors",
     itemName: "Oreda R.O. Oral Rehydration Salts",
     brandName: "Oreda R.O.",
-    unit: "Sachet",
+    pack: { packUnit: "sachet", childUnit: "sachet", childQuantity: 1, label: "1 sachet" },
+    parentPacks: [{ packUnit: "box", childPackUnit: "sachet", childPackQuantity: 50, label: "1 box = 50 sachet", priceMultiplier: 50 }],
     location: "C1-05",
-    shortCode: "or",
-    internalCode: "g+07",
     barcode: "8850001000083",
     categoryShortcut: "g",
     category: "Gastrointestinal",
@@ -201,10 +208,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-blackmores-c",
     itemName: "Blackmores Bio C 1000 Tablet",
     brandName: "Blackmores",
-    unit: "Bottle",
+    pack: { packUnit: "bottle", childUnit: "tab", childQuantity: 60, label: "60 tabs" },
+    parentPacks: [],
     location: "D1-01",
-    shortCode: "bc",
-    internalCode: "g+08",
     barcode: "8850001000106",
     categoryShortcut: "v",
     category: "Vitamins & Supplements",
@@ -219,10 +225,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-natc",
     itemName: "MEGA We Care Nat C 1000 Tablet",
     brandName: "MEGA We Care",
-    unit: "Bottle",
+    pack: { packUnit: "bottle", childUnit: "tab", childQuantity: 30, label: "30 tabs" },
+    parentPacks: [],
     location: "D1-03",
-    shortCode: "nc",
-    internalCode: "g+09",
     barcode: "8850001000113",
     categoryShortcut: "v",
     category: "Vitamins & Supplements",
@@ -237,10 +242,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-betadine",
     itemName: "Betadine Povidone-Iodine Solution 30 ml",
     brandName: "Betadine",
-    unit: "Bottle",
+    pack: { packUnit: "bottle", childUnit: "ml", childQuantity: 30, label: "30 ml" },
+    parentPacks: [],
     location: "E1-02",
-    shortCode: "bd",
-    internalCode: "g+10",
     barcode: "8850001000137",
     categoryShortcut: "f",
     category: "First Aid",
@@ -255,10 +259,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-nexcare",
     itemName: "3M Nexcare Waterproof Plaster",
     brandName: "Nexcare",
-    unit: "Box",
+    pack: { packUnit: "box", childUnit: "piece", childQuantity: 20, label: "20 pieces" },
+    parentPacks: [],
     location: "E1-04",
-    shortCode: "nx",
-    internalCode: "g+11",
     barcode: "8850001000151",
     categoryShortcut: "f",
     category: "First Aid",
@@ -273,10 +276,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-smooth-e",
     itemName: "Smooth E Cream 15 g",
     brandName: "Smooth E",
-    unit: "Tube",
+    pack: { packUnit: "tube", childUnit: "g", childQuantity: 15, label: "15 g" },
+    parentPacks: [],
     location: "S2-01",
-    shortCode: "se",
-    internalCode: "g+12",
     barcode: "8850001000175",
     categoryShortcut: "s",
     category: "Skincare",
@@ -291,10 +293,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-nivea-sun",
     itemName: "Nivea Sun Protect & Moisture SPF50",
     brandName: "Nivea",
-    unit: "Tube",
+    pack: { packUnit: "tube", childUnit: "ml", childQuantity: 50, label: "50 ml" },
+    parentPacks: [],
     location: "S2-04",
-    shortCode: "ns",
-    internalCode: "g+13",
     barcode: "8850001000182",
     categoryShortcut: "s",
     category: "Skincare",
@@ -309,10 +310,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-durex",
     itemName: "Durex Fetherlite Condom 3 Pieces",
     brandName: "Durex",
-    unit: "Box",
+    pack: { packUnit: "box", childUnit: "piece", childQuantity: 3, label: "3 pieces" },
+    parentPacks: [],
     location: "P1-03",
-    shortCode: "dx",
-    internalCode: "g+14",
     barcode: "8850001000199",
     categoryShortcut: "p",
     category: "Personal Care",
@@ -327,10 +327,9 @@ export const salesProducts: SalesProduct[] = [
     id: "p-dentiste",
     itemName: "Dentiste Plus White Toothpaste 100 g",
     brandName: "Dentiste",
-    unit: "Tube",
+    pack: { packUnit: "tube", childUnit: "g", childQuantity: 100, label: "100 g" },
+    parentPacks: [],
     location: "O1-01",
-    shortCode: "dt",
-    internalCode: "g+15",
     barcode: "8850001000205",
     categoryShortcut: "o",
     category: "Oral Care",
