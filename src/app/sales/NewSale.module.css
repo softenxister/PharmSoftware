@@ -1602,7 +1602,7 @@
 
 .reminderTable th,
 .reminderTable td {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #c7d4cd;
   padding: 9px 10px;
   vertical-align: middle;
 }
@@ -1612,17 +1612,33 @@
 }
 
 .reminderTable th {
-  background: #F7FAF8;
-  color: var(--ink-muted);
+  background: #146137;
+  color: rgba(255, 255, 255, 0.82);
   font-size: 11px;
   font-weight: 800;
+  padding: 3px 6px;
   text-align: center;
+}
+
+.reminderTable td {
+  background: #e8f5ed;
 }
 
 .reminderTable th:first-child,
 .reminderTable td:first-child {
   width: 44%;
   text-align: left;
+}
+
+.reminderTable th:first-child {
+  font-size: 14px;
+  font-weight: 900;
+  padding-left: 18px;
+}
+
+.reminderTable th:not(:first-child),
+.reminderTable td:not(:first-child) {
+  text-align: center;
 }
 
 .reminderRowMuted {
@@ -1672,15 +1688,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  width: 42px;
   white-space: nowrap;
 }
 
 .reminderTimeIcon {
-  color: var(--primary-dark);
-  font-size: 10px;
-  font-weight: 900;
-  line-height: 1;
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }
 
 .reminderDoseButton {
@@ -1706,7 +1722,7 @@
   outline: none;
   border-color: var(--primary);
   background: var(--primary-soft);
-  box-shadow: 0 0 0 3px rgba(15, 110, 93, 0.12);
+  box-shadow: 0 0 0 3px rgba(22, 149, 125, 0.12);
   color: var(--primary-dark);
 }
 

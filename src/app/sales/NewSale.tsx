@@ -1514,7 +1514,7 @@ export default function NewSale(): React.ReactElement {
                 <table className={styles.reminderTable}>
                   <thead>
                     <tr>
-                      <th>Drug</th>
+                      <th>Drug Item</th>
                       {REMINDER_TIMES.map((time) => (
                         <th key={time.label}>
                           <span className={styles.reminderTimeHead}>
