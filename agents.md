@@ -35,6 +35,11 @@ Use these project rules for all future edits in this pharmacy retail software.
 - Keep the global font style consistent with the existing app.
 - Prefer dense, practical POS layout over decorative or marketing-style UI.
 
+## Form Controls
+
+- Do not use native browser or OS dropdown styling for pharmacy app forms.
+- Use custom searchable dropdown components like the pattern in `/sales/new`, especially for item, unit, packaging, category, manufacturer, and similar selectable fields.
+
 ## Verification
 
 - Do not run npm commands unless the user explicitly asks.

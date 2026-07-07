@@ -33,11 +33,11 @@ export type SalesProduct = {
   id: string;
   itemName: string;
   brandName: string;
+  manufacturerName: string;
   pack: ProductPack;
   parentPacks: ParentPack[];
   location: string;
   barcode: string;
-  categoryShortcut: string;
   category: string;
   imageUrl: string;
   weeklySold: number;
@@ -88,11 +88,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-sara",
     itemName: "Sara Paracetamol 500 mg Tablet",
     brandName: "Sara",
+    manufacturerName: "Thai Nakorn Patana Co., Ltd.",
     pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 10, label: "10 tabs" },
     parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 10, label: "1 box = 10 blisterpack", priceMultiplier: 10 }],
     location: "A1-02",
     barcode: "8850001000014",
-    categoryShortcut: "c",
     category: "Pain Relief",
     imageUrl: "https://i0.wp.com/lifeplusmm.com/wp-content/uploads/2023/06/60201021.png?fit=1600%2C1600&ssl=1",
     weeklySold: 342,
@@ -106,11 +106,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-tylenol",
     itemName: "Tylenol 500 mg Caplet",
     brandName: "Tylenol",
+    manufacturerName: "Kenvue",
     pack: { packUnit: "blisterpack", childUnit: "caplet", childQuantity: 10, label: "10 caplets" },
     parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 10, label: "1 box = 10 blisterpack", priceMultiplier: 10 }],
     location: "A1-04",
     barcode: "8850001000021",
-    categoryShortcut: "c",
     category: "Pain Relief",
     imageUrl: "https://bangpleestationery.com/wp-content/uploads/2023/12/%E0%B9%84%E0%B8%97%E0%B8%A5%E0%B8%B4%E0%B8%99%E0%B8%AD%E0%B8%A5-500mg-.jpg",
     weeklySold: 188,
@@ -123,11 +123,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-tiffy",
     itemName: "Tiffy Dey Cold Tablet",
     brandName: "Tiffy",
+    manufacturerName: "Thai Nakorn Patana Co., Ltd.",
     pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 4, label: "4 tabs" },
     parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 25, label: "1 box = 25 blisterpack", priceMultiplier: 25 }],
     location: "B2-01",
     barcode: "8850001000038",
-    categoryShortcut: "a",
     category: "Allergy & Cold",
     imageUrl: "https://webassets.lyreco.com/products/356/606/2356606.jpg?checksum=4069607461&width=430&shape=square",
     weeklySold: 301,
@@ -140,11 +140,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-zyrtec",
     itemName: "Zyrtec Cetirizine 10 mg Tablet",
     brandName: "Zyrtec",
+    manufacturerName: "UCB Pharma",
     pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 10, label: "10 tabs" },
     parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 1, label: "1 box = 1 blisterpack", priceMultiplier: 1 }],
     location: "B2-03",
     barcode: "8850001000045",
-    categoryShortcut: "a",
     category: "Allergy & Cold",
     imageUrl: "https://image.makewebeasy.net/makeweb/m_1920x0/VaejmKzLQ/DefaultData/%E0%B8%A3%E0%B8%B9%E0%B8%9B_YAA_DD_2024_09_12T164835_551.png?v=202405291424",
     weeklySold: 156,
@@ -157,11 +157,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-airx",
     itemName: "Air-X Simethicone Chewable Tablet",
     brandName: "Air-X",
+    manufacturerName: "Takeda Thailand",
     pack: { packUnit: "blisterpack", childUnit: "tab", childQuantity: 10, label: "10 tabs" },
     parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 10, label: "1 box = 10 blisterpack", priceMultiplier: 10 }],
     location: "C1-01",
     barcode: "8850001000069",
-    categoryShortcut: "g",
     category: "Gastrointestinal",
     imageUrl: "https://cdn.yamibuy.net/item/83c85c2565f4a2437335470498c5bd06_750x750.webp",
     weeklySold: 274,
@@ -174,11 +174,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-gaviscon",
     itemName: "Gaviscon Double Action Liquid Sachet",
     brandName: "Gaviscon",
+    manufacturerName: "Reckitt Benckiser Thailand",
     pack: { packUnit: "sachet", childUnit: "ml", childQuantity: 10, label: "10 ml" },
     parentPacks: [{ packUnit: "box", childPackUnit: "sachet", childPackQuantity: 24, label: "1 box = 24 sachet", priceMultiplier: 24 }],
     location: "C1-03",
     barcode: "93483924388",
-    categoryShortcut: "g",
     category: "Gastrointestinal",
     imageUrl: "https://discountchemist.com.au/wp-content/uploads/2019/07/5683.png",
     weeklySold: 226,
@@ -191,11 +191,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-ors",
     itemName: "Oreda R.O. Oral Rehydration Salts",
     brandName: "Oreda R.O.",
+    manufacturerName: "Government Pharmaceutical Organization",
     pack: { packUnit: "sachet", childUnit: "sachet", childQuantity: 1, label: "1 sachet" },
     parentPacks: [{ packUnit: "box", childPackUnit: "sachet", childPackQuantity: 50, label: "1 box = 50 sachet", priceMultiplier: 50 }],
     location: "C1-05",
     barcode: "8850001000083",
-    categoryShortcut: "g",
     category: "Gastrointestinal",
     imageUrl: "https://doctorthailand.net/wp-content/uploads/2018/08/5d154b501cd4a.jpeg",
     weeklySold: 294,
@@ -208,11 +208,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-blackmores-c",
     itemName: "Blackmores Bio C 1000 Tablet",
     brandName: "Blackmores",
+    manufacturerName: "Blackmores Thailand",
     pack: { packUnit: "bottle", childUnit: "tab", childQuantity: 60, label: "60 tabs" },
     parentPacks: [],
     location: "D1-01",
     barcode: "8850001000106",
-    categoryShortcut: "v",
     category: "Vitamins & Supplements",
     imageUrl: "https://cdn11.bigcommerce.com/s-js3ghti4c3/images/stencil/400x500/products/799/43706/14140070592542__86311.1762320509.1280.1280_1775114625__70828.1775137067.png?c=2",
     weeklySold: 122,
@@ -225,11 +225,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-natc",
     itemName: "MEGA We Care Nat C 1000 Tablet",
     brandName: "MEGA We Care",
+    manufacturerName: "Mega Lifesciences Public Company Limited",
     pack: { packUnit: "bottle", childUnit: "tab", childQuantity: 30, label: "30 tabs" },
     parentPacks: [],
     location: "D1-03",
     barcode: "8850001000113",
-    categoryShortcut: "v",
     category: "Vitamins & Supplements",
     imageUrl: "https://medias.watsons.co.th/publishing/WTCTH-316035-front-zoom.jpg?version=1739214686&imageresize=358_358",
     weeklySold: 147,
@@ -242,11 +242,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-betadine",
     itemName: "Betadine Povidone-Iodine Solution 30 ml",
     brandName: "Betadine",
+    manufacturerName: "Mundipharma Thailand",
     pack: { packUnit: "bottle", childUnit: "ml", childQuantity: 30, label: "30 ml" },
     parentPacks: [],
     location: "E1-02",
     barcode: "8850001000137",
-    categoryShortcut: "f",
     category: "First Aid",
     imageUrl: "https://d48n7irf.cdn.imgeng.in/images/default-source/th/products/wound-care/btd-solution-oct23_15cc-4.png?sfvrsn=8280c4d0_4",
     weeklySold: 133,
@@ -259,11 +259,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-nexcare",
     itemName: "3M Nexcare Waterproof Plaster",
     brandName: "Nexcare",
+    manufacturerName: "3M Thailand Limited",
     pack: { packUnit: "box", childUnit: "piece", childQuantity: 20, label: "20 pieces" },
     parentPacks: [],
     location: "E1-04",
     barcode: "8850001000151",
-    categoryShortcut: "f",
     category: "First Aid",
     imageUrl: "https://placehold.co/360x360/png?text=Nexcare",
     weeklySold: 98,
@@ -276,11 +276,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-smooth-e",
     itemName: "Smooth E Cream 15 g",
     brandName: "Smooth E",
+    manufacturerName: "Smooth E Co., Ltd.",
     pack: { packUnit: "tube", childUnit: "g", childQuantity: 15, label: "15 g" },
     parentPacks: [],
     location: "S2-01",
     barcode: "8850001000175",
-    categoryShortcut: "s",
     category: "Skincare",
     imageUrl: "https://placehold.co/360x360/png?text=Smooth+E",
     weeklySold: 114,
@@ -293,11 +293,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-nivea-sun",
     itemName: "Nivea Sun Protect & Moisture SPF50",
     brandName: "Nivea",
+    manufacturerName: "Beiersdorf Thailand",
     pack: { packUnit: "tube", childUnit: "ml", childQuantity: 50, label: "50 ml" },
     parentPacks: [],
     location: "S2-04",
     barcode: "8850001000182",
-    categoryShortcut: "s",
     category: "Skincare",
     imageUrl: "https://placehold.co/360x360/png?text=Nivea+Sun",
     weeklySold: 87,
@@ -310,11 +310,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-durex",
     itemName: "Durex Fetherlite Condom 3 Pieces",
     brandName: "Durex",
+    manufacturerName: "Reckitt Benckiser Thailand",
     pack: { packUnit: "box", childUnit: "piece", childQuantity: 3, label: "3 pieces" },
     parentPacks: [],
     location: "P1-03",
     barcode: "8850001000199",
-    categoryShortcut: "p",
     category: "Personal Care",
     imageUrl: "https://placehold.co/360x360/png?text=Durex",
     weeklySold: 102,
@@ -327,11 +327,11 @@ export const salesProducts: SalesProduct[] = [
     id: "p-dentiste",
     itemName: "Dentiste Plus White Toothpaste 100 g",
     brandName: "Dentiste",
+    manufacturerName: "Siam Health Group Co., Ltd.",
     pack: { packUnit: "tube", childUnit: "g", childQuantity: 100, label: "100 g" },
     parentPacks: [],
     location: "O1-01",
     barcode: "8850001000205",
-    categoryShortcut: "o",
     category: "Oral Care",
     imageUrl: "https://placehold.co/360x360/png?text=Dentiste",
     weeklySold: 91,
@@ -392,3 +392,148 @@ export const recentSales: RecentSale[] = [
     status: "Paid",
   },
 ];
+
+export type StockPackagingInput = {
+  parentUnit: string;
+  childQuantity: string;
+  childUnit: string;
+  barcode: string;
+};
+
+export type StockItemInput = {
+  photoUrl: string;
+  barcode: string;
+  itemName: string;
+  lotNo: string;
+  expiryDate: string;
+  location: string;
+  manufacturer: string;
+  sellPrice: string;
+  itemCategory: string;
+  weightage: string;
+  unit: string;
+  brandName: string;
+  packagingRows: StockPackagingInput[];
+};
+
+export type SavedStockItem = StockItemInput & {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function slugify(value: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "stock-item";
+}
+
+export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
+  const sellPrice = Number(item.sellPrice);
+  const weightage = Number(item.weightage);
+  const cleanWeightage = Number.isFinite(weightage) && weightage > 0 ? weightage : 1;
+  const cleanSellPrice = Number.isFinite(sellPrice) && sellPrice > 0 ? sellPrice : 0;
+  const brandName = item.brandName.trim() || item.manufacturer.trim() || item.itemName.trim();
+  const manufacturerName = item.manufacturer.trim() || brandName;
+  const category = item.itemCategory.trim();
+  const location = item.location?.trim() || "-";
+  const lotNo = item.lotNo?.trim() || `NEW-${item.barcode.trim().slice(-6) || "000000"}`;
+  const expiryDate = item.expiryDate?.trim() || "";
+  const imageUrl = item.photoUrl.trim() || `https://placehold.co/360x360/png?text=${encodeURIComponent(brandName.slice(0, 18))}`;
+  const validPackagingRows = item.packagingRows.filter((row) => {
+    const quantity = Number(row.childQuantity);
+    return (
+      row.parentUnit.trim().length > 0 &&
+      row.childUnit.trim().length > 0 &&
+      row.childQuantity.trim().length > 0 &&
+      Number.isFinite(quantity) &&
+      quantity > 0
+    );
+  });
+
+  return {
+    id: item.id,
+    itemName: item.itemName.trim(),
+    brandName,
+    manufacturerName,
+    pack: {
+      packUnit: item.unit.trim(),
+      childUnit: item.unit.trim(),
+      childQuantity: cleanWeightage,
+      label: `${item.weightage.trim()} ${item.unit.trim()}`.trim(),
+    },
+    parentPacks: validPackagingRows.map((row) => {
+      const quantity = Number(row.childQuantity);
+      const cleanQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+
+      return {
+        packUnit: row.parentUnit.trim(),
+        childPackUnit: row.childUnit.trim(),
+        childPackQuantity: cleanQuantity,
+        label: `1 ${row.parentUnit.trim()} = ${cleanQuantity} ${row.childUnit.trim()}`,
+        priceMultiplier: cleanQuantity,
+      };
+    }),
+    location,
+    barcode: item.barcode.trim(),
+    category,
+    imageUrl,
+    weeklySold: 0,
+    batches: [
+      {
+        batchNo: lotNo,
+        expiryDate,
+        sellPriceThb: cleanSellPrice,
+        availableStock: 0,
+      },
+    ],
+  };
+}
+
+export function readSeedStockProducts(): SalesProduct[] {
+  return salesProducts;
+}
+
+export function createSavedStockItem(input: StockItemInput, currentItem?: SavedStockItem): SavedStockItem {
+  const now = new Date().toISOString();
+  const barcode = input.barcode.trim();
+
+  return {
+    photoUrl: input.photoUrl.trim(),
+    barcode,
+    itemName: input.itemName.trim(),
+    lotNo: input.lotNo.trim(),
+    expiryDate: input.expiryDate.trim(),
+    location: input.location.trim(),
+    manufacturer: input.manufacturer.trim(),
+    sellPrice: input.sellPrice.trim(),
+    itemCategory: input.itemCategory.trim(),
+    weightage: input.weightage.trim(),
+    unit: input.unit.trim(),
+    brandName: input.brandName.trim(),
+    packagingRows: input.packagingRows
+      .map((row) => ({
+        parentUnit: row.parentUnit.trim(),
+        childQuantity: row.childQuantity.trim(),
+        childUnit: row.childUnit.trim(),
+        barcode: row.barcode.trim(),
+      }))
+      .filter((row) => {
+        const quantity = Number(row.childQuantity);
+        return (
+          row.parentUnit.length > 0 &&
+          row.childUnit.length > 0 &&
+          row.childQuantity.length > 0 &&
+          Number.isFinite(quantity) &&
+          quantity > 0
+        );
+      }),
+    id: currentItem?.id ?? `p-${slugify(input.itemName)}-${barcode.slice(-6)}`,
+    createdAt: currentItem?.createdAt ?? now,
+    updatedAt: now,
+  };
+}

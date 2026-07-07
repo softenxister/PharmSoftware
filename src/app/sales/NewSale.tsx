@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Settings } from 'lucide-react';
 import styles from './NewSale.module.css';
-import { salesProducts, type ParentPack, type ProductPack } from './salesData';
+import { salesProducts, type ParentPack, type ProductPack, type SalesProduct } from '@/server/db/database';
 import morningReminderIcon from '@/styles/vector/morning.png';
 import noonReminderIcon from '@/styles/vector/noon.png';
 import eveningReminderIcon from '@/styles/vector/evening.png';
@@ -62,10 +62,10 @@ interface SellPack {
 interface CatalogItem {
   id: string;
   barcode: string;
-  categoryShortcut: string;
   category: string;
   name: string;
   brand: string;
+  manufacturer: string;
   packLabel: string;
   packUnit: string;
   sellPacks: SellPack[];
@@ -148,6 +148,7 @@ const OWNERS: Owner[] = [
 
 const PAYMENT_METHODS = ['Cash', 'PromptPay', 'Credit card', 'Bank transfer'];
 const SAVED_SALES_KEY = 'pharm_recent_sales';
+const LEGACY_STOCK_DATABASE_KEY = 'pharm_stock_items';
 
 const PHARMACISTS: Pharmacist[] = [
   { id: 'p1', name: 'Ph. Nattaya S.' },
@@ -183,43 +184,47 @@ function amountLabel(pack: ProductPack): string {
   return `${pack.childQuantity} ${pluralChildUnit(pack.childUnit, pack.childQuantity)}`;
 }
 
-const THAI_CATALOG: CatalogItem[] = salesProducts.map((product) => ({
-  id: product.id,
-  barcode: product.barcode,
-  categoryShortcut: product.categoryShortcut,
-  category: product.category,
-  name: product.itemName,
-  brand: product.brandName,
-  packLabel: amountLabel(product.pack),
-  packUnit: product.pack.packUnit,
-  sellPacks: [
-    {
-      key: product.pack.packUnit,
-      unit: product.pack.packUnit,
-      label: sellPackButtonLabel(product.pack.packUnit),
-      relationLabel: product.pack.label,
-      displayLabel: `${product.pack.childQuantity} / ${displayPackUnit(product.pack.packUnit)}`,
-      priceMultiplier: 1,
-    },
-    ...product.parentPacks.map((pack: ParentPack) => ({
-      key: pack.packUnit,
-      unit: pack.packUnit,
-      label: sellPackButtonLabel(pack.packUnit),
-      relationLabel: pack.label,
-      displayLabel: `${pack.childPackQuantity} / ${displayPackUnit(pack.packUnit)}`,
-      priceMultiplier: pack.priceMultiplier,
+function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
+  return products.map((product) => ({
+    id: product.id,
+    barcode: product.barcode,
+    category: product.category,
+    name: product.itemName,
+    brand: product.brandName,
+    manufacturer: product.manufacturerName,
+    packLabel: amountLabel(product.pack),
+    packUnit: product.pack.packUnit,
+    sellPacks: [
+      {
+        key: product.pack.packUnit,
+        unit: product.pack.packUnit,
+        label: sellPackButtonLabel(product.pack.packUnit),
+        relationLabel: product.pack.label,
+        displayLabel: `${product.pack.childQuantity} / ${displayPackUnit(product.pack.packUnit)}`,
+        priceMultiplier: 1,
+      },
+      ...product.parentPacks.map((pack: ParentPack) => ({
+        key: pack.packUnit,
+        unit: pack.packUnit,
+        label: sellPackButtonLabel(pack.packUnit),
+        relationLabel: pack.label,
+        displayLabel: `${pack.childPackQuantity} / ${displayPackUnit(pack.packUnit)}`,
+        priceMultiplier: pack.priceMultiplier,
+      })),
+    ],
+    loc: product.location,
+    image: product.imageUrl,
+    batches: product.batches.map((batch) => ({
+      batchId: `${product.id}-${batch.batchNo}`,
+      batchNo: batch.batchNo,
+      exp: batch.expiryDate,
+      sellPrice: batch.sellPriceThb,
+      stock: batch.availableStock,
     })),
-  ],
-  loc: product.location,
-  image: product.imageUrl,
-  batches: product.batches.map((batch) => ({
-    batchId: `${product.id}-${batch.batchNo}`,
-    batchNo: batch.batchNo,
-    exp: batch.expiryDate,
-    sellPrice: batch.sellPriceThb,
-    stock: batch.availableStock,
-  })),
-}));
+  }));
+}
+
+const SEED_CATALOG: CatalogItem[] = productsToCatalog(salesProducts);
 
 // Store-wide best sellers this week — used when no member is attached to the sale.
 const WEEKLY_TOP_ITEM_IDS = [...salesProducts]
@@ -235,20 +240,31 @@ function formatBaht(n: number): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function formatExp(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+function parseExpiryDate(value: string): Date {
+  const dayFirst = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (dayFirst) {
+    return new Date(Number(dayFirst[3]), Number(dayFirst[2]) - 1, Number(dayFirst[1]));
+  }
+
+  return new Date(value);
+}
+
+function formatExp(value: string): string {
+  const date = parseExpiryDate(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
 }
 
 function nearestExpiryBatch(batches: Batch[]): Batch | null {
   const inStock = batches.filter((b) => b.stock > 0);
   if (inStock.length === 0) return null;
-  return [...inStock].sort((a, b) => new Date(a.exp).getTime() - new Date(b.exp).getTime())[0];
+  return [...inStock].sort((a, b) => parseExpiryDate(a.exp).getTime() - parseExpiryDate(b.exp).getTime())[0];
 }
 
 function nearestExpiryBatchForPack(batches: Batch[], pack: SellPack): Batch | null {
   const inStock = batches.filter((b) => availableStockForPack(b, pack) > 0);
   if (inStock.length === 0) return null;
-  return [...inStock].sort((a, b) => new Date(a.exp).getTime() - new Date(b.exp).getTime())[0];
+  return [...inStock].sort((a, b) => parseExpiryDate(a.exp).getTime() - parseExpiryDate(b.exp).getTime())[0];
 }
 
 function availableStockForPack(batch: Batch, pack: SellPack): number {
@@ -259,19 +275,19 @@ function sellPriceForPack(batch: Batch, pack: SellPack): number {
   return batch.sellPrice * pack.priceMultiplier;
 }
 
-function catalogItemForLine(line: CartLine): CatalogItem | undefined {
-  return THAI_CATALOG.find((item) => item.id === line.itemId);
+function catalogItemForLine(line: CartLine, catalog: CatalogItem[]): CatalogItem | undefined {
+  return catalog.find((item) => item.id === line.itemId);
 }
 
-function totalTabsForLine(line: CartLine): number {
-  const catalogItem = catalogItemForLine(line);
+function totalTabsForLine(line: CartLine, catalog: CatalogItem[]): number {
+  const catalogItem = catalogItemForLine(line, catalog);
   if (!catalogItem || !/(tab|caplet)/i.test(catalogItem.packLabel)) return 0;
   const childQty = parseInt(catalogItem.packLabel.match(/\d+/)?.[0] ?? '1', 10);
   return line.qty * line.packMultiplier * childQty;
 }
 
-function maxQtyForCartLine(line: CartLine): number {
-  const catalogItem = catalogItemForLine(line);
+function maxQtyForCartLine(line: CartLine, catalog: CatalogItem[]): number {
+  const catalogItem = catalogItemForLine(line, catalog);
   const pack = catalogItem?.sellPacks.find((sellPack) => (
     sellPack.displayLabel === line.packLabel &&
     sellPack.priceMultiplier === line.packMultiplier
@@ -282,7 +298,7 @@ function maxQtyForCartLine(line: CartLine): number {
   return Math.max(1, catalogItem.batches.reduce((sum, batch) => sum + availableStockForPack(batch, pack), 0));
 }
 
-function mergeCartLinesByItemPack(lines: CartLine[]): { lines: CartLine[]; changed: boolean } {
+function mergeCartLinesByItemPack(lines: CartLine[], catalog: CatalogItem[]): { lines: CartLine[]; changed: boolean } {
   const mergedLines: CartLine[] = [];
   const lineIndexByKey = new Map<string, number>();
   let changed = false;
@@ -301,7 +317,7 @@ function mergeCartLinesByItemPack(lines: CartLine[]): { lines: CartLine[]; chang
     if (!existingLine) return;
     mergedLines[existingIndex] = {
       ...existingLine,
-      qty: Math.min(maxQtyForCartLine(existingLine), existingLine.qty + line.qty),
+      qty: Math.min(maxQtyForCartLine(existingLine, catalog), existingLine.qty + line.qty),
     };
   });
 
@@ -314,14 +330,14 @@ function calculateDiscountAmount(discount: AppliedDiscount | null, subtotal: num
   return Math.min(Math.max(raw, 0), subtotal);
 }
 
-/** Supports barcode, product name, brand, pack, and "c, <term>" category search. */
+/** Supports barcode, product name, brand, manufacturer, pack, and "c, <term>" category search. */
 function matchesQuery(item: CatalogItem, rawQuery: string): boolean {
   const q = rawQuery.trim().toLowerCase();
   if (!q) return false;
 
   if (q.startsWith('c,') || q.startsWith('c ')) {
     const term = q.slice(2).trim();
-    return term.length === 0 || item.category.toLowerCase().includes(term) || item.categoryShortcut.toLowerCase() === term;
+    return term.length === 0 || item.category.toLowerCase().includes(term);
   }
   if (/^\d{5,}$/.test(q)) {
     return item.barcode.includes(q);
@@ -329,7 +345,8 @@ function matchesQuery(item: CatalogItem, rawQuery: string): boolean {
   return (
     item.name.toLowerCase().includes(q) ||
     item.brand.toLowerCase().includes(q) ||
-    item.categoryShortcut.toLowerCase().startsWith(q) ||
+    item.manufacturer.toLowerCase().includes(q) ||
+    item.category.toLowerCase().includes(q) ||
     item.packLabel.toLowerCase().includes(q) ||
     item.sellPacks.some((pack) => pack.unit.toLowerCase().startsWith(q))
   );
@@ -505,6 +522,7 @@ export default function NewSale(): React.ReactElement {
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
   const itemFieldRef = useClickOutside<HTMLDivElement>(() => setItemDropdownOpen(false));
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const [catalog, setCatalog] = useState<CatalogItem[]>(SEED_CATALOG);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const qtyInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -548,8 +566,8 @@ export default function NewSale(): React.ReactElement {
   const itemMatches = useMemo(() => {
     const q = itemQuery.trim();
     if (!q) return [];
-    return THAI_CATALOG.filter((it) => matchesQuery(it, q)).slice(0, 8);
-  }, [itemQuery]);
+    return catalog.filter((it) => matchesQuery(it, q)).slice(0, 8);
+  }, [catalog, itemQuery]);
 
   const totalQty = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty, 0), [cartLines]);
   const uniqueItemCount = cartLines.length;
@@ -574,8 +592,8 @@ export default function NewSale(): React.ReactElement {
   const canSaveSale = cartLines.length > 0 && Number.isFinite(netPayable) && netPayable > 0;
   const canOpenInvoiceBreakdown = canSaveSale;
   const reminderEligibleLines = useMemo(() => {
-    return cartLines.filter((line) => totalTabsForLine(line) > 0);
-  }, [cartLines]);
+    return cartLines.filter((line) => totalTabsForLine(line, catalog) > 0);
+  }, [cartLines, catalog]);
 
   const topItemIds = useMemo(() => {
     if (customer && customer.isMember && customer.topItemIds?.length) return customer.topItemIds;
@@ -584,17 +602,17 @@ export default function NewSale(): React.ReactElement {
 
   const topItems = useMemo(() => {
     const mappedItems = topItemIds
-      .map((id) => THAI_CATALOG.find((it) => it.id === id))
+      .map((id) => catalog.find((it) => it.id === id))
       .filter((it): it is CatalogItem => !!it)
       .slice(0, 10);
 
     return mappedItems.length > 0
       ? mappedItems
       : WEEKLY_TOP_ITEM_IDS
-        .map((id) => THAI_CATALOG.find((it) => it.id === id))
+        .map((id) => catalog.find((it) => it.id === id))
         .filter((it): it is CatalogItem => !!it)
         .slice(0, 10);
-  }, [topItemIds]);
+  }, [catalog, topItemIds]);
 
   const topItemsLabel = customer && customer.isMember ? `Top picks for ${customer.name.split(' ')[0]}` : 'Top 10 Thai products this week';
 
@@ -602,6 +620,49 @@ export default function NewSale(): React.ReactElement {
     () => (editor ? nearestExpiryBatch(editor.item.batches)?.batchId ?? null : null),
     [editor]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCatalog() {
+      try {
+        const response = await fetch('/api/stock', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Unable to load stock catalog.');
+        const data = await response.json() as { products?: SalesProduct[] };
+        if (!cancelled && Array.isArray(data.products)) {
+          setCatalog(productsToCatalog(data.products));
+        }
+
+        const legacyRaw = window.localStorage.getItem(LEGACY_STOCK_DATABASE_KEY);
+        if (!legacyRaw) return;
+
+        const legacyItems = JSON.parse(legacyRaw);
+        if (!Array.isArray(legacyItems) || legacyItems.length === 0) {
+          window.localStorage.removeItem(LEGACY_STOCK_DATABASE_KEY);
+          return;
+        }
+
+        const migrateResponse = await fetch('/api/stock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: legacyItems }),
+        });
+        if (!migrateResponse.ok) throw new Error('Unable to migrate browser stock.');
+        const migratedData = await migrateResponse.json() as { products?: SalesProduct[] };
+        if (!cancelled && Array.isArray(migratedData.products)) {
+          setCatalog(productsToCatalog(migratedData.products));
+        }
+        window.localStorage.removeItem(LEGACY_STOCK_DATABASE_KEY);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!discountOpen) return;
@@ -625,10 +686,10 @@ export default function NewSale(): React.ReactElement {
 
   useEffect(() => {
     setCartLines((prev) => {
-      const merged = mergeCartLinesByItemPack(prev);
+      const merged = mergeCartLinesByItemPack(prev, catalog);
       return merged.changed ? merged.lines : prev;
     });
-  }, [cartLines]);
+  }, [cartLines, catalog]);
 
   useEffect(() => {
     const billId = new URLSearchParams(window.location.search).get('billId');
@@ -716,7 +777,7 @@ export default function NewSale(): React.ReactElement {
       ));
 
       if (existingLine) {
-        const mergedQty = Math.min(maxQtyForCartLine(existingLine), existingLine.qty + qty);
+        const mergedQty = Math.min(maxQtyForCartLine(existingLine, catalog), existingLine.qty + qty);
         return prev.map((line) => {
           if (line.lineId !== existingLine.lineId) return line;
           return { ...line, qty: mergedQty };
@@ -762,7 +823,7 @@ export default function NewSale(): React.ReactElement {
   function updateCartQty(lineId: string, qty: number) {
     setCartLines((prev) => prev.map((l) => {
       if (l.lineId !== lineId) return l;
-      const maxQty = maxQtyForCartLine(l);
+      const maxQty = maxQtyForCartLine(l, catalog);
       return { ...l, qty: Math.min(maxQty, Math.max(1, qty)) };
     }));
     setCartQtyDrafts((prev) => {
@@ -783,7 +844,7 @@ export default function NewSale(): React.ReactElement {
     setReminderRows((prev) => {
       const next = { ...prev };
       reminderEligibleLines.forEach((line) => {
-        const totalTabs = totalTabsForLine(line);
+        const totalTabs = totalTabsForLine(line, catalog);
         if (!next[line.lineId]) {
           next[line.lineId] = createDefaultReminder(totalTabs);
           return;
@@ -1526,9 +1587,9 @@ export default function NewSale(): React.ReactElement {
                   </thead>
                   <tbody>
                     {reminderEligibleLines.map((line) => {
-                      const catalogItem = THAI_CATALOG.find((item) => item.id === line.itemId);
+                      const catalogItem = catalog.find((item) => item.id === line.itemId);
                       const reminder = reminderRows[line.lineId] ?? createDefaultReminder();
-                      const totalTabs = totalTabsForLine(line);
+                      const totalTabs = totalTabsForLine(line, catalog);
                       return (
                         <tr key={line.lineId} className={!reminder.enabled ? styles.reminderRowMuted : ''}>
                           <td>
