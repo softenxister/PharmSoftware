@@ -14,7 +14,7 @@ export function UploadOptions({ fileRef, hasUpload, onUploadReady }: UploadOptio
   return (
     <div className={styles.uploadSection}>
       <div className={styles.optionFrame}>
-        <div className={`${styles.optionTrack} ${hasUpload ? styles.optionTrackPaused : ""}`}>
+        <div className={styles.optionTrack}>
           <div className={styles.uploadPane}>
             <input
               ref={fileRef}

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { PurchaseHome } from "./PurchaseHome";
 
 export default function PurchasePage() {
-  redirect("/purchase/new");
+  return <PurchaseHome />;
 }

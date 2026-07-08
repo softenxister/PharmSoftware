@@ -1,16 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronsUpDown,
   Edit3,
   MapPin,
   PackagePlus,
-  PanelLeftClose,
-  PanelLeftOpen,
   Plus,
   Search,
   SlidersHorizontal,
@@ -82,6 +78,9 @@ const filterGroups = [
 
 const stockAdjustmentStates = ["Pending", "Completed", "Blocked"];
 const LEGACY_STOCK_DATABASE_KEY = "pharm_stock_items";
+const SIDEBAR_MIN_WIDTH = 196;
+const SIDEBAR_MAX_WIDTH = 320;
+const SIDEBAR_DEFAULT_WIDTH = 214;
 
 function formatMoney(value: number): string {
   return `฿${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
@@ -95,6 +94,7 @@ export default function StockPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [query, setQuery] = useState("");
   const [stockWindowOpen, setStockWindowOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [products, setProducts] = useState<SalesProduct[]>(() => readSeedStockProducts());
 
   useEffect(() => {
@@ -149,8 +149,49 @@ export default function StockPage() {
     );
   }, [query, stockItems]);
 
+  const categoryOptions = useMemo(() => {
+    const seen = new Set<string>();
+
+    return products.reduce<string[]>((options, product) => {
+      const category = product.category.trim();
+      const key = category.toLowerCase();
+      if (!category || seen.has(key)) return options;
+      seen.add(key);
+      options.push(category);
+      return options;
+    }, []);
+  }, [products]);
+
   const openAddStock = () => setStockWindowOpen(true);
   const closeAddStock = () => setStockWindowOpen(false);
+  const handleSidebarResizeStart = (event: ReactMouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+    const originalCursor = document.body.style.cursor;
+    const originalUserSelect = document.body.style.userSelect;
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const nextWidth = Math.min(
+        SIDEBAR_MAX_WIDTH,
+        Math.max(SIDEBAR_MIN_WIDTH, startWidth + moveEvent.clientX - startX),
+      );
+      setSidebarWidth(nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.body.style.cursor = originalCursor;
+      document.body.style.userSelect = originalUserSelect;
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
   const handleSaveStock = async (item: StockItemInput) => {
     try {
       const response = await fetch("/api/stock", {
@@ -172,13 +213,13 @@ export default function StockPage() {
       <aside
         className={`${styles.sidebar} ${!isFilterOpen ? styles.sidebarClosed : ""}`}
         aria-label="Stock filters"
+        style={isFilterOpen ? { width: sidebarWidth, minWidth: sidebarWidth } : undefined}
       >
         <div className={styles.sidebarHeader}>
           {isFilterOpen ? (
             <>
-              <div>
-                <p className={styles.sidebarEyebrow}>Inventory</p>
-                <h1 className={styles.sidebarTitle}>Stock</h1>
+              <div className={styles.sidebarHeading}>
+                <h1 className={styles.sidebarTitle}>Inventory Stock</h1>
               </div>
               <button
                 type="button"
@@ -187,7 +228,7 @@ export default function StockPage() {
                 title="Close filter bar"
                 aria-label="Close filter bar"
               >
-                <PanelLeftClose size={18} />
+                <span className={`${styles.sidebarToggleGlyph} ${styles.sidebarToggleGlyphOpen}`} aria-hidden="true" />
               </button>
             </>
           ) : (
@@ -198,7 +239,7 @@ export default function StockPage() {
               title="Open filter bar"
               aria-label="Open filter bar"
             >
-              <PanelLeftOpen size={18} />
+              <span className={styles.sidebarToggleGlyph} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -207,7 +248,7 @@ export default function StockPage() {
           <>
             <button type="button" className={styles.addStockButton} onClick={openAddStock}>
               <Plus size={17} />
-              <span>Add Stock</span>
+              <span>Add New Item</span>
             </button>
 
             <div className={styles.filterList}>
@@ -246,21 +287,19 @@ export default function StockPage() {
             </div>
           </>
         )}
+        {isFilterOpen && (
+          <div
+            className={styles.sidebarResizeHandle}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize inventory stock bar"
+            onMouseDown={handleSidebarResizeStart}
+          />
+        )}
       </aside>
 
       <section className={styles.content}>
         <div className={styles.toolbar}>
-          <button
-            type="button"
-            className={styles.toggleButton}
-            onClick={() => setIsFilterOpen((value) => !value)}
-            title={isFilterOpen ? "Close filter bar" : "Open filter bar"}
-            aria-label={isFilterOpen ? "Close filter bar" : "Open filter bar"}
-            aria-pressed={isFilterOpen}
-          >
-            {isFilterOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-          </button>
-
           <label className={styles.searchField}>
             <Search size={17} className={styles.searchIcon} />
             <input
@@ -281,7 +320,7 @@ export default function StockPage() {
 
           <button type="button" className={styles.toolbarAddButton} onClick={openAddStock}>
             <PackagePlus size={17} />
-            <span>Add Stock</span>
+            <span>Add New Item</span>
           </button>
         </div>
 
@@ -321,7 +360,6 @@ export default function StockPage() {
                   <tr key={item.id}>
                     <td>
                       <span className={styles.itemCell}>
-                        <span className={`${styles.stockDot} ${styles[`stockDot_${item.state}`]}`} />
                         <span className={styles.productImageFrame}>
                           <img src={item.imageUrl} alt={`${item.name} product`} className={styles.productImage} />
                         </span>
@@ -379,18 +417,19 @@ export default function StockPage() {
       </section>
 
       {stockWindowOpen && (
-        <div className={styles.stockWindowBackdrop} role="presentation">
-          <section className={styles.stockEntryWindow} role="dialog" aria-modal="true" aria-label="Add stock">
-            <button
-              type="button"
-              className={styles.stockWindowClose}
-              onClick={closeAddStock}
-              aria-label="Close add stock window"
-              title="Close"
-            >
-              x
-            </button>
-            <StockEntryForm onClose={closeAddStock} onSave={handleSaveStock} />
+        <div className={styles.stockWindowBackdrop} role="presentation" onMouseDown={closeAddStock}>
+          <section
+            className={styles.stockEntryWindow}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add new item"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <StockEntryForm
+              categoryOptions={categoryOptions}
+              onClose={closeAddStock}
+              onSave={handleSaveStock}
+            />
           </section>
         </div>
       )}

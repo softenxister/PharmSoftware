@@ -25,6 +25,7 @@ type PackagingRow = {
 type StockEntryFormProps = {
   onClose?: () => void;
   onSave?: (item: StockItemInput) => void | Promise<void>;
+  categoryOptions?: string[];
 };
 
 type SelectOption = {
@@ -87,6 +88,7 @@ function SearchableSelect({
   options,
   onChange,
   allowCustom = false,
+  customOptionLabel,
   onCommit,
 }: {
   ariaLabel: string;
@@ -94,6 +96,7 @@ function SearchableSelect({
   options: SelectOption[];
   onChange: (value: string) => void;
   allowCustom?: boolean;
+  customOptionLabel?: (value: string) => string;
   onCommit?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -202,7 +205,7 @@ function SearchableSelect({
             ))}
             {allowCustom && customValue && filteredOptions.every((option) => option.value.toLowerCase() !== customValue.toLowerCase()) && (
               <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => choose(customValue)}>
-                Use "{customValue}"
+                {customOptionLabel ? customOptionLabel(customValue) : `Use "${customValue}"`}
               </button>
             )}
             {filteredOptions.length === 0 && (!allowCustom || !customValue) && (
@@ -276,7 +279,26 @@ function normalizeDdMmYyyy(value: string): string {
   return "";
 }
 
-export function StockEntryForm({ onClose, onSave }: StockEntryFormProps) {
+function mergeUniqueOptions(...optionGroups: string[][]): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  optionGroups.flat().forEach((option) => {
+    const cleanOption = option.trim();
+    const key = cleanOption.toLowerCase();
+    if (!cleanOption || seen.has(key)) return;
+    seen.add(key);
+    merged.push(cleanOption);
+  });
+
+  return merged;
+}
+
+export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockEntryFormProps) {
+  const resolvedCategoryOptions = useMemo(
+    () => mergeUniqueOptions(itemCategories, categoryOptions),
+    [categoryOptions],
+  );
   const [photoUrl, setPhotoUrl] = useState("");
   const [barcode, setBarcode] = useState("");
   const [itemName, setItemName] = useState("");
@@ -285,7 +307,7 @@ export function StockEntryForm({ onClose, onSave }: StockEntryFormProps) {
   const [location, setLocation] = useState("");
   const [manufacturer, setManufacturer] = useState("");
   const [sellPrice, setSellPrice] = useState("");
-  const [itemCategory, setItemCategory] = useState(itemCategories[0]);
+  const [itemCategory, setItemCategory] = useState(resolvedCategoryOptions[0] ?? "");
   const [weightage, setWeightage] = useState("");
   const [unit, setUnit] = useState(unitOptions[0]);
   const [brandName, setBrandName] = useState("");
@@ -370,7 +392,7 @@ export function StockEntryForm({ onClose, onSave }: StockEntryFormProps) {
     <form className={`${styles.stockForm} ${styles.stockFormPortrait}`} onSubmit={handleSubmit} noValidate>
       <div className={styles.formHeader}>
         <div>
-          <h1>Add Stock</h1>
+          <h1>Add New Item</h1>
         </div>
         <div className={styles.formHeaderActions}>
           {onClose ? (
@@ -407,6 +429,7 @@ export function StockEntryForm({ onClose, onSave }: StockEntryFormProps) {
             <input
               type="text"
               value={photoUrl}
+              placeholder="https://example.com/photo.jpg"
               onChange={(event) => setPhotoUrl(event.target.value)}
             />
           </label>
@@ -430,7 +453,11 @@ export function StockEntryForm({ onClose, onSave }: StockEntryFormProps) {
           <div className={styles.formGrid}>
             <label className={styles.field} data-stock-flow="itemName" onKeyDown={handleFlowEnter}>
               <span>Item name</span>
-              <input value={itemName} onChange={(event) => setItemName(event.target.value)} />
+              <input
+                value={itemName}
+                placeholder="Paracetamol 500 mg"
+                onChange={(event) => setItemName(event.target.value)}
+              />
             </label>
 
             <label className={styles.field} data-stock-flow="lotNo" onKeyDown={handleFlowEnter}>
@@ -447,6 +474,7 @@ export function StockEntryForm({ onClose, onSave }: StockEntryFormProps) {
                 type="text"
                 inputMode="numeric"
                 value={expiryDate}
+                placeholder="31/12/2026"
                 onChange={(event) => setExpiryDate(handleDdMmYyyyText(event.target.value))}
                 aria-invalid={showExpiryError}
               />
@@ -478,15 +506,21 @@ export function StockEntryForm({ onClose, onSave }: StockEntryFormProps) {
               <SearchableSelect
                 ariaLabel="Item category"
                 value={itemCategory}
-                options={optionList(itemCategories)}
+                options={optionList(resolvedCategoryOptions)}
                 onChange={setItemCategory}
+                allowCustom
+                customOptionLabel={(value) => `Add category "${value}"`}
                 onCommit={() => focusNextField("itemCategory")}
               />
             </label>
 
             <label className={styles.field} data-stock-flow="weightage" onKeyDown={handleFlowEnter}>
               <span>Weightage</span>
-              <input value={weightage} onChange={(event) => setWeightage(event.target.value)} />
+              <input
+                value={weightage}
+                placeholder="500"
+                onChange={(event) => setWeightage(event.target.value)}
+              />
             </label>
 
             <label className={styles.field} data-stock-flow="unit">

@@ -11,7 +11,7 @@ import {
 const navItems = [
   { label: "Home", href: "/", icon: Home },
   { label: "Sales", href: "/sales", icon: ShoppingCart },
-  { label: "Purchase", href: "/purchase/new", icon: Package },
+  { label: "Purchase", href: "/purchase", icon: Package },
   { label: "Stock", href: "/stock", icon: Archive },
   { label: "Member", href: "/member", icon: Users },
   { label: "Analysis", href: "/analysis", icon: BarChart2 },
