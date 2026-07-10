@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import styles from "@/app/purchase/PurchaseEntry.module.css";
+import styles from "@/app/purchase/new/PurchaseEntry.module.css";
 
 interface DistributorFieldProps {
   matches: string[];

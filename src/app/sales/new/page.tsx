@@ -1,4 +1,4 @@
-import NewSale from "../NewSale";
+import NewSale from "./NewSale";
 
 export default function NewSalePage() {
   return <NewSale />;

@@ -1,0 +1,38 @@
+[
+  {
+    "productId": "p-nac-long-600-mg-10-s-932604",
+    "barcode": "4204684932604",
+    "batches": [
+      {
+        "batchNo": "20343232",
+        "expiryDate": "30/12/2027",
+        "sellPriceThb": 260,
+        "availableStock": 4
+      }
+    ]
+  },
+  {
+    "productId": "p-sara",
+    "barcode": "8850001000014",
+    "batches": [
+      {
+        "batchNo": "SAR25041",
+        "expiryDate": "2027-01-31",
+        "sellPriceThb": 40,
+        "availableStock": 44
+      },
+      {
+        "batchNo": "SAR25088",
+        "expiryDate": "2027-07-31",
+        "sellPriceThb": 40,
+        "availableStock": 86
+      },
+      {
+        "batchNo": "SAR26012",
+        "expiryDate": "2028-02-28",
+        "sellPriceThb": 42,
+        "availableStock": 120
+      }
+    ]
+  }
+]

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PackagePlus, Search } from "lucide-react";
 import styles from "./PurchaseHome.module.css";
@@ -98,19 +98,48 @@ function formatBaht(value: number): string {
 export function PurchaseHome() {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [savedPurchaseBills, setSavedPurchaseBills] = useState<PurchaseBill[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPurchaseBills() {
+      try {
+        const response = await fetch("/api/purchase", { cache: "no-store" });
+        if (!response.ok) throw new Error("Unable to load purchase bills.");
+        const data = await response.json() as { bills?: PurchaseBill[] };
+        if (!cancelled && Array.isArray(data.bills)) setSavedPurchaseBills(data.bills);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadPurchaseBills();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const purchaseBills = useMemo(() => {
+    const savedIds = new Set(savedPurchaseBills.map((bill) => bill.id));
+    return [
+      ...savedPurchaseBills,
+      ...fakePurchaseBills.filter((bill) => !savedIds.has(bill.id)),
+    ];
+  }, [savedPurchaseBills]);
 
   const visibleBills = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return fakePurchaseBills;
+    if (!q) return purchaseBills;
 
-    return fakePurchaseBills.filter((bill) =>
+    return purchaseBills.filter((bill) =>
       [bill.billNo, bill.invoiceNo, bill.distributor, statusLabel[bill.status]].some((value) =>
         value.toLowerCase().includes(q),
       ),
     );
-  }, [query]);
+  }, [purchaseBills, query]);
 
-  const receivedTotal = fakePurchaseBills
+  const receivedTotal = purchaseBills
     .filter((bill) => bill.status === "received")
     .reduce((sum, bill) => sum + bill.netTotal, 0);
 
@@ -139,12 +168,12 @@ export function PurchaseHome() {
           </div>
           <div className={styles.metric}>
             <span className={styles.metricLabel}>Bills</span>
-            <strong className={styles.metricValue}>{fakePurchaseBills.length}</strong>
+            <strong className={styles.metricValue}>{purchaseBills.length}</strong>
           </div>
           <div className={styles.metric}>
             <span className={styles.metricLabel}>Draft / Partial</span>
             <strong className={styles.metricValue}>
-              {fakePurchaseBills.filter((bill) => bill.status !== "received").length}
+              {purchaseBills.filter((bill) => bill.status !== "received").length}
             </strong>
           </div>
         </section>
@@ -153,7 +182,7 @@ export function PurchaseHome() {
           <div className={styles.panelHeader}>
             <div>
               <h2 className={styles.panelTitle}>Purchase bill table</h2>
-              <p className={styles.panelMeta}>Fake purchase bills for the first overview screen.</p>
+              <p className={styles.panelMeta}>Saved purchases appear here immediately.</p>
             </div>
             <label className={styles.searchField}>
               <Search size={16} className={styles.searchIcon} />

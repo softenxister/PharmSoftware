@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, PackageCheck } from "lucide-react";
-import styles from "@/app/purchase/PurchaseEntry.module.css";
+import styles from "@/app/purchase/new/PurchaseEntry.module.css";
 import type { UploadedRow } from "@/app/purchase/purchaseData";
 import { money } from "@/app/purchase/purchaseUtils";
 

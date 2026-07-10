@@ -1,4 +1,4 @@
-import { PurchaseEntry } from "@/app/purchase/PurchaseEntry";
+import { PurchaseEntry } from "./PurchaseEntry";
 
 export default function NewPurchasePage() {
   return <PurchaseEntry />;

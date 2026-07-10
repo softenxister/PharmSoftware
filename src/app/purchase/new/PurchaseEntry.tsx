@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronRight,
   PackagePlus,
@@ -10,8 +11,8 @@ import {
   X,
 } from "lucide-react";
 import styles from "./PurchaseEntry.module.css";
-import { distributors } from "./purchaseData";
-import { getDistributorMatches } from "./purchaseUtils";
+import { distributors } from "../purchaseData";
+import { getDistributorMatches } from "../purchaseUtils";
 import { DateField } from "@/features/events/components/purchase/DateField";
 import { DistributorField } from "@/features/events/components/purchase/DistributorField";
 import type { SalesProduct } from "@/server/db/database";
@@ -30,13 +31,17 @@ function parsePositiveNumber(value: string) {
 
 type PurchaseLine = {
   id: string;
+  productId: string;
+  barcode: string;
   imageUrl: string;
   itemName: string;
   unit: string;
+  unitMultiplier: number;
   qty: string;
   cost: string;
   freeQty: string;
   freeUnit: string;
+  freeUnitMultiplier: number;
   lotNo: string;
   expiryDate: string;
 };
@@ -59,7 +64,9 @@ function matchesItemQuery(product: SalesProduct, rawQuery: string) {
 }
 
 export function PurchaseEntry() {
+  const router = useRouter();
   const [distributor, setDistributor] = useState("");
+  const [billNo, setBillNo] = useState("");
   const [manualItem, setManualItem] = useState("");
   const [catalog, setCatalog] = useState<SalesProduct[]>([]);
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
@@ -77,6 +84,8 @@ export function PurchaseEntry() {
   const [salesAdjustment, setSalesAdjustment] = useState("0");
   const [salesAdjustmentType, setSalesAdjustmentType] = useState<"percent" | "thb">("percent");
   const [purchaseConfirmOpen, setPurchaseConfirmOpen] = useState(false);
+  const [isSavingPurchase, setIsSavingPurchase] = useState(false);
+  const [purchaseSaveError, setPurchaseSaveError] = useState("");
   const [showMatches, setShowMatches] = useState(false);
   const [hasUpload, setHasUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -121,6 +130,11 @@ export function PurchaseEntry() {
   const netPurchaseTotal = Math.max(subtotal + vatAmount + salesAdjustmentAmount, 0);
   const marginPercent = subtotal > 0 ? (salesAdjustmentAmount / subtotal) * 100 : 0;
 
+  const getUnitMultiplier = (product: SalesProduct, packUnit: string) => {
+    if (product.pack.packUnit === packUnit) return 1;
+    return product.parentPacks.find(pack => pack.packUnit === packUnit)?.priceMultiplier ?? 1;
+  };
+
   const openPurchaseLine = useCallback((product: SalesProduct) => {
     const defaultUnit = product.pack.packUnit || "Blister";
     const firstBatch = product.batches[0];
@@ -156,13 +170,17 @@ export function PurchaseEntry() {
       ...lines,
       {
         id: `${selectedItem.id}-${Date.now()}`,
+        productId: selectedItem.id,
+        barcode: selectedItem.barcode,
         imageUrl: selectedItem.imageUrl,
         itemName: selectedItem.itemName,
         unit,
+        unitMultiplier: getUnitMultiplier(selectedItem, unit),
         qty: lineQty.trim(),
         cost: lineCost.trim(),
         freeQty: includeFreeQty ? freeQty.trim() : "",
         freeUnit,
+        freeUnitMultiplier: getUnitMultiplier(selectedItem, freeUnit),
         lotNo: lotNo.trim(),
         expiryDate: expiryDate.trim(),
       },
@@ -187,6 +205,49 @@ export function PurchaseEntry() {
     if (target instanceof HTMLButtonElement) target.click();
     if (target instanceof HTMLInputElement && target.type === "checkbox") target.click();
     window.setTimeout(() => focusNextPurchaseField(target), 0);
+  };
+
+  const confirmPurchase = async () => {
+    if (isSavingPurchase || purchaseLines.length === 0 || netPurchaseTotal <= 0) return;
+
+    setIsSavingPurchase(true);
+    setPurchaseSaveError("");
+
+    try {
+      const response = await fetch("/api/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceNo: billNo.trim(),
+          distributor: distributor.trim(),
+          totalQty,
+          netTotal: netPurchaseTotal,
+          lines: purchaseLines.map(line => ({
+            id: line.id,
+            productId: line.productId,
+            barcode: line.barcode,
+            itemName: line.itemName,
+            unit: line.unit,
+            unitMultiplier: line.unitMultiplier,
+            quantity: parsePositiveNumber(line.qty),
+            cost: parsePositiveNumber(line.cost),
+            freeUnit: line.freeUnit,
+            freeUnitMultiplier: line.freeUnitMultiplier,
+            freeQuantity: parsePositiveNumber(line.freeQty),
+            batchNo: line.lotNo,
+            expiryDate: line.expiryDate,
+          })),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Unable to save purchase.");
+      router.push("/purchase");
+    } catch (error) {
+      console.error(error);
+      setPurchaseSaveError("Purchase was not saved. Please try again.");
+    } finally {
+      setIsSavingPurchase(false);
+    }
   };
 
   useEffect(() => {
@@ -309,7 +370,12 @@ export function PurchaseEntry() {
 
             <div>
               <label className={styles.fieldLabel}>Bill No.</label>
-              <input className={styles.inputField} placeholder="Optional" />
+              <input
+                className={styles.inputField}
+                placeholder="Optional"
+                value={billNo}
+                onChange={event => setBillNo(event.target.value)}
+              />
             </div>
 
             <DateField label="Bill Date" />
@@ -680,7 +746,7 @@ export function PurchaseEntry() {
             onClick={() => setPurchaseConfirmOpen(true)}
             disabled={netPurchaseTotal <= 0}
           >
-            <span className={styles.purchaseSummaryLabel}>Net</span>
+            <span className={styles.purchaseSummaryLabel}>Net payment</span>
             <span className={styles.purchaseNetValue}>฿{formatMoney(netPurchaseTotal)}</span>
           </button>
         </div>
@@ -703,12 +769,23 @@ export function PurchaseEntry() {
               <span>{purchaseLines.length} item</span>
               <strong>฿{formatMoney(netPurchaseTotal)}</strong>
             </div>
+            {purchaseSaveError && <p className={styles.purchaseConfirmError}>{purchaseSaveError}</p>}
             <div className={styles.purchaseConfirmActions}>
-              <button type="button" className={styles.secondaryWindowButton} onClick={() => setPurchaseConfirmOpen(false)}>
+              <button
+                type="button"
+                className={styles.secondaryWindowButton}
+                onClick={() => setPurchaseConfirmOpen(false)}
+                disabled={isSavingPurchase}
+              >
                 Cancel
               </button>
-              <button type="button" className={styles.primaryWindowButton} onClick={() => setPurchaseConfirmOpen(false)}>
-                OK
+              <button
+                type="button"
+                className={styles.primaryWindowButton}
+                onClick={confirmPurchase}
+                disabled={isSavingPurchase}
+              >
+                {isSavingPurchase ? "Saving..." : "OK"}
               </button>
             </div>
           </section>

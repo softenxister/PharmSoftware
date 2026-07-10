@@ -2,7 +2,7 @@
 
 import { RefObject } from "react";
 import { FileSpreadsheet, Phone, ScanBarcode, Upload } from "lucide-react";
-import styles from "@/app/purchase/PurchaseEntry.module.css";
+import styles from "@/app/purchase/new/PurchaseEntry.module.css";
 
 interface UploadOptionsProps {
   fileRef: RefObject<HTMLInputElement>;

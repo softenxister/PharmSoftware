@@ -1,0 +1,58 @@
+[
+  {
+    "id": "purchase-1783614709489",
+    "billNo": "PB-20260709-002",
+    "invoiceNo": "Manual",
+    "date": "2026-07-09T16:31:49.489Z",
+    "distributor": "Unknown distributor",
+    "itemCount": 1,
+    "totalQty": 2,
+    "netTotal": 80,
+    "status": "received",
+    "lines": [
+      {
+        "id": "p-sara-1783614694519",
+        "productId": "p-sara",
+        "barcode": "8850001000014",
+        "itemName": "Sara Paracetamol 500 mg Tablet",
+        "unit": "blisterpack",
+        "unitMultiplier": 1,
+        "quantity": 2,
+        "cost": 40,
+        "freeUnit": "blisterpack",
+        "freeUnitMultiplier": 1,
+        "freeQuantity": 0,
+        "batchNo": "SAR25041",
+        "expiryDate": "2027-01-31"
+      }
+    ]
+  },
+  {
+    "id": "purchase-1783614251765",
+    "billNo": "PB-20260709-001",
+    "invoiceNo": "Manual",
+    "date": "2026-07-09T16:24:11.765Z",
+    "distributor": "TPD Thanom Pharma Distribution",
+    "itemCount": 1,
+    "totalQty": 4,
+    "netTotal": 1040,
+    "status": "received",
+    "lines": [
+      {
+        "id": "p-nac-long-600-mg-10-s-932604-1783614232247",
+        "productId": "p-nac-long-600-mg-10-s-932604",
+        "barcode": "4204684932604",
+        "itemName": "NAC LONG 600 MG 10's",
+        "unit": "tablet",
+        "unitMultiplier": 1,
+        "quantity": 4,
+        "cost": 260,
+        "freeUnit": "tablet",
+        "freeUnitMultiplier": 1,
+        "freeQuantity": 0,
+        "batchNo": "20343232",
+        "expiryDate": "30/12/2027"
+      }
+    ]
+  }
+]
