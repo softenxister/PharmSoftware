@@ -11,7 +11,7 @@ import {
   Trash2,
   Wand2,
 } from "lucide-react";
-import type { StockItemInput } from "@/server/db/database";
+import type { StockItemInput } from "@/server/db/types";
 import styles from "./Stock.module.css";
 
 type PackagingRow = {
@@ -26,6 +26,8 @@ type StockEntryFormProps = {
   onClose?: () => void;
   onSave?: (item: StockItemInput) => void | Promise<void>;
   categoryOptions?: string[];
+  initialItem?: StockItemInput;
+  mode?: "create" | "edit";
 };
 
 type SelectOption = {
@@ -46,6 +48,7 @@ const itemCategories = [
 
 const unitOptions = ["tablet", "caplet", "blister", "box", "bottle", "sachet", "tube", "piece", "ml", "g"];
 const packageOptions = ["box", "bottle", "tube", "strip", "carton", "blister", "sachet", "piece"];
+const regulatoryFormOptions = ["ข.ย. 9", "ข.ย. 10", "ข.ย. 11"];
 
 function generateBarcode(): string {
   const timePart = Date.now().toString().slice(-9);
@@ -243,42 +246,6 @@ function handleNumberText(value: string): string {
   return value.replace(/[^\d.]/g, "");
 }
 
-function christianYearFromInput(year: number): number {
-  return year >= 2400 ? year - 543 : year;
-}
-
-function handleDdMmYyyyText(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  const rawYear = Number(digits.slice(4));
-  const year = christianYearFromInput(rawYear);
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${year}`;
-}
-
-function isValidDateParts(day: number, month: number, year: number): boolean {
-  if (month < 1 || month > 12 || day < 1 || year < 2000) return false;
-
-  const date = new Date(year, month - 1, day);
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-}
-
-function normalizeDdMmYyyy(value: string): string {
-  const trimmed = value.trim();
-  const dayFirst = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
-  if (dayFirst) {
-    const day = Number(dayFirst[1]);
-    const month = Number(dayFirst[2]);
-    const rawYear = Number(dayFirst[3]);
-    const year = rawYear < 100 ? 2000 + rawYear : christianYearFromInput(rawYear);
-    return isValidDateParts(day, month, year)
-      ? `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`
-      : "";
-  }
-
-  return "";
-}
-
 function mergeUniqueOptions(...optionGroups: string[][]): string[] {
   const seen = new Set<string>();
   const merged: string[] = [];
@@ -294,34 +261,41 @@ function mergeUniqueOptions(...optionGroups: string[][]): string[] {
   return merged;
 }
 
-export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockEntryFormProps) {
+export function StockEntryForm({
+  onClose,
+  onSave,
+  categoryOptions = [],
+  initialItem,
+  mode = "create",
+}: StockEntryFormProps) {
   const resolvedCategoryOptions = useMemo(
     () => mergeUniqueOptions(itemCategories, categoryOptions),
     [categoryOptions],
   );
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [itemName, setItemName] = useState("");
-  const [lotNo, setLotNo] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [location, setLocation] = useState("");
-  const [manufacturer, setManufacturer] = useState("");
-  const [sellPrice, setSellPrice] = useState("");
-  const [itemCategory, setItemCategory] = useState(resolvedCategoryOptions[0] ?? "");
-  const [weightage, setWeightage] = useState("");
-  const [unit, setUnit] = useState(unitOptions[0]);
-  const [brandName, setBrandName] = useState("");
+  const [photoUrl, setPhotoUrl] = useState(initialItem?.photoUrl ?? "");
+  const [barcode, setBarcode] = useState(initialItem?.barcode ?? "");
+  const [itemName, setItemName] = useState(initialItem?.itemName ?? "");
+  const [location, setLocation] = useState(initialItem?.location ?? "");
+  const [manufacturer, setManufacturer] = useState(initialItem?.manufacturer ?? "");
+  const [sellPrice, setSellPrice] = useState(initialItem?.sellPrice ?? "");
+  const [itemCategory, setItemCategory] = useState(initialItem?.itemCategory ?? resolvedCategoryOptions[0] ?? "");
+  const [weightage, setWeightage] = useState(initialItem?.weightage ?? "");
+  const [subUnit, setSubUnit] = useState(initialItem?.subUnit ?? unitOptions[0]);
+  const [unit, setUnit] = useState(initialItem?.unit ?? unitOptions[0]);
+  const [brandName, setBrandName] = useState(initialItem?.brandName ?? "");
+  const lotNo = initialItem?.lotNo ?? "";
+  const expiryDate = initialItem?.expiryDate ?? "";
+  const [regulatoryForms, setRegulatoryForms] = useState<string[]>(["ข.ย. 9"]);
   const [focusPackagingRowId, setFocusPackagingRowId] = useState<string | null>(null);
   const packagingRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [packagingRows, setPackagingRows] = useState<PackagingRow[]>(() => [
-    {
-      id: "package-1",
-      parentUnit: "box",
-      childQuantity: "",
-      childUnit: "blister",
-      barcode: "",
-    },
-  ]);
+  const [packagingRows, setPackagingRows] = useState<PackagingRow[]>(() => {
+    const rows = initialItem?.packagingRows.map((row, index) => ({
+      ...row,
+      id: `package-${index + 1}`,
+    })) ?? [];
+    return rows.length > 0 ? rows : [createPackagingRow()];
+  });
+  const isEditing = mode === "edit";
 
   useEffect(() => {
     if (!focusPackagingRowId) return;
@@ -335,15 +309,12 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
 
     if (barcode.trim().length === 0) missing.push("barcode");
     if (itemName.trim().length === 0) missing.push("item name");
-    if (lotNo.trim().length === 0) missing.push("lot no.");
-    if (!normalizeDdMmYyyy(expiryDate)) missing.push("expire dd/mm/yyyy");
     if (!Number.isFinite(price) || price <= 0) missing.push("sell price");
     if (weightage.trim().length === 0) missing.push("weightage");
 
     return missing;
-  }, [barcode, expiryDate, itemName, lotNo, sellPrice, weightage]);
+  }, [barcode, itemName, sellPrice, weightage]);
   const canSave = missingSaveFields.length === 0;
-  const showExpiryError = expiryDate.trim().length > 0 && !normalizeDdMmYyyy(expiryDate);
 
   const updatePackagingRow = (id: string, patch: Partial<PackagingRow>) => {
     setPackagingRows((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -367,6 +338,13 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
     setPackagingRows((rows) => (rows.length > 1 ? rows.filter((row) => row.id !== id) : rows));
   };
 
+  const toggleRegulatoryForm = (form: string) => {
+    if (form === "ข.ย. 9") return;
+    setRegulatoryForms((current) => (
+      current.includes(form) ? current.filter((entry) => entry !== form) : [...current, form]
+    ));
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSave) return;
@@ -376,12 +354,13 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
       barcode,
       itemName,
       lotNo,
-      expiryDate: normalizeDdMmYyyy(expiryDate),
+      expiryDate,
       location,
       manufacturer,
       sellPrice,
       itemCategory,
       weightage,
+      subUnit,
       unit,
       brandName,
       packagingRows,
@@ -392,7 +371,7 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
     <form className={`${styles.stockForm} ${styles.stockFormPortrait}`} onSubmit={handleSubmit} noValidate>
       <div className={styles.formHeader}>
         <div>
-          <h1>Add New Item</h1>
+          <h1>{isEditing ? "Edit Item" : "Create New Item"}</h1>
         </div>
         <div className={styles.formHeaderActions}>
           {onClose ? (
@@ -408,7 +387,7 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
           )}
           <button type="submit" className={styles.toolbarAddButton} disabled={!canSave}>
             <PackagePlus size={17} />
-            <span>Save Item</span>
+            <span>{isEditing ? "Save Changes" : "Create Item"}</span>
           </button>
         </div>
       </div>
@@ -440,11 +419,14 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
               <input
                 type="text"
                 value={barcode}
+                readOnly={isEditing}
                 onChange={(event) => setBarcode(event.target.value)}
               />
-              <button type="button" onClick={() => setBarcode(generateBarcode())} title="Generate barcode">
-                <Wand2 size={15} />
-              </button>
+              {!isEditing && (
+                <button type="button" onClick={() => setBarcode(generateBarcode())} title="Generate barcode">
+                  <Wand2 size={15} />
+                </button>
+              )}
             </span>
           </label>
         </section>
@@ -458,27 +440,6 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
                 placeholder="Paracetamol 500 mg"
                 onChange={(event) => setItemName(event.target.value)}
               />
-            </label>
-
-            <label className={styles.field} data-stock-flow="lotNo" onKeyDown={handleFlowEnter}>
-              <span>Lot No.</span>
-              <input value={lotNo} onChange={(event) => setLotNo(event.target.value)} />
-            </label>
-
-            <label className={styles.field} data-stock-flow="expiryDate" onKeyDown={handleFlowEnter}>
-              <span className={styles.fieldLabel}>
-                <span>Expire</span>
-                <span className={styles.fieldExample}>dd/mm/yyyy</span>
-              </span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={expiryDate}
-                placeholder="31/12/2026"
-                onChange={(event) => setExpiryDate(handleDdMmYyyyText(event.target.value))}
-                aria-invalid={showExpiryError}
-              />
-              {showExpiryError && <span className={styles.fieldError}>Use valid dd/mm/yyyy</span>}
             </label>
 
             <label className={styles.field} data-stock-flow="location" onKeyDown={handleFlowEnter}>
@@ -515,11 +476,23 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
             </label>
 
             <label className={styles.field} data-stock-flow="weightage" onKeyDown={handleFlowEnter}>
-              <span>Weightage</span>
+              <span>Amount</span>
               <input
                 value={weightage}
                 placeholder="500"
                 onChange={(event) => setWeightage(event.target.value)}
+              />
+            </label>
+
+            <label className={styles.field} data-stock-flow="subUnit">
+              <span>Sub unit</span>
+              <SearchableSelect
+                ariaLabel="Sub unit"
+                value={subUnit}
+                options={optionList(unitOptions)}
+                onChange={setSubUnit}
+                allowCustom
+                onCommit={() => focusNextField("subUnit")}
               />
             </label>
 
@@ -609,10 +582,6 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
                 </span>
               </label>
 
-              <div className={styles.packagingPreview}>
-                1 {row.parentUnit || "package"} = {row.childQuantity || "0"} {row.childUnit || "unit"}
-              </div>
-
               <button
                 type="button"
                 className={styles.removeRowButton}
@@ -624,6 +593,25 @@ export function StockEntryForm({ onClose, onSave, categoryOptions = [] }: StockE
                 <Trash2 size={16} />
               </button>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.regulatoryFormsPanel} aria-label="Pharmacy drug purchase and sales records">
+        <div className={styles.regulatoryFormsHeader}>
+          <h2>Pharmacy Drug Purchase &amp; Sales Records</h2>
+        </div>
+        <div className={styles.packagingRegulatoryOptions}>
+          {regulatoryFormOptions.map((form) => (
+            <label key={form} className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={form === "ข.ย. 9" || regulatoryForms.includes(form)}
+                disabled={form === "ข.ย. 9"}
+                onChange={() => toggleRegulatoryForm(form)}
+              />
+              <span>{form}</span>
+            </label>
           ))}
         </div>
       </section>

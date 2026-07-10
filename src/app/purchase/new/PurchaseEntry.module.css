@@ -360,9 +360,15 @@
   text-align: left;
 }
 
-.matchButton:hover {
+.matchButton:hover,
+.matchButtonActive {
   background: var(--primary-soft);
   color: var(--primary-dark);
+}
+
+.matchList:hover .matchButtonActive:not(:hover) {
+  background: transparent;
+  color: var(--ink);
 }
 
 .matchMeta {
@@ -653,7 +659,7 @@
 .bottleCap {
   position: absolute;
   top: 0;
-  left: 18px;
+  left: 16px;
   width: 18px;
   height: 11px;
   border-radius: 3px 3px 1px 1px;
@@ -663,7 +669,7 @@
 .bottleNeck {
   position: absolute;
   top: 10px;
-  left: 15px;
+  left: 13px;
   width: 24px;
   height: 16px;
   background: #e8eeeb;
@@ -692,7 +698,7 @@
 
 .bottleBarcode {
   position: absolute;
-  right: 13px;
+  right: 11px;
   bottom: 9px;
   width: 28px;
   height: 15px;
@@ -890,9 +896,15 @@
   text-align: left;
 }
 
-.itemOption:hover {
+.itemOption:hover,
+.itemOptionActive {
   background: var(--primary-soft);
   color: var(--primary-dark);
+}
+
+.itemDropdownPanel:hover .itemOptionActive:not(:hover) {
+  background: transparent;
+  color: var(--ink);
 }
 
 .itemOptionThumb {

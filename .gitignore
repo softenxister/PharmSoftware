@@ -8,6 +8,7 @@ out/
 # Build output
 dist/
 build/
+/src/generated/prisma/
 
 # Local environment
 .env

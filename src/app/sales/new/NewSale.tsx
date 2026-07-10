@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Settings } from 'lucide-react';
 import styles from './NewSale.module.css';
-import { salesProducts, type ParentPack, type ProductPack, type SalesProduct } from '@/server/db/database';
+import type { ParentPack, ProductPack, SalesProduct } from '@/server/db/types';
+import { loadStockCatalog, updateStockCatalog } from '@/app/stock/stockCatalogClient';
 import morningReminderIcon from '@/styles/vector/morning.png';
 import noonReminderIcon from '@/styles/vector/noon.png';
 import eveningReminderIcon from '@/styles/vector/evening.png';
@@ -71,6 +72,7 @@ interface CatalogItem {
   sellPacks: SellPack[];
   loc: string;
   image: string;
+  weeklySold: number;
   batches: Batch[];
 }
 
@@ -104,6 +106,17 @@ type InvoiceCreated = {
   changeDue: number;
   paymentMode: string;
   createdAt: string;
+};
+
+type SalesApiResponse = {
+  products?: SalesProduct[] | null;
+  sale?: {
+    id: string;
+    billNo: string;
+    date: string;
+    status: BillStatus;
+  };
+  error?: string;
 };
 
 type SavedSale = {
@@ -148,7 +161,6 @@ const OWNERS: Owner[] = [
 
 const PAYMENT_METHODS = ['Cash', 'PromptPay', 'Credit card', 'Bank transfer'];
 const SAVED_SALES_KEY = 'pharm_recent_sales';
-const LEGACY_STOCK_DATABASE_KEY = 'pharm_stock_items';
 
 const PHARMACISTS: Pharmacist[] = [
   { id: 'p1', name: 'Ph. Nattaya S.' },
@@ -214,6 +226,7 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
     ],
     loc: product.location,
     image: product.imageUrl,
+    weeklySold: product.weeklySold,
     batches: product.batches.map((batch) => ({
       batchId: `${product.id}-${batch.batchNo}`,
       batchNo: batch.batchNo,
@@ -223,14 +236,6 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
     })),
   }));
 }
-
-const SEED_CATALOG: CatalogItem[] = productsToCatalog(salesProducts);
-
-// Store-wide best sellers this week — used when no member is attached to the sale.
-const WEEKLY_TOP_ITEM_IDS = [...salesProducts]
-  .sort((a, b) => b.weeklySold - a.weeklySold)
-  .slice(0, 10)
-  .map((product) => product.id);
 
 /* ════════════════════════════════════════════════════════════════════
    Helpers
@@ -387,6 +392,13 @@ function CustomSelect({
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
   const selected = options.find((option) => option.value === value) ?? options[0];
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === selected?.value));
+  const [highlightedIndex, setHighlightedIndex] = useState(selectedIndex);
+
+  useEffect(() => {
+    if (!open) return;
+    setHighlightedIndex(selectedIndex);
+  }, [open, selectedIndex]);
 
   function choose(nextValue: string) {
     onChange(nextValue);
@@ -403,9 +415,42 @@ function CustomSelect({
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={(e) => {
-          if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+          if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setOpen(true);
+            if (options.length === 0) return;
+            if (!open) {
+              setOpen(true);
+              return;
+            }
+            setHighlightedIndex((current) => (current + 1) % options.length);
+            return;
+          }
+
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (options.length === 0) return;
+            if (!open) {
+              setOpen(true);
+              return;
+            }
+            setHighlightedIndex((current) => (current - 1 + options.length) % options.length);
+            return;
+          }
+
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (options.length === 0) return;
+            if (!open) {
+              setOpen(true);
+              return;
+            }
+            const highlightedOption = options[highlightedIndex] ?? selected;
+            if (highlightedOption) choose(highlightedOption.value);
+            return;
+          }
+
+          if (e.key === 'Escape') {
+            setOpen(false);
           }
         }}
       >
@@ -414,13 +459,15 @@ function CustomSelect({
       </button>
       {open && (
         <div className={styles.customSelectMenu} role="listbox" aria-label={ariaLabel}>
-          {options.map((option) => (
+          {options.map((option, index) => (
             <button
               key={option.value}
               type="button"
               role="option"
               aria-selected={option.value === value}
-              className={`${styles.customSelectOption} ${option.value === value ? styles.customSelectOptionActive : ''}`}
+              className={`${styles.customSelectOption} ${index === highlightedIndex ? styles.customSelectOptionActive : ''}`}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onMouseMove={() => setHighlightedIndex(index)}
               onClick={() => choose(option.value)}
             >
               {option.label}
@@ -515,15 +562,23 @@ export default function NewSale(): React.ReactElement {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerQuery, setCustomerQuery] = useState('');
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const [highlightedCustomerIndex, setHighlightedCustomerIndex] = useState(0);
   const customerFieldRef = useClickOutside<HTMLDivElement>(() => setCustomerDropdownOpen(false));
 
   // Item search + editor row
   const [itemQuery, setItemQuery] = useState('');
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+  const [highlightedItemIndex, setHighlightedItemIndex] = useState(0);
   const itemFieldRef = useClickOutside<HTMLDivElement>(() => setItemDropdownOpen(false));
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const [catalog, setCatalog] = useState<CatalogItem[]>(SEED_CATALOG);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const batchPickerRef = useClickOutside<HTMLDivElement>(() => {
+    setEditor((current) => {
+      if (!current?.batchCardOpen) return current;
+      return { ...current, batchCardOpen: false };
+    });
+  });
   const qtyInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cart
@@ -547,6 +602,8 @@ export default function NewSale(): React.ReactElement {
   const [customerPayEdited, setCustomerPayEdited] = useState(false);
   const customerPayInputRef = useRef<HTMLInputElement | null>(null);
   const [invoiceCreated, setInvoiceCreated] = useState<InvoiceCreated | null>(null);
+  const [saleSubmitting, setSaleSubmitting] = useState(false);
+  const [saleSubmitError, setSaleSubmitError] = useState('');
   const newSaleButtonRef = useRef<HTMLButtonElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [billingDevice, setBillingDevice] = useState('Front Counter Thermal Printer');
@@ -563,11 +620,33 @@ export default function NewSale(): React.ReactElement {
     return CUSTOMERS.filter((c) => c.name.toLowerCase().includes(q) || c.mobile.replace(/-/g, '').includes(q.replace(/-/g, '')));
   }, [customerQuery]);
 
+  useEffect(() => {
+    setHighlightedCustomerIndex(0);
+  }, [customerQuery]);
+
+  useEffect(() => {
+    setHighlightedCustomerIndex((current) => {
+      if (customerMatches.length === 0) return 0;
+      return Math.min(current, customerMatches.length - 1);
+    });
+  }, [customerMatches.length]);
+
   const itemMatches = useMemo(() => {
     const q = itemQuery.trim();
     if (!q) return [];
     return catalog.filter((it) => matchesQuery(it, q)).slice(0, 8);
   }, [catalog, itemQuery]);
+
+  useEffect(() => {
+    setHighlightedItemIndex(0);
+  }, [itemQuery]);
+
+  useEffect(() => {
+    setHighlightedItemIndex((current) => {
+      if (itemMatches.length === 0) return 0;
+      return Math.min(current, itemMatches.length - 1);
+    });
+  }, [itemMatches.length]);
 
   const totalQty = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty, 0), [cartLines]);
   const uniqueItemCount = cartLines.length;
@@ -595,10 +674,18 @@ export default function NewSale(): React.ReactElement {
     return cartLines.filter((line) => totalTabsForLine(line, catalog) > 0);
   }, [cartLines, catalog]);
 
+  const weeklyTopItemIds = useMemo(
+    () => [...catalog]
+      .sort((a, b) => b.weeklySold - a.weeklySold)
+      .slice(0, 10)
+      .map((item) => item.id),
+    [catalog],
+  );
+
   const topItemIds = useMemo(() => {
     if (customer && customer.isMember && customer.topItemIds?.length) return customer.topItemIds;
-    return WEEKLY_TOP_ITEM_IDS;
-  }, [customer]);
+    return weeklyTopItemIds;
+  }, [customer, weeklyTopItemIds]);
 
   const topItems = useMemo(() => {
     const mappedItems = topItemIds
@@ -608,11 +695,11 @@ export default function NewSale(): React.ReactElement {
 
     return mappedItems.length > 0
       ? mappedItems
-      : WEEKLY_TOP_ITEM_IDS
+      : weeklyTopItemIds
         .map((id) => catalog.find((it) => it.id === id))
         .filter((it): it is CatalogItem => !!it)
         .slice(0, 10);
-  }, [catalog, topItemIds]);
+  }, [catalog, topItemIds, weeklyTopItemIds]);
 
   const topItemsLabel = customer && customer.isMember ? `Top picks for ${customer.name.split(' ')[0]}` : 'Top 10 Thai products this week';
 
@@ -626,33 +713,8 @@ export default function NewSale(): React.ReactElement {
 
     async function loadCatalog() {
       try {
-        const response = await fetch('/api/stock', { cache: 'no-store' });
-        if (!response.ok) throw new Error('Unable to load stock catalog.');
-        const data = await response.json() as { products?: SalesProduct[] };
-        if (!cancelled && Array.isArray(data.products)) {
-          setCatalog(productsToCatalog(data.products));
-        }
-
-        const legacyRaw = window.localStorage.getItem(LEGACY_STOCK_DATABASE_KEY);
-        if (!legacyRaw) return;
-
-        const legacyItems = JSON.parse(legacyRaw);
-        if (!Array.isArray(legacyItems) || legacyItems.length === 0) {
-          window.localStorage.removeItem(LEGACY_STOCK_DATABASE_KEY);
-          return;
-        }
-
-        const migrateResponse = await fetch('/api/stock', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: legacyItems }),
-        });
-        if (!migrateResponse.ok) throw new Error('Unable to migrate browser stock.');
-        const migratedData = await migrateResponse.json() as { products?: SalesProduct[] };
-        if (!cancelled && Array.isArray(migratedData.products)) {
-          setCatalog(productsToCatalog(migratedData.products));
-        }
-        window.localStorage.removeItem(LEGACY_STOCK_DATABASE_KEY);
+        const products = await loadStockCatalog();
+        if (!cancelled) setCatalog(productsToCatalog(products));
       } catch (error) {
         console.error(error);
       }
@@ -736,6 +798,73 @@ export default function NewSale(): React.ReactElement {
       qtyInputRef.current?.focus();
       qtyInputRef.current?.select();
     }, 0);
+  }
+
+  function handleItemSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (!itemDropdownOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      setItemDropdownOpen(true);
+    }
+
+    if (event.key === 'ArrowDown' && itemMatches.length > 0) {
+      event.preventDefault();
+      setHighlightedItemIndex((current) => (current + 1) % itemMatches.length);
+      return;
+    }
+
+    if (event.key === 'ArrowUp' && itemMatches.length > 0) {
+      event.preventDefault();
+      setHighlightedItemIndex((current) => (current - 1 + itemMatches.length) % itemMatches.length);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      const highlightedItem = itemMatches[highlightedItemIndex] ?? itemMatches[0];
+      if (highlightedItem) {
+        event.preventDefault();
+        openEditorForItem(highlightedItem);
+      }
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      setItemDropdownOpen(false);
+    }
+  }
+
+  function selectCustomer(nextCustomer: Customer) {
+    setCustomer(nextCustomer);
+    setCustomerDropdownOpen(false);
+  }
+
+  function handleCustomerSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (!customerDropdownOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      setCustomerDropdownOpen(true);
+    }
+
+    if (event.key === 'ArrowDown' && customerMatches.length > 0) {
+      event.preventDefault();
+      setHighlightedCustomerIndex((current) => (current + 1) % customerMatches.length);
+      return;
+    }
+
+    if (event.key === 'ArrowUp' && customerMatches.length > 0) {
+      event.preventDefault();
+      setHighlightedCustomerIndex((current) => (current - 1 + customerMatches.length) % customerMatches.length);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      const highlightedCustomer = customerMatches[highlightedCustomerIndex] ?? customerMatches[0];
+      if (highlightedCustomer) {
+        event.preventDefault();
+        selectCustomer(highlightedCustomer);
+      }
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      setCustomerDropdownOpen(false);
+    }
   }
 
   function handleSelectBatch(batch: Batch) {
@@ -910,6 +1039,7 @@ export default function NewSale(): React.ReactElement {
 
   function openDiscountDrawer() {
     if (!canOpenInvoiceBreakdown) return;
+    setSaleSubmitError('');
     if (appliedDiscount) {
       setDiscountType(appliedDiscount.type);
       setDiscountInput(String(appliedDiscount.value));
@@ -930,7 +1060,7 @@ export default function NewSale(): React.ReactElement {
   }
 
   function handleCustomerPayEnter() {
-    submitInvoicePayment();
+    void submitInvoicePayment();
   }
 
   function addCustomerCash(amount: number) {
@@ -968,31 +1098,36 @@ export default function NewSale(): React.ReactElement {
     setItemDropdownOpen(false);
     setDiscountOpen(false);
     setInvoiceCreated(null);
+    setSaleSubmitting(false);
+    setSaleSubmitError('');
     setEditingBillId(null);
     setEditingBillNo(null);
     setBillDate(new Date().toISOString().slice(0, 10));
   }
 
   function persistSale(mode: SaveMode, overrides: {
+    id?: string;
+    billNo?: string;
+    createdAt?: string;
     discount?: AppliedDiscount | null;
     netPayable?: number;
     customerPaid?: number | null;
     changeDue?: number;
     status?: BillStatus;
   } = {}): InvoiceCreated {
-    const billDateTime = new Date();
+    const billDateTime = overrides.createdAt ? new Date(overrides.createdAt) : new Date();
     const effectiveNetPayable = overrides.netPayable ?? netPayable;
     const effectiveCustomerPaid = overrides.customerPaid !== undefined
       ? overrides.customerPaid
       : parseFloat(customerPayInput) || null;
     const effectiveChangeDue = overrides.changeDue ?? liveChangeDue;
     const saleStatus = overrides.status ?? 'paid';
-    const invoiceNo = editingBillNo ?? `INV-${billDateTime
+    const invoiceNo = overrides.billNo ?? editingBillNo ?? `INV-${billDateTime
       .toISOString()
       .slice(2, 10)
       .replace(/-/g, '')}-${String(billDateTime.getTime()).slice(-4)}`;
     const savedBill = {
-      id: editingBillId ?? `saved-${billDateTime.getTime()}`,
+      id: overrides.id ?? editingBillId ?? `saved-${billDateTime.getTime()}`,
       billNo: invoiceNo,
       date: billDateTime.toISOString(),
       customerName: customer?.name ?? 'Walk-in Customer',
@@ -1020,30 +1155,6 @@ export default function NewSale(): React.ReactElement {
     const otherSales = previousSales.filter((bill: SavedSale) => bill.id !== savedBill.id);
     window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify([savedBill, ...otherSales].slice(0, 30)));
 
-    // TODO: wire to POST /api/sales — payload below is the shape the endpoint expects.
-    const payload = {
-      ownerId,
-      paymentMethod,
-      purchaseMethod,
-      billDate,
-      pharmacistId,
-      customerId: customer?.id ?? null,
-      lines: cartLines,
-      subtotal,
-      discount: overrides.discount ?? appliedDiscount,
-      netPayable: effectiveNetPayable,
-      customerPaid: effectiveCustomerPaid,
-      changeDue: effectiveChangeDue,
-      billingDevice,
-      cashDrawerDevice,
-      paperSize,
-      autoPrint,
-      autoOpenCashDrawer,
-      mode,
-      status: saleStatus,
-    };
-    console.log('Saving sale', payload);
-
     return {
       invoiceNo,
       amountPaid: effectiveCustomerPaid ?? effectiveNetPayable,
@@ -1053,19 +1164,70 @@ export default function NewSale(): React.ReactElement {
     };
   }
 
-  function submitInvoicePayment() {
-    if (!canSaveSale) return;
+  async function submitInvoicePayment() {
+    if (!canSaveSale || saleSubmitting) return;
     const nextDiscount = readDraftDiscount();
     const nextDiscountAmount = calculateDiscountAmount(nextDiscount, subtotal);
     const nextNetPayable = Math.max(subtotal - nextDiscountAmount, 0);
     const paid = parseFloat(customerPayInput);
     const nextChangeDue = Number.isNaN(paid) ? 0 : Math.max(paid - nextNetPayable, 0);
 
+    setSaleSubmitting(true);
+    setSaleSubmitError('');
+    let savedSale: SalesApiResponse['sale'];
+
+    try {
+      const saleResponse = await fetch('/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'paid',
+          id: editingBillId ?? undefined,
+          billNo: editingBillNo ?? undefined,
+          owner: {
+            id: ownerId,
+            name: OWNERS.find((owner) => owner.id === ownerId)?.name ?? ownerId,
+          },
+          pharmacist: {
+            id: pharmacistId,
+            name: PHARMACISTS.find((pharmacist) => pharmacist.id === pharmacistId)?.name ?? pharmacistId,
+          },
+          customer,
+          paymentMethod,
+          purchaseMethod,
+          subtotal,
+          netPayable: nextNetPayable,
+          customerPaid: Number.isNaN(paid) ? null : paid,
+          changeDue: nextChangeDue,
+          discount: nextDiscount,
+          lines: cartLines,
+        }),
+      });
+      const saleData = await saleResponse.json() as SalesApiResponse;
+
+      if (!saleResponse.ok) {
+        throw new Error(saleData.error || 'Unable to update stock for this sale.');
+      }
+
+      if (Array.isArray(saleData.products)) {
+        updateStockCatalog(saleData.products);
+        setCatalog(productsToCatalog(saleData.products));
+      }
+      savedSale = saleData.sale;
+    } catch (error) {
+      setSaleSubmitError(error instanceof Error ? error.message : 'Unable to update stock for this sale.');
+      setSaleSubmitting(false);
+      return;
+    }
+
     if (!Number.isNaN(paid) && paid >= nextNetPayable) {
       openCashDrawer('customer payment submitted');
     }
 
     const createdInvoice = persistSale('save-new', {
+      id: savedSale?.id,
+      billNo: savedSale?.billNo,
+      createdAt: savedSale?.date,
       discount: nextDiscount,
       netPayable: nextNetPayable,
       customerPaid: Number.isNaN(paid) ? null : paid,
@@ -1075,6 +1237,7 @@ export default function NewSale(): React.ReactElement {
     setAppliedDiscount(nextDiscount);
     setDiscountOpen(false);
     setInvoiceCreated(createdInvoice);
+    setSaleSubmitting(false);
   }
 
   function clearDiscount() {
@@ -1083,19 +1246,59 @@ export default function NewSale(): React.ReactElement {
     setDiscountOpen(false);
   }
 
-  function handleSave(mode: SaveMode) {
-    if (!canSaveSale) return;
-    persistSale(mode, {
-      status: 'pending',
-      customerPaid: null,
-      changeDue: 0,
-    });
-    setSaveMenuOpen(false);
-    if (mode === 'save-new') {
-      resetForNewWalkIn();
-      return;
+  async function handleSave(mode: SaveMode) {
+    if (!canSaveSale || saleSubmitting) return;
+    setSaleSubmitting(true);
+    setSaleSubmitError('');
+
+    try {
+      const response = await fetch('/api/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'pending',
+          id: editingBillId ?? undefined,
+          billNo: editingBillNo ?? undefined,
+          owner: {
+            id: ownerId,
+            name: OWNERS.find((owner) => owner.id === ownerId)?.name ?? ownerId,
+          },
+          pharmacist: {
+            id: pharmacistId,
+            name: PHARMACISTS.find((pharmacist) => pharmacist.id === pharmacistId)?.name ?? pharmacistId,
+          },
+          customer,
+          paymentMethod,
+          purchaseMethod,
+          subtotal,
+          netPayable,
+          customerPaid: null,
+          changeDue: 0,
+          discount: appliedDiscount,
+          lines: cartLines,
+        }),
+      });
+      const data = await response.json() as SalesApiResponse;
+      if (!response.ok) throw new Error(data.error || 'Unable to save this sale.');
+
+      persistSale(mode, {
+        id: data.sale?.id,
+        billNo: data.sale?.billNo,
+        createdAt: data.sale?.date,
+        status: 'pending',
+        customerPaid: null,
+        changeDue: 0,
+      });
+      setSaveMenuOpen(false);
+      if (mode === 'save-new') {
+        resetForNewWalkIn();
+        return;
+      }
+      router.push('/sales');
+    } catch (error) {
+      setSaleSubmitError(error instanceof Error ? error.message : 'Unable to save this sale.');
+      setSaleSubmitting(false);
     }
-    router.push('/sales');
   }
 
   /* ── Render ─────────────────────────────────────────────────────── */
@@ -1216,7 +1419,11 @@ export default function NewSale(): React.ReactElement {
                 type="text"
                 value={customerQuery}
                 onChange={(e) => { setCustomerQuery(e.target.value); setCustomerDropdownOpen(true); }}
-                onFocus={() => setCustomerDropdownOpen(true)}
+                onFocus={() => {
+                  setCustomerDropdownOpen(true);
+                  setHighlightedCustomerIndex(0);
+                }}
+                onKeyDown={handleCustomerSearchKeyDown}
                 placeholder="Search name or mobile number"
                 className={styles.textInput}
               />
@@ -1225,22 +1432,28 @@ export default function NewSale(): React.ReactElement {
                   {customerMatches.length === 0 && (
                     <div className={styles.dropdownEmpty}>No customer found — sale will be walk-in.</div>
                   )}
-                  {customerMatches.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={styles.customerOption}
-                      onClick={() => { setCustomer(c); setCustomerDropdownOpen(false); }}
-                    >
-                      <span className={styles.avatar}>{initials(c.name)}</span>
-                      <div className={styles.customerChipMeta}>
-                        <span className={styles.customerChipName}>{c.name}</span>
-                        <span className={styles.customerChipMobile}>
-                          {c.mobile} · {c.membershipRank} · {c.points.toLocaleString('en-US')} pts
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+                  {customerMatches.map((c, index) => {
+                    const isHighlighted = index === highlightedCustomerIndex;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`${styles.customerOption} ${isHighlighted ? styles.customerOptionActive : ''}`}
+                        aria-selected={isHighlighted}
+                        onMouseEnter={() => setHighlightedCustomerIndex(index)}
+                        onMouseMove={() => setHighlightedCustomerIndex(index)}
+                        onClick={() => selectCustomer(c)}
+                      >
+                        <span className={styles.avatar}>{initials(c.name)}</span>
+                        <div className={styles.customerChipMeta}>
+                          <span className={styles.customerChipName}>{c.name}</span>
+                          <span className={styles.customerChipMobile}>
+                            {c.mobile} · {c.membershipRank} · {c.points.toLocaleString('en-US')} pts
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -1269,13 +1482,11 @@ export default function NewSale(): React.ReactElement {
               type="text"
               value={itemQuery}
               onChange={(e) => { setItemQuery(e.target.value); setItemDropdownOpen(true); }}
-              onFocus={() => setItemDropdownOpen(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && itemMatches[0]) {
-                  e.preventDefault();
-                  openEditorForItem(itemMatches[0]);
-                }
+              onFocus={() => {
+                setItemDropdownOpen(true);
+                setHighlightedItemIndex(0);
               }}
+              onKeyDown={handleItemSearchKeyDown}
               placeholder="Search item — barcode, product name, etc."
               className={styles.itemSearchInput}
             />
@@ -1283,10 +1494,19 @@ export default function NewSale(): React.ReactElement {
           {itemDropdownOpen && itemQuery.trim() && (
             <div className={styles.itemDropdownPanel}>
               {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>No matching item.</div>}
-              {itemMatches.map((it) => {
+              {itemMatches.map((it, index) => {
                 const nearest = nearestExpiryBatch(it.batches);
+                const isHighlighted = index === highlightedItemIndex;
                 return (
-                  <button key={it.id} type="button" className={styles.itemOption} onClick={() => openEditorForItem(it)}>
+                  <button
+                    key={it.id}
+                    type="button"
+                    className={`${styles.itemOption} ${isHighlighted ? styles.itemOptionActive : ''}`}
+                    aria-selected={isHighlighted}
+                    onMouseEnter={() => setHighlightedItemIndex(index)}
+                    onMouseMove={() => setHighlightedItemIndex(index)}
+                    onClick={() => openEditorForItem(it)}
+                  >
                     <img src={it.image} alt="" className={styles.itemOptionThumb} />
                     <div className={styles.itemOptionMeta}>
                       <span className={styles.itemOptionName}>{it.name}</span>
@@ -1304,7 +1524,7 @@ export default function NewSale(): React.ReactElement {
 
         {/* Editor row — staged item awaiting batch confirmation + qty */}
         {editor && (
-          <div className={styles.editorBlock}>
+          <div className={styles.editorBlock} ref={batchPickerRef}>
             <div className={styles.editorRow}>
               <button type="button" className={styles.binButton} onClick={() => setEditor(null)} aria-label="Cancel adding item">
                 <IconBin />
@@ -1812,6 +2032,7 @@ export default function NewSale(): React.ReactElement {
               min={0}
               value={customerPayInput}
               onChange={(e) => {
+                setSaleSubmitError('');
                 setCustomerPayEdited(true);
                 setCustomerPayInput(e.target.value);
               }}
@@ -1867,11 +2088,19 @@ export default function NewSale(): React.ReactElement {
               </span>
             </div>
 
+            {saleSubmitError && (
+              <div className={styles.drawerError} role="alert">
+                {saleSubmitError}
+              </div>
+            )}
+
             <div className={styles.drawerActions}>
               {appliedDiscount && (
                 <button type="button" className={styles.drawerSecondaryBtn} onClick={clearDiscount}>Remove discount</button>
               )}
-              <button type="button" className={styles.drawerPrimaryBtn} onClick={submitInvoicePayment}>Submit</button>
+              <button type="button" className={styles.drawerPrimaryBtn} onClick={() => void submitInvoicePayment()} disabled={saleSubmitting}>
+                {saleSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
             </div>
           </div>
         </div>

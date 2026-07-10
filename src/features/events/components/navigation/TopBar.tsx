@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, ShoppingCart, Package, Archive, Users,
   BarChart2, Plug, MoreHorizontal, Settings, Globe, ChevronDown, Bell,
+  RefreshCw, Tag, SlidersHorizontal, Gauge,
 } from "lucide-react";
 
 const navItems = [
@@ -19,12 +20,20 @@ const navItems = [
   { label: "More", href: "/more", icon: MoreHorizontal },
 ];
 
+const stockMenuItems = [
+  { label: "Migration", href: "/stock/migration", icon: RefreshCw },
+  { label: "Discounts", href: "/stock/discounts", icon: Tag },
+  { label: "Stock Adjustment", href: "/stock/adjustment", icon: SlidersHorizontal },
+  { label: "Set Min/Max", href: "/stock/min-max", icon: Gauge },
+];
+
 const getTopLevelPath = (href: string) => (href === "/" ? "/" : `/${href.split("/")[1]}`);
 
 export function TopBar() {
   const pathname = usePathname();
   const [langOpen, setLangOpen] = useState(false);
   const [lang, setLang] = useState("EN");
+  const [stockMenuOpen, setStockMenuOpen] = useState(false);
 
   return (
     <div
@@ -52,7 +61,8 @@ export function TopBar() {
           const topLevelPath = getTopLevelPath(href);
           const isActive = topLevelPath === "/" ? pathname === "/" : pathname.startsWith(topLevelPath);
           const isHome = label === "Home";
-          return (
+          const isStock = label === "Stock";
+          const navLink = (
             <Link
               key={label}
               href={href}
@@ -84,6 +94,53 @@ export function TopBar() {
                 <span style={{ fontSize: "15.6px", fontWeight: isActive ? 600 : 400 }}>{label}</span>
               )}
             </Link>
+          );
+
+          if (!isStock) return navLink;
+
+          return (
+            <div
+              key={label}
+              className="relative h-full"
+              onMouseEnter={() => setStockMenuOpen(true)}
+              onMouseLeave={() => setStockMenuOpen(false)}
+              onFocus={() => setStockMenuOpen(true)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setStockMenuOpen(false);
+                }
+              }}
+            >
+              {navLink}
+              {stockMenuOpen && (
+                <div
+                  className="absolute left-0 top-full z-50 w-56 border py-1 shadow-lg"
+                  style={{ background: "#ffffff", borderColor: "#b9d8c4" }}
+                  role="menu"
+                  aria-label="Stock actions"
+                >
+                  {stockMenuItems.map(({ label: menuLabel, href: menuHref, icon: MenuIcon }, index) => (
+                    <Link
+                      key={menuHref}
+                      href={menuHref}
+                      className="flex items-center gap-2.5 px-4 py-2.5 transition-colors"
+                      style={{
+                        color: "#24533a",
+                        fontSize: "14px",
+                        borderTop: index > 0 ? "1px solid #b9d8c4" : undefined,
+                      }}
+                      role="menuitem"
+                      onMouseEnter={(event) => { event.currentTarget.style.background = "#c6e3d0"; }}
+                      onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
+                      onClick={() => setStockMenuOpen(false)}
+                    >
+                      <MenuIcon size={16} strokeWidth={1.9} aria-hidden="true" />
+                      <span>{menuLabel}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

@@ -1,4 +1,13 @@
-import type { UploadedRow } from "./purchaseData";
+export type UploadedRow = {
+  csv: string;
+  item: string;
+  lot: string;
+  exp: string;
+  dist: string;
+  retail: string;
+  qty: number;
+  free: number;
+};
 
 export const formatDateDisplay = (isoDate: string) => {
   if (!isoDate) return "";

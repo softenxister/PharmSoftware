@@ -59,19 +59,33 @@ export default function SaleHome(): React.ReactElement {
   const [bills, setBills] = useState<RecentBill[]>([]);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(SAVED_SALES_KEY);
-    if (!saved) return;
+    let cancelled = false;
 
-    try {
-      const savedBills = JSON.parse(saved) as Array<RecentBill & { lines?: unknown[] }>;
-      const reopenableBills = savedBills.filter((bill) => Array.isArray(bill.lines) && bill.lines.length > 0);
-      if (reopenableBills.length !== savedBills.length) {
-        window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify(reopenableBills));
+    async function loadSales() {
+      try {
+        const response = await fetch('/api/sales', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Unable to load sales.');
+        const data = await response.json() as { sales?: Array<RecentBill & { lines?: unknown[] }> };
+        const sales = Array.isArray(data.sales) ? data.sales : [];
+        if (!cancelled) {
+          setBills(sales);
+          window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify(sales.slice(0, 100)));
+        }
+      } catch {
+        const saved = window.localStorage.getItem(SAVED_SALES_KEY);
+        if (!saved || cancelled) return;
+        try {
+          setBills(JSON.parse(saved) as RecentBill[]);
+        } catch {
+          setBills([]);
+        }
       }
-      setBills(reopenableBills);
-    } catch {
-      setBills([]);
     }
+
+    void loadSales();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredBills = useMemo(() => {

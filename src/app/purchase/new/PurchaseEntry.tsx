@@ -11,11 +11,11 @@ import {
   X,
 } from "lucide-react";
 import styles from "./PurchaseEntry.module.css";
-import { distributors } from "../purchaseData";
 import { getDistributorMatches } from "../purchaseUtils";
 import { DateField } from "@/features/events/components/purchase/DateField";
 import { DistributorField } from "@/features/events/components/purchase/DistributorField";
-import type { SalesProduct } from "@/server/db/database";
+import type { SalesProduct } from "@/server/db/types";
+import { invalidateStockCatalog, loadStockCatalog } from "@/app/stock/stockCatalogClient";
 
 function formatMoney(value: number) {
   return value.toLocaleString("en-US", {
@@ -66,10 +66,12 @@ function matchesItemQuery(product: SalesProduct, rawQuery: string) {
 export function PurchaseEntry() {
   const router = useRouter();
   const [distributor, setDistributor] = useState("");
+  const [distributorOptions, setDistributorOptions] = useState<string[]>([]);
   const [billNo, setBillNo] = useState("");
   const [manualItem, setManualItem] = useState("");
   const [catalog, setCatalog] = useState<SalesProduct[]>([]);
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
+  const [highlightedItemIndex, setHighlightedItemIndex] = useState(0);
   const [selectedItem, setSelectedItem] = useState<SalesProduct | null>(null);
   const [includeFreeQty, setIncludeFreeQty] = useState(false);
   const [unit, setUnit] = useState("Blister");
@@ -87,19 +89,44 @@ export function PurchaseEntry() {
   const [isSavingPurchase, setIsSavingPurchase] = useState(false);
   const [purchaseSaveError, setPurchaseSaveError] = useState("");
   const [showMatches, setShowMatches] = useState(false);
+  const [highlightedDistributorIndex, setHighlightedDistributorIndex] = useState(0);
   const [hasUpload, setHasUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
+  const distributorSearchRef = useRef<HTMLDivElement>(null);
+  const purchaseItemSearchRef = useRef<HTMLDivElement>(null);
 
   const matches = useMemo(
-    () => getDistributorMatches(distributors, distributor),
-    [distributor],
+    () => getDistributorMatches(distributorOptions, distributor),
+    [distributor, distributorOptions],
   );
+
+  useEffect(() => {
+    setHighlightedDistributorIndex(0);
+  }, [distributor]);
+
+  useEffect(() => {
+    setHighlightedDistributorIndex((current) => {
+      if (matches.length === 0) return 0;
+      return Math.min(current, matches.length - 1);
+    });
+  }, [matches.length]);
 
   const itemMatches = useMemo(
     () => catalog.filter(product => matchesItemQuery(product, manualItem)).slice(0, 8),
     [catalog, manualItem],
   );
+
+  useEffect(() => {
+    setHighlightedItemIndex(0);
+  }, [manualItem]);
+
+  useEffect(() => {
+    setHighlightedItemIndex((current) => {
+      if (itemMatches.length === 0) return 0;
+      return Math.min(current, itemMatches.length - 1);
+    });
+  }, [itemMatches.length]);
   const hasLineDraft = selectedItem !== null;
   const showScanCarousel = manualItem.trim().length === 0 && !hasLineDraft && purchaseLines.length === 0;
   const selectedUnitOptions = useMemo(() => {
@@ -135,6 +162,21 @@ export function PurchaseEntry() {
     return product.parentPacks.find(pack => pack.packUnit === packUnit)?.priceMultiplier ?? 1;
   };
 
+  useEffect(() => {
+    function closeDropdownsOnOutsideClick(event: MouseEvent) {
+      const target = event.target as Node;
+      if (distributorSearchRef.current && !distributorSearchRef.current.contains(target)) {
+        setShowMatches(false);
+      }
+      if (purchaseItemSearchRef.current && !purchaseItemSearchRef.current.contains(target)) {
+        setItemDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeDropdownsOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeDropdownsOnOutsideClick);
+  }, []);
+
   const openPurchaseLine = useCallback((product: SalesProduct) => {
     const defaultUnit = product.pack.packUnit || "Blister";
     const firstBatch = product.batches[0];
@@ -150,6 +192,69 @@ export function PurchaseEntry() {
     setLotNo(firstBatch?.batchNo ?? "");
     setExpiryDate(firstBatch?.expiryDate ?? "");
   }, []);
+
+  function handleItemSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (!itemDropdownOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      setItemDropdownOpen(true);
+    }
+
+    if (event.key === "ArrowDown" && itemMatches.length > 0) {
+      event.preventDefault();
+      setHighlightedItemIndex((current) => (current + 1) % itemMatches.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp" && itemMatches.length > 0) {
+      event.preventDefault();
+      setHighlightedItemIndex((current) => (current - 1 + itemMatches.length) % itemMatches.length);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      const highlightedItem = itemMatches[highlightedItemIndex] ?? itemMatches[0];
+      if (highlightedItem) {
+        event.preventDefault();
+        openPurchaseLine(highlightedItem);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setItemDropdownOpen(false);
+    }
+  }
+
+  function handleDistributorKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (!showMatches && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      setShowMatches(true);
+    }
+
+    if (event.key === "ArrowDown" && matches.length > 0) {
+      event.preventDefault();
+      setHighlightedDistributorIndex((current) => (current + 1) % matches.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp" && matches.length > 0) {
+      event.preventDefault();
+      setHighlightedDistributorIndex((current) => (current - 1 + matches.length) % matches.length);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      const highlightedDistributor = matches[highlightedDistributorIndex] ?? matches[0];
+      if (highlightedDistributor) {
+        event.preventDefault();
+        setDistributor(highlightedDistributor);
+        setShowMatches(false);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setShowMatches(false);
+    }
+  }
 
   const closePurchaseLine = () => {
     setSelectedItem(null);
@@ -241,6 +346,7 @@ export function PurchaseEntry() {
       });
 
       if (!response.ok) throw new Error("Unable to save purchase.");
+      invalidateStockCatalog();
       router.push("/purchase");
     } catch (error) {
       console.error(error);
@@ -255,16 +361,28 @@ export function PurchaseEntry() {
 
     async function loadCatalog() {
       try {
-        const response = await fetch("/api/stock", { cache: "no-store" });
-        if (!response.ok) throw new Error("Unable to load stock catalog.");
-        const data = await response.json() as { products?: SalesProduct[] };
-        if (!cancelled && Array.isArray(data.products)) setCatalog(data.products);
+        const products = await loadStockCatalog();
+        if (!cancelled) setCatalog(products);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function loadDistributors() {
+      try {
+        const response = await fetch("/api/distributors", { cache: "no-store" });
+        if (!response.ok) throw new Error("Unable to load distributors.");
+        const distributorData = await response.json() as { distributors?: string[] };
+        if (!cancelled && Array.isArray(distributorData.distributors)) {
+          setDistributorOptions(distributorData.distributors);
+        }
       } catch (error) {
         console.error(error);
       }
     }
 
     void loadCatalog();
+    void loadDistributors();
     return () => {
       cancelled = true;
     };
@@ -304,16 +422,22 @@ export function PurchaseEntry() {
       <div className={styles.content}>
         <section className={styles.detailsPanel} aria-label="Purchase bill details">
           <div className={styles.formGrid}>
-            <div className={styles.distributorColumn}>
+            <div className={styles.distributorColumn} ref={distributorSearchRef}>
               <DistributorField
                 value={distributor}
                 matches={matches}
                 showMatches={showMatches}
+                highlightedIndex={highlightedDistributorIndex}
                 onChange={value => {
                   setDistributor(value);
                   setShowMatches(true);
                 }}
-                onFocus={() => setShowMatches(true)}
+                onFocus={() => {
+                  setShowMatches(true);
+                  setHighlightedDistributorIndex(0);
+                }}
+                onKeyDown={handleDistributorKeyDown}
+                onHighlight={setHighlightedDistributorIndex}
                 onSelect={value => {
                   setDistributor(value);
                   setShowMatches(false);
@@ -383,7 +507,7 @@ export function PurchaseEntry() {
           </div>
 
           <div className={styles.scanSearchLayer} aria-label="Scan barcode or search item">
-            <div className={styles.manualSearch}>
+            <div className={styles.manualSearch} ref={purchaseItemSearchRef}>
               <ScanBarcode size={17} className={styles.manualSearchIcon} />
               <input
                 type="text"
@@ -394,27 +518,29 @@ export function PurchaseEntry() {
                   setSelectedItem(null);
                   setItemDropdownOpen(true);
                 }}
-                onFocus={() => setItemDropdownOpen(true)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && itemMatches[0]) {
-                    event.preventDefault();
-                    openPurchaseLine(itemMatches[0]);
-                  }
+                onFocus={() => {
+                  setItemDropdownOpen(true);
+                  setHighlightedItemIndex(0);
                 }}
+                onKeyDown={handleItemSearchKeyDown}
                 placeholder="Scan barcode or search item"
               />
               {itemDropdownOpen && manualItem.trim().length > 0 && !selectedItem && (
                 <div className={styles.itemDropdownPanel}>
                   {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>No matching item.</div>}
-                  {itemMatches.map(product => {
+                  {itemMatches.map((product, index) => {
                     const nearestBatch = product.batches[0];
                     const stockCount = product.batches.reduce((sum, batch) => sum + batch.availableStock, 0);
+                    const isHighlighted = index === highlightedItemIndex;
 
                     return (
                       <button
                         key={product.id}
                         type="button"
-                        className={styles.itemOption}
+                        className={`${styles.itemOption} ${isHighlighted ? styles.itemOptionActive : ""}`}
+                        aria-selected={isHighlighted}
+                        onMouseEnter={() => setHighlightedItemIndex(index)}
+                        onMouseMove={() => setHighlightedItemIndex(index)}
                         onMouseDown={(event) => {
                           event.preventDefault();
                           openPurchaseLine(product);

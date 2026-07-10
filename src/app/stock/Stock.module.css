@@ -32,9 +32,9 @@
 .sidebar {
   position: relative;
   display: flex;
-  width: 214px;
-  min-width: 196px;
-  max-width: 320px;
+  width: 270px;
+  min-width: 230px;
+  max-width: 360px;
   flex-direction: column;
   overflow: visible;
   border-right: 1px solid var(--stock-border);
@@ -195,7 +195,7 @@
 
 .filterButton {
   display: flex;
-  min-height: 44px;
+  min-height: 50px;
   width: 100%;
   align-items: center;
   justify-content: space-between;
@@ -206,7 +206,7 @@
   color: var(--stock-primary-dark);
   cursor: pointer;
   font: inherit;
-  padding: 8px 4px;
+  padding: 10px 6px;
   text-align: left;
 }
 
@@ -227,7 +227,7 @@
 }
 
 .filterLabel {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -471,17 +471,17 @@
 .table {
   --stock-table-columns:
     minmax(300px, 1.35fr)
-    minmax(64px, 0.36fr)
-    minmax(64px, 0.36fr)
-    minmax(76px, 0.42fr)
-    minmax(96px, 0.52fr)
-    minmax(70px, 0.38fr)
-    minmax(106px, 0.58fr)
-    minmax(82px, 0.44fr)
-    104px;
+    minmax(94px, 0.5fr)
+    minmax(94px, 0.5fr)
+    minmax(94px, 0.5fr)
+    minmax(94px, 0.5fr)
+    minmax(68px, 0.36fr)
+    minmax(94px, 0.5fr)
+    minmax(94px, 0.5fr)
+    168px;
 
   width: 100%;
-  min-width: 1080px;
+  min-width: 1100px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto;
@@ -530,6 +530,13 @@
 .table td:nth-child(8) {
   justify-content: flex-end;
   text-align: right;
+}
+
+.table th:nth-child(7),
+.table th:nth-child(8),
+.table td:nth-child(7),
+.table td:nth-child(8) {
+  padding-right: 20px;
 }
 
 .table td {
@@ -655,13 +662,20 @@
   display: flex;
   width: 100%;
   justify-content: center;
-  gap: 7px;
+  gap: 8px;
 }
 
-.actionButton {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
+.actionCell .actionButton {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+}
+
+.actionCell .actionButton:hover {
+  border: 0;
+  background: var(--stock-primary-soft);
 }
 
 .emptyState {
@@ -725,7 +739,8 @@
 
 .photoPanel,
 .formPanel,
-.packagingPanel {
+.packagingPanel,
+.regulatoryFormsPanel {
   border: 1px solid var(--stock-border);
   border-radius: 8px;
   background: var(--stock-surface);
@@ -1054,6 +1069,38 @@
   font-weight: 820;
 }
 
+.packagingRegulatoryOptions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px;
+}
+
+.packagingRegulatoryOptions .checkboxRow {
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.packagingRegulatoryOptions .checkboxRow input {
+  width: 18px;
+  height: 18px;
+}
+
+.regulatoryFormsHeader {
+  min-height: 50px;
+  border-bottom: 1px solid var(--stock-border-soft);
+  background: #fbfdfb;
+  padding: 14px 12px;
+}
+
+.regulatoryFormsHeader h2 {
+  margin: 0;
+  color: var(--stock-ink);
+  font-size: 15px;
+  font-weight: 820;
+}
+
 .packagingRows {
   display: flex;
   flex-direction: column;
@@ -1076,23 +1123,6 @@
 
 .packagingRow:last-child {
   border-bottom: 0;
-}
-
-.packagingPreview {
-  display: flex;
-  min-width: 0;
-  height: 38px;
-  align-items: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border: 1px solid #d7e7dc;
-  border-radius: 7px;
-  background: var(--stock-primary-soft);
-  color: var(--stock-primary-dark);
-  font-size: 13px;
-  font-weight: 800;
-  padding: 0 10px;
 }
 
 .removeRowButton {
@@ -1153,11 +1183,52 @@
 }
 
 .stockFormPortrait .formGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .stockFormPortrait .formGrid .field:first-child {
   grid-column: 1 / -1;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(2) {
+  grid-column: 7 / -1;
+  grid-row: 3;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(9) {
+  grid-row: 2;
+  grid-column: 8 / -1;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(3) {
+  grid-column: 1 / span 6;
+  grid-row: 3;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(4) {
+  grid-column: 1 / span 2;
+  grid-row: 2;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(5) {
+  grid-column: 3 / span 5;
+  grid-row: 2;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(6) {
+  grid-column: 1 / span 4;
+  grid-row: 4;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(7) {
+  grid-column: 5 / span 4;
+  grid-row: 4;
+}
+
+.stockFormPortrait .formGrid .field:nth-child(8) {
+  grid-column: 9 / -1;
+  grid-row: 4;
 }
 
 .stockFormPortrait .packagingHeader {
@@ -1165,23 +1236,19 @@
 }
 
 .stockFormPortrait .packagingRow {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 34px;
-}
-
-.stockFormPortrait .packagingRow .field:nth-child(3) {
-  grid-column: 1 / -2;
-}
-
-.stockFormPortrait .packagingRow .field:nth-child(4),
-.stockFormPortrait .packagingPreview {
-  grid-column: 1 / -2;
+  grid-template-columns:
+    minmax(84px, 0.9fr)
+    minmax(70px, 0.65fr)
+    minmax(84px, 0.9fr)
+    minmax(160px, 1.65fr)
+    34px;
 }
 
 @media (max-width: 980px) {
   .sidebar {
-    width: 188px;
-    min-width: 188px;
-    max-width: 280px;
+    width: 230px;
+    min-width: 230px;
+    max-width: 300px;
   }
 
   .sidebarClosed {
@@ -1218,9 +1285,6 @@
     grid-template-columns: repeat(3, minmax(120px, 1fr)) 34px;
   }
 
-  .packagingPreview {
-    grid-column: 1 / -2;
-  }
 }
 
 @media (max-height: 820px) {

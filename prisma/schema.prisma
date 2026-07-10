@@ -1,0 +1,249 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PurchaseBillStatus {
+  RECEIVED
+  DRAFT
+  PARTIAL
+}
+
+enum SaleStatus {
+  PAID
+  PENDING
+  VOIDED
+}
+
+enum DiscountType {
+  PERCENT
+  THB
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Manufacturer {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  country   String?
+  website   String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id                String                    @id
+  barcode           String                    @unique
+  itemName          String
+  brandName         String
+  manufacturerId    String
+  categoryId        String
+  packUnit          String
+  childUnit         String
+  childQuantity     Decimal                   @db.Decimal(14, 3)
+  packLabel         String
+  location          String
+  imageUrl          String
+  weeklySold        Int                       @default(0)
+  isActive          Boolean                   @default(true)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  manufacturer      Manufacturer              @relation(fields: [manufacturerId], references: [id])
+  category          Category                  @relation(fields: [categoryId], references: [id])
+  parentPacks       ProductParentPack[]
+  batches           ProductBatch[]
+  favoriteCustomers CustomerFavoriteProduct[]
+  purchaseLines     PurchaseLine[]
+  saleLines         SaleLine[]
+
+  @@index([categoryId])
+  @@index([manufacturerId])
+  @@index([itemName])
+}
+
+model ProductParentPack {
+  id                String  @id @default(cuid())
+  productId         String
+  packUnit          String
+  childPackUnit     String
+  childPackQuantity Decimal @db.Decimal(14, 3)
+  label             String
+  priceMultiplier   Decimal @db.Decimal(14, 3)
+  barcode           String? @unique
+  product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, packUnit])
+  @@index([productId])
+}
+
+model ProductBatch {
+  id             String   @id @default(cuid())
+  productId      String
+  batchNo        String
+  expiryDate     String
+  sellPriceThb   Decimal  @db.Decimal(14, 2)
+  availableStock Decimal  @db.Decimal(14, 3)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, batchNo])
+  @@index([productId])
+  @@index([expiryDate])
+}
+
+model Distributor {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  phone         String?
+  email         String?
+  purchaseBills PurchaseBill[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Customer {
+  id               String                    @id
+  name             String
+  mobile           String?                   @unique
+  avatarUrl        String?
+  isMember         Boolean                   @default(false)
+  points           Int                       @default(0)
+  membershipRank   String?
+  favoriteProducts CustomerFavoriteProduct[]
+  sales            Sale[]
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+}
+
+model CustomerFavoriteProduct {
+  customerId String
+  productId  String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, productId])
+  @@index([productId])
+}
+
+model Owner {
+  id        String   @id
+  name      String
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pharmacist {
+  id        String   @id
+  name      String
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PurchaseBill {
+  id              String             @id
+  billNo          String             @unique
+  invoiceNo       String
+  purchasedAt     DateTime
+  distributorId   String?
+  distributorName String
+  itemCount       Int
+  totalQty        Decimal            @db.Decimal(14, 3)
+  netTotal        Decimal            @db.Decimal(14, 2)
+  status          PurchaseBillStatus
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  distributor     Distributor?       @relation(fields: [distributorId], references: [id], onDelete: SetNull)
+  lines           PurchaseLine[]
+
+  @@index([purchasedAt])
+  @@index([distributorId])
+}
+
+model PurchaseLine {
+  id                 String       @id
+  purchaseBillId     String
+  productId          String
+  barcode            String
+  itemName           String
+  unit               String
+  unitMultiplier     Decimal      @db.Decimal(14, 3)
+  quantity           Decimal      @db.Decimal(14, 3)
+  cost               Decimal      @db.Decimal(14, 2)
+  freeUnit           String
+  freeUnitMultiplier Decimal      @db.Decimal(14, 3)
+  freeQuantity       Decimal      @db.Decimal(14, 3)
+  batchNo            String
+  expiryDate         String
+  purchaseBill       PurchaseBill @relation(fields: [purchaseBillId], references: [id], onDelete: Cascade)
+  product            Product      @relation(fields: [productId], references: [id])
+
+  @@index([purchaseBillId])
+  @@index([productId])
+}
+
+model Sale {
+  id             String        @id
+  billNo         String        @unique
+  soldAt         DateTime
+  customerId     String?
+  customerName   String
+  isMember       Boolean       @default(false)
+  itemCount      Int
+  totalQuantity  Decimal       @db.Decimal(14, 3)
+  paymentMethod  String
+  purchaseMethod String
+  subtotal       Decimal       @db.Decimal(14, 2)
+  netTotal       Decimal       @db.Decimal(14, 2)
+  customerPaid   Decimal?      @db.Decimal(14, 2)
+  changeDue      Decimal?      @db.Decimal(14, 2)
+  status         SaleStatus
+  ownerId        String?
+  pharmacistId   String?
+  discountType   DiscountType?
+  discountValue  Decimal?      @db.Decimal(14, 2)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  customer       Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  owner          Owner?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  pharmacist     Pharmacist?   @relation(fields: [pharmacistId], references: [id], onDelete: SetNull)
+  lines          SaleLine[]
+
+  @@index([soldAt])
+  @@index([customerId])
+  @@index([status])
+}
+
+model SaleLine {
+  id             String  @id
+  saleId         String
+  productId      String
+  itemName       String
+  packLabel      String
+  packMultiplier Decimal @db.Decimal(14, 3)
+  location       String
+  batchNo        String
+  expiryDate     String
+  sellPriceThb   Decimal @db.Decimal(14, 2)
+  quantity       Decimal @db.Decimal(14, 3)
+  sale           Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product        Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+}

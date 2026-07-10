@@ -11,11 +11,8 @@ import {
   Search,
   SlidersHorizontal,
 } from "lucide-react";
-import {
-  readSeedStockProducts,
-  type SalesProduct,
-  type StockItemInput,
-} from "@/server/db/database";
+import type { SalesProduct, StockItemInput } from "@/server/db/types";
+import { loadStockCatalog, updateStockCatalog } from "./stockCatalogClient";
 import { StockEntryForm } from "./StockEntryForm";
 import styles from "./Stock.module.css";
 
@@ -65,6 +62,32 @@ function productToStockItem(product: SalesProduct, index: number): StockItem {
   };
 }
 
+function productToStockItemInput(product: SalesProduct): StockItemInput {
+  const firstBatch = product.batches[0];
+
+  return {
+    photoUrl: product.imageUrl,
+    barcode: product.barcode,
+    itemName: product.itemName,
+    lotNo: firstBatch?.batchNo ?? "",
+    expiryDate: firstBatch?.expiryDate ?? "",
+    location: product.location,
+    manufacturer: product.manufacturerName,
+    sellPrice: String(firstBatch?.sellPriceThb ?? ""),
+    itemCategory: product.category,
+    weightage: String(product.pack.childQuantity),
+    subUnit: product.pack.childUnit,
+    unit: product.pack.packUnit,
+    brandName: product.brandName,
+    packagingRows: product.parentPacks.map((pack) => ({
+      parentUnit: pack.packUnit,
+      childQuantity: String(pack.childPackQuantity),
+      childUnit: pack.childPackUnit,
+      barcode: "",
+    })),
+  };
+}
+
 const filterGroups = [
   "Items",
   "Category",
@@ -77,10 +100,9 @@ const filterGroups = [
 ];
 
 const stockAdjustmentStates = ["Pending", "Completed", "Blocked"];
-const LEGACY_STOCK_DATABASE_KEY = "pharm_stock_items";
-const SIDEBAR_MIN_WIDTH = 196;
-const SIDEBAR_MAX_WIDTH = 320;
-const SIDEBAR_DEFAULT_WIDTH = 214;
+const SIDEBAR_MIN_WIDTH = 230;
+const SIDEBAR_MAX_WIDTH = 360;
+const SIDEBAR_DEFAULT_WIDTH = 270;
 
 function formatMoney(value: number): string {
   return `฿${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
@@ -94,37 +116,17 @@ export default function StockPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [query, setQuery] = useState("");
   const [stockWindowOpen, setStockWindowOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<SalesProduct | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
-  const [products, setProducts] = useState<SalesProduct[]>(() => readSeedStockProducts());
+  const [products, setProducts] = useState<SalesProduct[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadProducts() {
       try {
-        const response = await fetch("/api/stock", { cache: "no-store" });
-        if (!response.ok) throw new Error("Unable to load stock database.");
-        const data = await response.json() as { products?: SalesProduct[] };
-        if (!cancelled && Array.isArray(data.products)) setProducts(data.products);
-
-        const legacyRaw = window.localStorage.getItem(LEGACY_STOCK_DATABASE_KEY);
-        if (!legacyRaw) return;
-
-        const legacyItems = JSON.parse(legacyRaw);
-        if (!Array.isArray(legacyItems) || legacyItems.length === 0) {
-          window.localStorage.removeItem(LEGACY_STOCK_DATABASE_KEY);
-          return;
-        }
-
-        const migrateResponse = await fetch("/api/stock", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: legacyItems }),
-        });
-        if (!migrateResponse.ok) throw new Error("Unable to migrate browser stock.");
-        const migratedData = await migrateResponse.json() as { products?: SalesProduct[] };
-        if (!cancelled && Array.isArray(migratedData.products)) setProducts(migratedData.products);
-        window.localStorage.removeItem(LEGACY_STOCK_DATABASE_KEY);
+        const nextProducts = await loadStockCatalog();
+        if (!cancelled) setProducts(nextProducts);
       } catch (error) {
         console.error(error);
       }
@@ -162,8 +164,18 @@ export default function StockPage() {
     }, []);
   }, [products]);
 
-  const openAddStock = () => setStockWindowOpen(true);
-  const closeAddStock = () => setStockWindowOpen(false);
+  const openAddStock = () => {
+    setEditingProduct(null);
+    setStockWindowOpen(true);
+  };
+  const openEditStock = (product: SalesProduct) => {
+    setEditingProduct(product);
+    setStockWindowOpen(true);
+  };
+  const closeAddStock = () => {
+    setStockWindowOpen(false);
+    setEditingProduct(null);
+  };
   const handleSidebarResizeStart = (event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     const startX = event.clientX;
@@ -201,7 +213,10 @@ export default function StockPage() {
       });
       if (!response.ok) throw new Error("Unable to save stock item.");
       const data = await response.json() as { products?: SalesProduct[] };
-      if (Array.isArray(data.products)) setProducts(data.products);
+      if (Array.isArray(data.products)) {
+        updateStockCatalog(data.products);
+        setProducts(data.products);
+      }
       closeAddStock();
     } catch (error) {
       console.error(error);
@@ -248,7 +263,7 @@ export default function StockPage() {
           <>
             <button type="button" className={styles.addStockButton} onClick={openAddStock}>
               <Plus size={17} />
-              <span>Add New Item</span>
+              <span>Create New Item</span>
             </button>
 
             <div className={styles.filterList}>
@@ -320,7 +335,7 @@ export default function StockPage() {
 
           <button type="button" className={styles.toolbarAddButton} onClick={openAddStock}>
             <PackagePlus size={17} />
-            <span>Add New Item</span>
+            <span>Create New Item</span>
           </button>
         </div>
 
@@ -352,7 +367,7 @@ export default function StockPage() {
                   <th>Disc.</th>
                   <th>Sell price</th>
                   <th>Margin%</th>
-                  <th className={styles.actionCol}>Actions</th>
+                  <th className={styles.actionCol} aria-label="Item actions" />
                 </tr>
               </thead>
               <tbody>
@@ -396,7 +411,16 @@ export default function StockPage() {
                         <button type="button" className={styles.actionButton} title="Adjust stock" aria-label={`Adjust stock for ${item.name}`}>
                           <PackagePlus size={17} />
                         </button>
-                        <button type="button" className={styles.actionButton} title="Edit item detail" aria-label={`Edit item detail for ${item.name}`}>
+                        <button
+                          type="button"
+                          className={styles.actionButton}
+                          title="Edit item detail"
+                          aria-label={`Edit item detail for ${item.name}`}
+                          onClick={() => {
+                            const product = products.find((candidate) => candidate.barcode === item.id);
+                            if (product) openEditStock(product);
+                          }}
+                        >
                           <Edit3 size={16} />
                         </button>
                       </span>
@@ -422,11 +446,14 @@ export default function StockPage() {
             className={styles.stockEntryWindow}
             role="dialog"
             aria-modal="true"
-            aria-label="Add new item"
+            aria-label={editingProduct ? `Edit ${editingProduct.itemName}` : "Create new item"}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <StockEntryForm
+              key={editingProduct?.id ?? "new-item"}
               categoryOptions={categoryOptions}
+              initialItem={editingProduct ? productToStockItemInput(editingProduct) : undefined}
+              mode={editingProduct ? "edit" : "create"}
               onClose={closeAddStock}
               onSave={handleSaveStock}
             />
