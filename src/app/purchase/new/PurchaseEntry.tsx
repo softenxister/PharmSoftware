@@ -11,18 +11,20 @@ import {
   X,
 } from "lucide-react";
 import styles from "./PurchaseEntry.module.css";
-import { getDistributorMatches } from "../purchaseUtils";
+import {
+  canSavePurchase,
+  formatDateDisplay,
+  formatExpiryDateInput,
+  getDistributorMatches,
+  isValidExpiryDate,
+} from "../purchaseUtils";
 import { DateField } from "@/features/events/components/purchase/DateField";
 import { DistributorField } from "@/features/events/components/purchase/DistributorField";
 import type { SalesProduct } from "@/server/db/types";
 import { invalidateStockCatalog, loadStockCatalog } from "@/app/stock/stockCatalogClient";
-
-function formatMoney(value: number) {
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
+import { PurchaseUnitDropdown } from "./PurchaseUnitDropdown";
+import { PurchaseWorkflowBar } from "./PurchaseWorkflowBar";
+import { PurchaseCorrectionDialog } from "./PurchaseCorrectionDialog";
 
 function parsePositiveNumber(value: string) {
   const parsed = Number(value);
@@ -46,6 +48,40 @@ type PurchaseLine = {
   expiryDate: string;
 };
 
+type EditablePurchaseBill = {
+  id: string;
+  invoiceNo: string;
+  distributor: string;
+  status: "received" | "draft" | "partial";
+  lines: Array<{
+    id: string;
+    productId: string;
+    barcode: string;
+    itemName: string;
+    unit: string;
+    unitMultiplier: number;
+    quantity: number;
+    cost: number;
+    freeUnit: string;
+    freeUnitMultiplier: number;
+    freeQuantity: number;
+    batchNo: string;
+    expiryDate: string;
+  }>;
+};
+
+type CurrentPharmUser = {
+  name: string;
+  role: "staff" | "owner" | "admin";
+  canManageStock: boolean;
+};
+
+type PurchaseCorrection = {
+  id: string;
+  status: "pending" | "approved" | "rejected";
+  reason: string;
+};
+
 function matchesItemQuery(product: SalesProduct, rawQuery: string) {
   const query = rawQuery.trim().toLowerCase();
   if (!query) return false;
@@ -63,13 +99,15 @@ function matchesItemQuery(product: SalesProduct, rawQuery: string) {
   );
 }
 
-export function PurchaseEntry() {
+export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   const router = useRouter();
+  const [activePurchaseId, setActivePurchaseId] = useState(purchaseId);
   const [distributor, setDistributor] = useState("");
   const [distributorOptions, setDistributorOptions] = useState<string[]>([]);
   const [billNo, setBillNo] = useState("");
   const [manualItem, setManualItem] = useState("");
   const [catalog, setCatalog] = useState<SalesProduct[]>([]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(0);
   const [selectedItem, setSelectedItem] = useState<SalesProduct | null>(null);
@@ -85,12 +123,24 @@ export function PurchaseEntry() {
   const [vatIncluded, setVatIncluded] = useState(true);
   const [salesAdjustment, setSalesAdjustment] = useState("0");
   const [salesAdjustmentType, setSalesAdjustmentType] = useState<"percent" | "thb">("percent");
-  const [purchaseConfirmOpen, setPurchaseConfirmOpen] = useState(false);
   const [isSavingPurchase, setIsSavingPurchase] = useState(false);
   const [purchaseSaveError, setPurchaseSaveError] = useState("");
+  const [purchaseLoadError, setPurchaseLoadError] = useState("");
+  const [isLoadingPurchase, setIsLoadingPurchase] = useState(Boolean(purchaseId));
+  const [editingBillStatus, setEditingBillStatus] = useState<EditablePurchaseBill["status"] | null>(null);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentPharmUser>({
+    name: "Pharmacy staff",
+    role: "staff",
+    canManageStock: false,
+  });
+  const [correctionRequests, setCorrectionRequests] = useState<PurchaseCorrection[]>([]);
+  const [correctionDialogOpen, setCorrectionDialogOpen] = useState(false);
+  const [correctionReason, setCorrectionReason] = useState("");
+  const [correctionError, setCorrectionError] = useState("");
+  const [isSubmittingCorrection, setIsSubmittingCorrection] = useState(false);
   const [showMatches, setShowMatches] = useState(false);
   const [highlightedDistributorIndex, setHighlightedDistributorIndex] = useState(0);
-  const [hasUpload, setHasUpload] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
   const distributorSearchRef = useRef<HTMLDivElement>(null);
@@ -136,10 +186,12 @@ export function PurchaseEntry() {
   }, [selectedItem]);
   const canAddPurchaseLine = Boolean(
     selectedItem &&
+    unit &&
     Number(lineQty) > 0 &&
     Number(lineCost) > 0 &&
     Number.isFinite(Number(lineQty)) &&
-    Number.isFinite(Number(lineCost)),
+    Number.isFinite(Number(lineCost)) &&
+    isValidExpiryDate(expiryDate),
   );
   const totalQty = useMemo(
     () => purchaseLines.reduce((sum, line) => sum + parsePositiveNumber(line.qty), 0),
@@ -155,7 +207,10 @@ export function PurchaseEntry() {
     : salesAdjustmentValue;
   const vatAmount = vatIncluded ? 0 : subtotal * 0.07;
   const netPurchaseTotal = Math.max(subtotal + vatAmount + salesAdjustmentAmount, 0);
-  const marginPercent = subtotal > 0 ? (salesAdjustmentAmount / subtotal) * 100 : 0;
+  const isEditable = editingBillStatus === null || editingBillStatus === "draft";
+  const hasValidBill = canSavePurchase(purchaseLines.length, netPurchaseTotal);
+  const hasPendingCorrection = correctionRequests.some(request => request.status === "pending");
+  const workflowStep = editingBillStatus === "received" ? 2 : editingBillStatus === "partial" ? 1 : 0;
 
   const getUnitMultiplier = (product: SalesProduct, packUnit: string) => {
     if (product.pack.packUnit === packUnit) return 1;
@@ -190,7 +245,7 @@ export function PurchaseEntry() {
     setLineCost(firstBatch?.sellPriceThb ? String(firstBatch.sellPriceThb) : "");
     setFreeQty("");
     setLotNo(firstBatch?.batchNo ?? "");
-    setExpiryDate(firstBatch?.expiryDate ?? "");
+    setExpiryDate(formatDateDisplay(firstBatch?.expiryDate ?? ""));
   }, []);
 
   function handleItemSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
@@ -287,7 +342,7 @@ export function PurchaseEntry() {
         freeUnit,
         freeUnitMultiplier: getUnitMultiplier(selectedItem, freeUnit),
         lotNo: lotNo.trim(),
-        expiryDate: expiryDate.trim(),
+        expiryDate: formatDateDisplay(expiryDate.trim()),
       },
     ]);
     closePurchaseLine();
@@ -312,17 +367,19 @@ export function PurchaseEntry() {
     window.setTimeout(() => focusNextPurchaseField(target), 0);
   };
 
-  const confirmPurchase = async () => {
-    if (isSavingPurchase || purchaseLines.length === 0 || netPurchaseTotal <= 0) return;
+  const savePurchase = async (status: "draft" | "partial" | "received", stayOnPage = false) => {
+    if (isSavingPurchase || !hasValidBill) return;
 
     setIsSavingPurchase(true);
     setPurchaseSaveError("");
 
     try {
       const response = await fetch("/api/purchase", {
-        method: "POST",
+        method: activePurchaseId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: activePurchaseId,
+          status,
           invoiceNo: billNo.trim(),
           distributor: distributor.trim(),
           totalQty,
@@ -345,16 +402,55 @@ export function PurchaseEntry() {
         }),
       });
 
-      if (!response.ok) throw new Error("Unable to save purchase.");
-      invalidateStockCatalog();
-      router.push("/purchase");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || "Unable to save purchase.");
+      }
+      const data = await response.json() as { bill?: EditablePurchaseBill };
+      if (!data.bill) throw new Error("Purchase bill was saved but could not be reloaded.");
+      const wasNewPurchase = !activePurchaseId;
+      setActivePurchaseId(data.bill.id);
+      if (status === "received") invalidateStockCatalog();
+      setEditingBillStatus(status);
+      setReviewConfirmed(false);
+      if (status === "partial" && wasNewPurchase) {
+        router.replace(`/purchase/new?id=${encodeURIComponent(data.bill.id)}`);
+      } else if (!stayOnPage) {
+        router.push("/purchase");
+      }
     } catch (error) {
       console.error(error);
-      setPurchaseSaveError("Purchase was not saved. Please try again.");
+      setPurchaseSaveError(error instanceof Error ? error.message : "Purchase was not saved. Please try again.");
     } finally {
       setIsSavingPurchase(false);
     }
   };
+
+  const submitCorrectionRequest = async () => {
+    if (!activePurchaseId || correctionReason.trim().length < 8 || isSubmittingCorrection) return;
+    setIsSubmittingCorrection(true);
+    setCorrectionError("");
+    try {
+      const response = await fetch("/api/purchase-corrections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purchaseBillId: activePurchaseId, reason: correctionReason.trim() }),
+      });
+      const data = await response.json() as { correctionRequest?: PurchaseCorrection; error?: string };
+      if (!response.ok || !data.correctionRequest) throw new Error(data.error || "Correction request could not be sent.");
+      setCorrectionRequests(requests => [data.correctionRequest!, ...requests]);
+      setCorrectionDialogOpen(false);
+      setCorrectionReason("");
+    } catch (error) {
+      setCorrectionError(error instanceof Error ? error.message : "Correction request could not be sent.");
+    } finally {
+      setIsSubmittingCorrection(false);
+    }
+  };
+
+  useEffect(() => {
+    setActivePurchaseId(purchaseId);
+  }, [purchaseId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -365,6 +461,8 @@ export function PurchaseEntry() {
         if (!cancelled) setCatalog(products);
       } catch (error) {
         console.error(error);
+      } finally {
+        if (!cancelled) setCatalogLoaded(true);
       }
     }
 
@@ -381,12 +479,98 @@ export function PurchaseEntry() {
       }
     }
 
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/current-user", { cache: "no-store" });
+        if (!response.ok) throw new Error("Unable to load current user.");
+        const data = await response.json() as { user?: CurrentPharmUser };
+        if (!cancelled && data.user) setCurrentUser(data.user);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
     void loadCatalog();
     void loadDistributors();
+    void loadCurrentUser();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!activePurchaseId || !catalogLoaded) return;
+    let cancelled = false;
+
+    async function loadPurchaseBill() {
+      setIsLoadingPurchase(true);
+      setPurchaseLoadError("");
+      try {
+        const response = await fetch(`/api/purchase?id=${encodeURIComponent(activePurchaseId)}`, { cache: "no-store" });
+        if (!response.ok) throw new Error("Unable to load this purchase bill.");
+        const data = await response.json() as { bill?: EditablePurchaseBill };
+        if (!data.bill) throw new Error("Purchase bill was not found.");
+        if (cancelled) return;
+
+        setBillNo(data.bill.invoiceNo === "Manual" ? "" : data.bill.invoiceNo);
+        setDistributor(data.bill.distributor === "Unknown distributor" ? "" : data.bill.distributor);
+        setEditingBillStatus(data.bill.status);
+        setPurchaseLines(data.bill.lines.map(line => ({
+          id: line.id,
+          productId: line.productId,
+          barcode: line.barcode,
+          imageUrl: catalog.find(product => product.id === line.productId)?.imageUrl ?? "",
+          itemName: line.itemName,
+          unit: line.unit,
+          unitMultiplier: line.unitMultiplier,
+          qty: String(line.quantity),
+          cost: String(line.cost),
+          freeQty: line.freeQuantity > 0 ? String(line.freeQuantity) : "",
+          freeUnit: line.freeUnit,
+          freeUnitMultiplier: line.freeUnitMultiplier,
+          lotNo: line.batchNo,
+          expiryDate: formatDateDisplay(line.expiryDate),
+        })));
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) setPurchaseLoadError(error instanceof Error ? error.message : "Unable to load this purchase bill.");
+      } finally {
+        if (!cancelled) setIsLoadingPurchase(false);
+      }
+    }
+
+    void loadPurchaseBill();
+    return () => {
+      cancelled = true;
+    };
+  }, [activePurchaseId, catalog, catalogLoaded]);
+
+  useEffect(() => {
+    if (!activePurchaseId || editingBillStatus !== "received") {
+      setCorrectionRequests([]);
+      return;
+    }
+    let cancelled = false;
+
+    async function loadCorrectionRequests() {
+      try {
+        const response = await fetch(
+          `/api/purchase-corrections?purchaseBillId=${encodeURIComponent(activePurchaseId)}`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) throw new Error("Unable to load correction requests.");
+        const data = await response.json() as { requests?: PurchaseCorrection[] };
+        if (!cancelled && Array.isArray(data.requests)) setCorrectionRequests(data.requests);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadCorrectionRequests();
+    return () => {
+      cancelled = true;
+    };
+  }, [activePurchaseId, editingBillStatus]);
 
   useEffect(() => {
     if (selectedItem) return;
@@ -411,16 +595,44 @@ export function PurchaseEntry() {
         <div className={styles.breadcrumb}>
           <span>Purchase</span>
           <ChevronRight size={14} />
-          <span className={styles.breadcrumbCurrent}>New purchase</span>
+          <span className={styles.breadcrumbCurrent}>{activePurchaseId ? "Edit purchase" : "New purchase"}</span>
         </div>
-        <button type="button" className={styles.saveButton} disabled={!hasUpload && !hasLineDraft && purchaseLines.length === 0}>
-          <PackagePlus size={16} />
-          Save purchase
-        </button>
+        <div className={styles.toolbarActions}>
+          {(purchaseSaveError || purchaseLoadError) && (
+            <span className={styles.toolbarError} role="alert">{purchaseSaveError || purchaseLoadError}</span>
+          )}
+          {isEditable ? (
+            <button
+              type="button"
+              className={styles.saveButton}
+              disabled={!hasValidBill || isSavingPurchase || isLoadingPurchase}
+              onClick={() => void savePurchase("draft")}
+            >
+              <PackagePlus size={16} />
+              {isSavingPurchase ? "Saving..." : activePurchaseId ? "Save changes" : "Save draft"}
+            </button>
+          ) : (
+            <span className={`${styles.workflowStatusBadge} ${editingBillStatus === "received" ? styles.workflowStatusCompleted : ""}`}>
+              {editingBillStatus === "partial" ? "Ready to review" : "Completed"}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className={styles.content}>
         <section className={styles.detailsPanel} aria-label="Purchase bill details">
+          <div className={styles.workflowSteps} aria-label="Purchase progress">
+            {["Draft", "Review", "Completed"].map((label, index) => (
+              <div
+                key={label}
+                className={`${styles.workflowStep} ${index <= workflowStep ? styles.workflowStepActive : ""} ${index < workflowStep ? styles.workflowStepDone : ""}`}
+              >
+                <span>{index + 1}</span>
+                <strong>{label}</strong>
+              </div>
+            ))}
+          </div>
+          <fieldset className={styles.workflowFieldset} disabled={!isEditable || isLoadingPurchase}>
           <div className={styles.formGrid}>
             <div className={styles.distributorColumn} ref={distributorSearchRef}>
               <DistributorField
@@ -505,8 +717,9 @@ export function PurchaseEntry() {
             <DateField label="Bill Date" />
             <DateField label="Due Date" />
           </div>
+          </fieldset>
 
-          <div className={styles.scanSearchLayer} aria-label="Scan barcode or search item">
+          {isEditable && <div className={styles.scanSearchLayer} aria-label="Scan barcode or search item">
             <div className={styles.manualSearch} ref={purchaseItemSearchRef}>
               <ScanBarcode size={17} className={styles.manualSearchIcon} />
               <input
@@ -574,7 +787,7 @@ export function PurchaseEntry() {
               <Search size={16} />
               Find item
             </button>
-          </div>
+          </div>}
 
           {purchaseLines.length > 0 && (
             <div className={styles.purchaseLineTableWrap}>
@@ -587,6 +800,7 @@ export function PurchaseEntry() {
                     <th>Free qty</th>
                     <th>Lot No.</th>
                     <th>Exp. Date</th>
+                    <th aria-label="Actions" />
                   </tr>
                 </thead>
                 <tbody>
@@ -603,6 +817,17 @@ export function PurchaseEntry() {
                       <td>{line.freeQty ? `${line.freeQty} ${line.freeUnit}` : "-"}</td>
                       <td>{line.lotNo || "-"}</td>
                       <td>{line.expiryDate || "-"}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className={styles.removeLineButton}
+                          aria-label={`Remove ${line.itemName}`}
+                          disabled={!isEditable}
+                          onClick={() => setPurchaseLines(lines => lines.filter(candidate => candidate.id !== line.id))}
+                        >
+                          <X size={15} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -610,14 +835,13 @@ export function PurchaseEntry() {
             </div>
           )}
 
-          {showScanCarousel && (
+          {isEditable && showScanCarousel && (
             <div className={styles.scanVisualLayer} aria-label="Purchase import options">
               <input
                 ref={fileRef}
                 type="file"
                 accept=".csv,text/csv"
                 className={styles.hiddenFileInput}
-                onChange={() => setHasUpload(true)}
               />
               <div className={styles.swapWindow}>
                 <div className={styles.swapStage}>
@@ -687,7 +911,7 @@ export function PurchaseEntry() {
             </div>
           )}
 
-          {selectedItem && (
+          {isEditable && selectedItem && (
             <div className={styles.purchaseWindowBackdrop} role="presentation" onMouseDown={closePurchaseLine}>
               <section
                 className={styles.purchaseEntryWindow}
@@ -748,20 +972,12 @@ export function PurchaseEntry() {
                           />
                         </label>
 
-                        <fieldset className={styles.unitField} aria-label="Purchase unit">
-                          <div className={styles.unitOptions} aria-label="Purchase unit options">
-                            {selectedUnitOptions.map(option => (
-                              <button
-                                key={option}
-                                type="button"
-                                className={unit === option ? styles.unitOptionActive : styles.unitOption}
-                                onClick={() => setUnit(option)}
-                              >
-                                {option}
-                              </button>
-                            ))}
-                          </div>
-                        </fieldset>
+                        <PurchaseUnitDropdown
+                          label="Purchase unit"
+                          value={unit}
+                          options={selectedUnitOptions}
+                          onChange={setUnit}
+                        />
                       </div>
 
                       <fieldset className={styles.freeQtyPanel}>
@@ -785,18 +1001,14 @@ export function PurchaseEntry() {
                             value={freeQty}
                             onChange={event => setFreeQty(event.target.value)}
                           />
-                          <div className={styles.unitOptions}>
-                            {selectedUnitOptions.map(option => (
-                              <button
-                                key={option}
-                                type="button"
-                                className={freeUnit === option ? styles.unitOptionActive : styles.unitOption}
-                                onClick={() => setFreeUnit(option)}
-                              >
-                                {option}
-                              </button>
-                            ))}
-                          </div>
+                          <PurchaseUnitDropdown
+                            label="Free quantity unit"
+                            value={freeUnit}
+                            options={selectedUnitOptions}
+                            disabled={!includeFreeQty}
+                            showLabel={false}
+                            onChange={setFreeUnit}
+                          />
                         </div>
                       </fieldset>
 
@@ -816,9 +1028,13 @@ export function PurchaseEntry() {
                           <span>Exp. Date</span>
                           <input
                             type="text"
+                            inputMode="numeric"
                             placeholder="dd/mm/yyyy"
                             value={expiryDate}
-                            onChange={event => setExpiryDate(event.target.value)}
+                            maxLength={10}
+                            aria-invalid={expiryDate.length > 0 && !isValidExpiryDate(expiryDate)}
+                            onChange={event => setExpiryDate(formatExpiryDateInput(event.target.value))}
+                            onBlur={() => setExpiryDate(formatDateDisplay(expiryDate))}
                             data-purchase-flow="expiry"
                             onKeyDown={handlePurchaseFlowEnter}
                           />
@@ -851,71 +1067,44 @@ export function PurchaseEntry() {
       </div>
 
       {purchaseLines.length > 0 && (
-        <div className={styles.purchaseSummaryBar} aria-label="Purchase bill summary">
-          <div className={styles.purchaseSummaryStat}>
-            <span className={styles.purchaseSummaryLabel}>Margin %</span>
-            <span className={styles.purchaseSummaryValue}>{marginPercent.toFixed(1)}%</span>
-          </div>
-          <div className={styles.purchaseSummaryDivider} />
-          <div className={styles.purchaseSummaryStat}>
-            <span className={styles.purchaseSummaryLabel}>Qty</span>
-            <span className={styles.purchaseSummaryValue}>{totalQty}</span>
-          </div>
-          <div className={styles.purchaseSummaryDivider} />
-          <div className={styles.purchaseSummaryStat}>
-            <span className={styles.purchaseSummaryLabel}>Item</span>
-            <span className={styles.purchaseSummaryValue}>{purchaseLines.length}</span>
-          </div>
-          <button
-            type="button"
-            className={styles.purchaseNetButton}
-            onClick={() => setPurchaseConfirmOpen(true)}
-            disabled={netPurchaseTotal <= 0}
-          >
-            <span className={styles.purchaseSummaryLabel}>Net payment</span>
-            <span className={styles.purchaseNetValue}>฿{formatMoney(netPurchaseTotal)}</span>
-          </button>
-        </div>
+        <PurchaseWorkflowBar
+          status={editingBillStatus}
+          itemCount={purchaseLines.length}
+          totalQty={totalQty}
+          netTotal={netPurchaseTotal}
+          canContinue={hasValidBill && !isLoadingPurchase}
+          isBusy={isSavingPurchase}
+          reviewConfirmed={reviewConfirmed}
+          canManageStock={currentUser.canManageStock}
+          hasPendingCorrection={hasPendingCorrection}
+          onReviewConfirmedChange={setReviewConfirmed}
+          onPrepare={() => void savePurchase("partial", true)}
+          onBackToEdit={() => void savePurchase("draft", true)}
+          onComplete={() => void savePurchase("received", true)}
+          onRequestCorrection={() => {
+            setCorrectionError("");
+            setCorrectionDialogOpen(true);
+          }}
+          onAdjustStock={() => {
+            if (!activePurchaseId) return;
+            const pendingRequest = correctionRequests.find(request => request.status === "pending");
+            const requestQuery = pendingRequest ? `&requestId=${encodeURIComponent(pendingRequest.id)}` : "";
+            router.push(`/stock/adjustment?purchaseId=${encodeURIComponent(activePurchaseId)}${requestQuery}`);
+          }}
+        />
       )}
 
-      {purchaseConfirmOpen && (
-        <div className={styles.purchaseConfirmBackdrop} role="presentation" onMouseDown={() => setPurchaseConfirmOpen(false)}>
-          <section
-            className={styles.purchaseConfirmWindow}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="purchase-confirm-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <h2 id="purchase-confirm-title">Confirm purchase</h2>
-            <p>
-              Make sure you already purchased these items from {distributor.trim() || "this distributor"} before finishing this bill.
-            </p>
-            <div className={styles.purchaseConfirmSummary}>
-              <span>{purchaseLines.length} item</span>
-              <strong>฿{formatMoney(netPurchaseTotal)}</strong>
-            </div>
-            {purchaseSaveError && <p className={styles.purchaseConfirmError}>{purchaseSaveError}</p>}
-            <div className={styles.purchaseConfirmActions}>
-              <button
-                type="button"
-                className={styles.secondaryWindowButton}
-                onClick={() => setPurchaseConfirmOpen(false)}
-                disabled={isSavingPurchase}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.primaryWindowButton}
-                onClick={confirmPurchase}
-                disabled={isSavingPurchase}
-              >
-                {isSavingPurchase ? "Saving..." : "OK"}
-              </button>
-            </div>
-          </section>
-        </div>
+      {correctionDialogOpen && (
+        <PurchaseCorrectionDialog
+          reason={correctionReason}
+          error={correctionError}
+          isSubmitting={isSubmittingCorrection}
+          onReasonChange={setCorrectionReason}
+          onClose={() => {
+            if (!isSubmittingCorrection) setCorrectionDialogOpen(false);
+          }}
+          onSubmit={() => void submitCorrectionRequest()}
+        />
       )}
     </div>
   );

@@ -214,6 +214,183 @@
   background: #f4faf6;
 }
 
+.categoryFilterGroup {
+  border-bottom: 1px solid var(--stock-border-soft);
+}
+
+.categoryFilterGroup .filterButton {
+  border-bottom: 0;
+}
+
+.filterButtonEnd {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.filterCount {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--stock-primary-soft);
+  color: var(--stock-primary-dark);
+  font-size: 11px;
+  font-weight: 850;
+  padding: 0 6px;
+}
+
+.filterButton svg {
+  transition: transform 0.14s ease;
+}
+
+.filterChevronOpen {
+  transform: rotate(180deg);
+}
+
+.categoryDropdown {
+  padding: 0 5px 10px;
+}
+
+.categorySearchField {
+  display: flex;
+  height: 34px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--stock-border);
+  border-radius: 6px;
+  background: var(--stock-surface);
+  color: var(--stock-muted);
+  padding: 0 9px;
+}
+
+.categorySearchField:focus-within {
+  border-color: var(--stock-primary);
+  box-shadow: 0 0 0 2px rgba(31, 111, 72, 0.12);
+}
+
+.categorySearchField input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--stock-ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.categorySearchField input::placeholder {
+  color: #839188;
+}
+
+.categoryOptions {
+  display: flex;
+  max-height: 218px;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 7px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.categoryOptionsCompact {
+  max-height: none;
+  margin-top: 0;
+}
+
+.categoryOption {
+  display: grid;
+  min-height: 32px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border-radius: 5px;
+  color: var(--stock-ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 5px 7px;
+}
+
+.categoryOption:hover {
+  background: #eef7f1;
+}
+
+.categoryOption input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--stock-primary);
+}
+
+.categoryOption span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.categoryEmpty {
+  color: var(--stock-muted);
+  font-size: 12px;
+  padding: 10px 7px;
+}
+
+.filterHelperText {
+  margin: 7px 7px 0;
+  color: var(--stock-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.stockRangePanel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 5px 10px;
+}
+
+.stockRangeField {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--stock-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.stockRangeField input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid var(--stock-border);
+  border-radius: 6px;
+  outline: 0;
+  background: var(--stock-surface);
+  color: var(--stock-ink);
+  font: inherit;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.stockRangeField input:focus {
+  border-color: var(--stock-primary);
+  box-shadow: 0 0 0 2px rgba(31, 111, 72, 0.12);
+}
+
+.stockRangeError {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--stock-danger);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .filterText {
   display: flex;
   min-width: 0;
@@ -229,35 +406,6 @@
 .filterLabel {
   font-size: 16px;
   font-weight: 800;
-}
-
-.adjustmentBox {
-  margin: 8px 8px 0;
-  border-bottom: 1px solid var(--stock-border-soft);
-  padding-bottom: 9px;
-}
-
-.adjustmentHeader {
-  display: flex;
-  width: 100%;
-  height: 30px;
-  align-items: center;
-  justify-content: space-between;
-  border: 0;
-  background: transparent;
-  color: var(--stock-primary-dark);
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 0 2px;
-}
-
-.checkboxList {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 4px 0 0 3px;
 }
 
 .checkboxRow {
@@ -305,6 +453,13 @@
 .applyButton {
   height: 34px;
   font-size: 12px;
+}
+
+.applyButton:disabled {
+  border-color: #b9c8bf;
+  background: #c9d6cf;
+  color: #eef5f1;
+  cursor: not-allowed;
 }
 
 .content {
@@ -470,18 +625,17 @@
 
 .table {
   --stock-table-columns:
-    minmax(300px, 1.35fr)
-    minmax(94px, 0.5fr)
-    minmax(94px, 0.5fr)
-    minmax(94px, 0.5fr)
-    minmax(94px, 0.5fr)
-    minmax(68px, 0.36fr)
-    minmax(94px, 0.5fr)
-    minmax(94px, 0.5fr)
-    168px;
+    minmax(278px, 1fr)
+    104px
+    104px
+    104px
+    149px
+    104px
+    104px
+    223px;
 
   width: 100%;
-  min-width: 1100px;
+  min-width: 1170px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto;
@@ -520,22 +674,18 @@
 .table th:nth-child(5),
 .table th:nth-child(6),
 .table th:nth-child(7),
-.table th:nth-child(8),
 .table td:nth-child(2),
 .table td:nth-child(3),
 .table td:nth-child(4),
 .table td:nth-child(5),
 .table td:nth-child(6),
-.table td:nth-child(7),
-.table td:nth-child(8) {
+.table td:nth-child(7) {
   justify-content: flex-end;
   text-align: right;
 }
 
 .table th:nth-child(7),
-.table th:nth-child(8),
-.table td:nth-child(7),
-.table td:nth-child(8) {
+.table td:nth-child(7) {
   padding-right: 20px;
 }
 
@@ -551,8 +701,22 @@
   vertical-align: middle;
 }
 
+.table tbody tr {
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.14s ease, box-shadow 0.14s ease;
+}
+
 .table tbody tr:hover {
-  background: #fbfdfb;
+  background: #e8f3ec;
+  box-shadow: inset 3px 0 0 var(--stock-primary);
+}
+
+.table tbody tr:focus-visible {
+  background: #e4f1e9;
+  box-shadow:
+    inset 3px 0 0 var(--stock-primary),
+    inset 0 0 0 2px rgba(31, 111, 72, 0.28);
 }
 
 .table tr:last-child td {
@@ -577,6 +741,7 @@
 
 .itemCell {
   display: flex;
+  width: 100%;
   min-width: 0;
   align-items: center;
   gap: 9px;
@@ -604,6 +769,7 @@
 .itemInfo {
   display: flex;
   min-width: 0;
+  flex: 1;
   flex-direction: column;
   gap: 4px;
 }
@@ -634,8 +800,19 @@
 }
 
 .stockValue {
-  color: var(--stock-blue);
-  font-weight: 820;
+  font-weight: 850;
+}
+
+.stockValueNormal {
+  color: #079447;
+}
+
+.stockValueLow {
+  color: #e23d35;
+}
+
+.stockValueOver {
+  color: #dd7800;
 }
 
 .locationValue {
@@ -653,16 +830,11 @@
   font-weight: 800;
 }
 
-.marginValue {
-  color: var(--stock-blue);
-  font-weight: 820;
-}
-
 .actionCell {
   display: flex;
   width: 100%;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .actionCell .actionButton {
@@ -728,6 +900,152 @@
   align-items: center;
   gap: 8px;
   margin-left: auto;
+}
+
+.deleteItemButton,
+.deleteConfirmButton,
+.deleteCancelButton {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 820;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.deleteItemButton {
+  border: 1px solid #e2aaa5;
+  background: #fff8f7;
+  color: #b3332b;
+}
+
+.deleteItemButton:hover {
+  border-color: #d78179;
+  background: #fce8e6;
+}
+
+.deleteConfirmButton {
+  border: 1px solid #b9362d;
+  background: #b9362d;
+  color: #ffffff;
+}
+
+.deleteConfirmButton:hover {
+  background: #982a23;
+}
+
+.deleteCancelButton {
+  border: 1px solid var(--stock-border);
+  background: var(--stock-surface);
+  color: var(--stock-muted);
+}
+
+.deleteCancelButton:hover {
+  background: #f4f7f5;
+  color: var(--stock-ink);
+}
+
+.deleteConfirmButton:disabled,
+.deleteCancelButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.deleteConfirmOverlay {
+  position: fixed;
+  inset: 56px 0 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 27, 20, 0.42);
+  padding: 20px;
+}
+
+.deleteConfirmDialog {
+  display: flex;
+  width: min(390px, calc(100vw - 40px));
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #e4b7b2;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(24, 18, 17, 0.32);
+  padding: 22px;
+  text-align: center;
+}
+
+.deleteConfirmIcon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fce8e6;
+  color: #b9362d;
+}
+
+.deleteConfirmDialog h2 {
+  margin: 12px 0 0;
+  color: var(--stock-ink);
+  font-size: 17px;
+  font-weight: 850;
+}
+
+.deleteConfirmDialog p {
+  max-width: 330px;
+  margin: 8px 0 0;
+  color: var(--stock-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.deleteConfirmDialog p strong {
+  color: var(--stock-ink);
+  font-weight: 800;
+}
+
+.deleteConfirmActions {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.deleteErrorMessage {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid #efb7b2;
+  border-radius: 6px;
+  background: #fce8e6;
+  color: #9f2d26;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 9px 11px;
+}
+
+.formFooter {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: auto;
+  border: 1px solid var(--stock-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -4px 14px rgba(20, 35, 25, 0.08);
+  padding: 10px 12px;
 }
 
 .formBody {

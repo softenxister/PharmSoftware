@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import Link from "next/link";
 import {
-  ArrowLeft,
   ChevronDown,
   ImagePlus,
   PackagePlus,
@@ -23,8 +21,8 @@ type PackagingRow = {
 };
 
 type StockEntryFormProps = {
-  onClose?: () => void;
   onSave?: (item: StockItemInput) => void | Promise<void>;
+  onDelete?: () => void | Promise<void>;
   categoryOptions?: string[];
   initialItem?: StockItemInput;
   mode?: "create" | "edit";
@@ -262,8 +260,8 @@ function mergeUniqueOptions(...optionGroups: string[][]): string[] {
 }
 
 export function StockEntryForm({
-  onClose,
   onSave,
+  onDelete,
   categoryOptions = [],
   initialItem,
   mode = "create",
@@ -286,7 +284,11 @@ export function StockEntryForm({
   const lotNo = initialItem?.lotNo ?? "";
   const expiryDate = initialItem?.expiryDate ?? "";
   const [regulatoryForms, setRegulatoryForms] = useState<string[]>(["ข.ย. 9"]);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [focusPackagingRowId, setFocusPackagingRowId] = useState<string | null>(null);
+  const deleteCancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const packagingRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [packagingRows, setPackagingRows] = useState<PackagingRow[]>(() => {
     const rows = initialItem?.packagingRows.map((row, index) => ({
@@ -302,6 +304,19 @@ export function StockEntryForm({
     packagingRowRefs.current[focusPackagingRowId]?.querySelector<HTMLInputElement>("input")?.focus();
     setFocusPackagingRowId(null);
   }, [focusPackagingRowId, packagingRows]);
+
+  useEffect(() => {
+    if (!isDeleteConfirmationOpen) return;
+    deleteCancelButtonRef.current?.focus();
+
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape" || isDeleting) return;
+      setIsDeleteConfirmationOpen(false);
+      setDeleteError("");
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isDeleteConfirmationOpen, isDeleting]);
 
   const missingSaveFields = useMemo(() => {
     const price = Number(sellPrice);
@@ -367,6 +382,24 @@ export function StockEntryForm({
     });
   };
 
+  const handleConfirmedDelete = async () => {
+    if (!isEditing || !onDelete || isDeleting) return;
+    setDeleteError("");
+    setIsDeleting(true);
+    try {
+      await onDelete();
+    } catch {
+      setDeleteError("Unable to delete this item. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  const closeDeleteConfirmation = () => {
+    if (isDeleting) return;
+    setIsDeleteConfirmationOpen(false);
+    setDeleteError("");
+  };
+
   return (
     <form className={`${styles.stockForm} ${styles.stockFormPortrait}`} onSubmit={handleSubmit} noValidate>
       <div className={styles.formHeader}>
@@ -374,23 +407,63 @@ export function StockEntryForm({
           <h1>{isEditing ? "Edit Item" : "Create New Item"}</h1>
         </div>
         <div className={styles.formHeaderActions}>
-          {onClose ? (
-            <button type="button" className={styles.moreButton} onClick={onClose}>
-              <ArrowLeft size={17} />
-              <span>Back</span>
+          {isEditing && (
+            <button
+              type="button"
+              className={styles.deleteItemButton}
+              onClick={() => {
+                setDeleteError("");
+                setIsDeleteConfirmationOpen(true);
+              }}
+            >
+              <Trash2 size={16} />
+              <span>Delete Item</span>
             </button>
-          ) : (
-            <Link href="/stock" className={styles.moreButton}>
-              <ArrowLeft size={17} />
-              <span>Back</span>
-            </Link>
           )}
-          <button type="submit" className={styles.toolbarAddButton} disabled={!canSave}>
-            <PackagePlus size={17} />
-            <span>{isEditing ? "Save Changes" : "Create Item"}</span>
-          </button>
         </div>
       </div>
+
+      {isDeleteConfirmationOpen && (
+        <div className={styles.deleteConfirmOverlay} role="presentation" onMouseDown={closeDeleteConfirmation}>
+          <section
+            className={styles.deleteConfirmDialog}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-stock-item-title"
+            aria-describedby="delete-stock-item-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <span className={styles.deleteConfirmIcon} aria-hidden="true">
+              <Trash2 size={22} />
+            </span>
+            <h2 id="delete-stock-item-title">Delete this item?</h2>
+            <p id="delete-stock-item-description">
+              <strong>{itemName.trim() || "This item"}</strong> will be removed from Inventory Stock.
+            </p>
+            {deleteError && <div className={styles.deleteErrorMessage} role="alert">{deleteError}</div>}
+            <div className={styles.deleteConfirmActions}>
+              <button
+                ref={deleteCancelButtonRef}
+                type="button"
+                className={styles.deleteCancelButton}
+                onClick={closeDeleteConfirmation}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.deleteConfirmButton}
+                onClick={handleConfirmedDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 size={16} />
+                <span>{isDeleting ? "Deleting…" : "Delete Item"}</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <div className={styles.formBody}>
         <section className={styles.photoPanel} aria-label="Product photo">
@@ -615,6 +688,13 @@ export function StockEntryForm({
           ))}
         </div>
       </section>
+
+      <div className={styles.formFooter}>
+        <button type="submit" className={styles.toolbarAddButton} disabled={!canSave || isDeleting}>
+          <PackagePlus size={17} />
+          <span>{isEditing ? "Save Changes" : "Create Item"}</span>
+        </button>
+      </div>
     </form>
   );
 }

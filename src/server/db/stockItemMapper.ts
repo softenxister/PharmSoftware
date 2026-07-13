@@ -1,5 +1,20 @@
 import type { SavedStockItem, SalesProduct, StockItemInput } from "./types";
 
+type RelatedLineProduct = Pick<SalesProduct, "id" | "itemName" | "barcode" | "location">;
+
+export function relatedLineUpdates(product: RelatedLineProduct) {
+  return {
+    purchaseLines: {
+      where: { productId: product.id },
+      data: { itemName: product.itemName, barcode: product.barcode },
+    },
+    saleLines: {
+      where: { productId: product.id },
+      data: { itemName: product.itemName, location: product.location },
+    },
+  };
+}
+
 function slugify(value: string): string {
   const slug = value
     .trim()

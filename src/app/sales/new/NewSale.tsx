@@ -130,9 +130,9 @@ type SavedSale = {
   purchaseMethod: PurchaseMethod;
   netTotal: number;
   status: BillStatus;
-  ownerId: string;
+  ownerId: string | null;
   billDate: string;
-  pharmacistId: string;
+  pharmacistId: string | null;
   customerId: string | null;
   lines: CartLine[];
   discount: AppliedDiscount | null;
@@ -754,36 +754,45 @@ export default function NewSale(): React.ReactElement {
   }, [cartLines, catalog]);
 
   useEffect(() => {
+    let cancelled = false;
     const billId = new URLSearchParams(window.location.search).get('billId');
     if (!billId) return;
 
-    const savedSales = window.localStorage.getItem(SAVED_SALES_KEY);
-    if (!savedSales) return;
+    async function loadPendingBill() {
+      try {
+        const response = await fetch('/api/sales', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Unable to load pending sale.');
+        const data = await response.json() as { sales?: SavedSale[] };
+        const savedBill = data.sales?.find((bill) => bill.id === billId && bill.status === 'pending');
+        if (cancelled || !savedBill || !Array.isArray(savedBill.lines) || savedBill.lines.length === 0) return;
 
-    try {
-      const savedBills = JSON.parse(savedSales) as SavedSale[];
-      const savedBill = savedBills.find((bill) => bill.id === billId && bill.status === 'pending');
-      if (!savedBill || !Array.isArray(savedBill.lines) || savedBill.lines.length === 0) return;
-
-      setEditingBillId(savedBill.id);
-      setEditingBillNo(savedBill.billNo);
-      setOwnerId(savedBill.ownerId ?? OWNERS[0].id);
-      setPaymentMethod(savedBill.paymentMethod ?? PAYMENT_METHODS[0]);
-      setPurchaseMethod(savedBill.purchaseMethod ?? 'pickup');
-      setBillDate(savedBill.billDate ?? savedBill.date.slice(0, 10));
-      setPharmacistId(savedBill.pharmacistId ?? PHARMACISTS[0].id);
-      setCustomer(CUSTOMERS.find((c) => c.id === savedBill.customerId) ?? null);
-      setCustomerQuery('');
-      setCartLines(savedBill.lines);
-      setCartQtyDrafts({});
-      setAppliedDiscount(savedBill.discount ?? null);
-      if (savedBill.discount) {
-        setDiscountType(savedBill.discount.type);
-        setDiscountInput(String(savedBill.discount.value));
+        setEditingBillId(savedBill.id);
+        setEditingBillNo(savedBill.billNo);
+        setOwnerId(savedBill.ownerId ?? OWNERS[0].id);
+        setPaymentMethod(savedBill.paymentMethod ?? PAYMENT_METHODS[0]);
+        setPurchaseMethod(savedBill.purchaseMethod ?? 'pickup');
+        setBillDate(savedBill.billDate ?? savedBill.date.slice(0, 10));
+        setPharmacistId(savedBill.pharmacistId ?? PHARMACISTS[0].id);
+        setCustomer(CUSTOMERS.find((c) => c.id === savedBill.customerId) ?? null);
+        setCustomerQuery('');
+        setCartLines(savedBill.lines);
+        setCartQtyDrafts({});
+        setAppliedDiscount(savedBill.discount ?? null);
+        if (savedBill.discount) {
+          setDiscountType(savedBill.discount.type);
+          setDiscountInput(String(savedBill.discount.value));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSaleSubmitError(error instanceof Error ? error.message : 'Unable to load pending sale.');
+        }
       }
-    } catch {
-      // Ignore malformed local drafts; real API loading will handle errors explicitly.
     }
+
+    void loadPendingBill();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /* ── Handlers ───────────────────────────────────────────────────── */

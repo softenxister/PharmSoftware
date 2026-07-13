@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PackagePlus, Search } from "lucide-react";
 import styles from "./PurchaseHome.module.css";
+import { purchaseStatusLabel } from "@/lib/purchaseWorkflow";
 
 type PurchaseBillStatus = "received" | "draft" | "partial";
 
@@ -18,70 +19,6 @@ type PurchaseBill = {
   netTotal: number;
   status: PurchaseBillStatus;
 };
-
-const statusLabel: Record<PurchaseBillStatus, string> = {
-  received: "Received",
-  draft: "Draft",
-  partial: "Partial",
-};
-
-const fakePurchaseBills: PurchaseBill[] = [
-  {
-    id: "po-001",
-    billNo: "PB-20260708-001",
-    invoiceNo: "INV-SMS-7881",
-    date: "2026-07-08T09:24:00+07:00",
-    distributor: "Siam Medical Supply",
-    itemCount: 8,
-    totalQty: 860,
-    netTotal: 42850,
-    status: "received",
-  },
-  {
-    id: "po-002",
-    billNo: "PB-20260707-004",
-    invoiceNo: "TPD-260707-19",
-    date: "2026-07-07T15:12:00+07:00",
-    distributor: "TPD Thanom Pharma Distribution",
-    itemCount: 5,
-    totalQty: 412,
-    netTotal: 19740,
-    status: "partial",
-  },
-  {
-    id: "po-003",
-    billNo: "PB-20260707-003",
-    invoiceNo: "BPD-55291",
-    date: "2026-07-07T11:36:00+07:00",
-    distributor: "Bangkok Pharma Distribution",
-    itemCount: 11,
-    totalQty: 1240,
-    netTotal: 58120,
-    status: "received",
-  },
-  {
-    id: "po-004",
-    billNo: "PB-20260706-002",
-    invoiceNo: "DRAFT",
-    date: "2026-07-06T17:05:00+07:00",
-    distributor: "VORAMIT DRUG CENTER",
-    itemCount: 3,
-    totalQty: 188,
-    netTotal: 9250,
-    status: "draft",
-  },
-  {
-    id: "po-005",
-    billNo: "PB-20260706-001",
-    invoiceNo: "BM-TH-66120",
-    date: "2026-07-06T10:18:00+07:00",
-    distributor: "Buymed Thailand",
-    itemCount: 7,
-    totalQty: 705,
-    netTotal: 31490,
-    status: "received",
-  },
-];
 
 function formatDate(iso: string): string {
   const date = new Date(iso);
@@ -99,6 +36,8 @@ export function PurchaseHome() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [savedPurchaseBills, setSavedPurchaseBills] = useState<PurchaseBill[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +50,9 @@ export function PurchaseHome() {
         if (!cancelled && Array.isArray(data.bills)) setSavedPurchaseBills(data.bills);
       } catch (error) {
         console.error(error);
+        if (!cancelled) setLoadError("Purchase bills could not be loaded.");
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     }
 
@@ -120,20 +62,14 @@ export function PurchaseHome() {
     };
   }, []);
 
-  const purchaseBills = useMemo(() => {
-    const savedIds = new Set(savedPurchaseBills.map((bill) => bill.id));
-    return [
-      ...savedPurchaseBills,
-      ...fakePurchaseBills.filter((bill) => !savedIds.has(bill.id)),
-    ];
-  }, [savedPurchaseBills]);
+  const purchaseBills = savedPurchaseBills;
 
   const visibleBills = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return purchaseBills;
 
     return purchaseBills.filter((bill) =>
-      [bill.billNo, bill.invoiceNo, bill.distributor, statusLabel[bill.status]].some((value) =>
+      [bill.billNo, bill.invoiceNo, bill.distributor, purchaseStatusLabel[bill.status]].some((value) =>
         value.toLowerCase().includes(q),
       ),
     );
@@ -171,7 +107,7 @@ export function PurchaseHome() {
             <strong className={styles.metricValue}>{purchaseBills.length}</strong>
           </div>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Draft / Partial</span>
+            <span className={styles.metricLabel}>Draft / Ready</span>
             <strong className={styles.metricValue}>
               {purchaseBills.filter((bill) => bill.status !== "received").length}
             </strong>
@@ -213,8 +149,15 @@ export function PurchaseHome() {
                   <tr key={bill.id}>
                     <td>
                       <div className={styles.billCell}>
-                        <span className={styles.billNo}>{bill.billNo}</span>
-                        <span className={styles.billDate}>{formatDate(bill.date)}</span>
+                        <button
+                          type="button"
+                          className={styles.billLink}
+                          aria-label={bill.status === "received" ? `View completed bill ${bill.billNo}` : `Open ${bill.billNo}`}
+                          onClick={() => router.push(`/purchase/new?id=${encodeURIComponent(bill.id)}`)}
+                        >
+                          <span className={styles.billNo}>{bill.billNo}</span>
+                          <span className={styles.billDate}>{formatDate(bill.date)}</span>
+                        </button>
                       </div>
                     </td>
                     <td>{bill.invoiceNo}</td>
@@ -226,7 +169,7 @@ export function PurchaseHome() {
                     </td>
                     <td>
                       <span className={`${styles.status} ${styles[`status_${bill.status}`]}`}>
-                        {statusLabel[bill.status]}
+                        {purchaseStatusLabel[bill.status]}
                       </span>
                     </td>
                   </tr>
@@ -234,12 +177,15 @@ export function PurchaseHome() {
               </tbody>
             </table>
 
-            {visibleBills.length === 0 && (
+            {!isLoading && visibleBills.length === 0 && (
               <div className={styles.emptyState}>
-                <p className={styles.emptyTitle}>No purchase bills match this search</p>
-                <p className={styles.emptyBody}>Try a different bill number, invoice, or distributor.</p>
+                <p className={styles.emptyTitle}>{loadError || "No purchase bills match this search"}</p>
+                <p className={styles.emptyBody}>
+                  {loadError ? "Check the database connection and try again." : "Try a different bill number, invoice, or distributor."}
+                </p>
               </div>
             )}
+            {isLoading && <div className={styles.emptyState} role="status">Loading purchase bills...</div>}
           </div>
         </section>
       </div>

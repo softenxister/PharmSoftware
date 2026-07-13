@@ -12,7 +12,22 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import type { SalesProduct, StockItemInput } from "@/server/db/types";
+import { buildStockCategoryOptions } from "./stockCategoryFilter";
 import { loadStockCatalog, updateStockCatalog } from "./stockCatalogClient";
+import { StockFilterDropdown, StockRangeFilter } from "./StockFilterDropdown";
+import {
+  buildFilterOptions,
+  COMMON_DOSAGE_TYPES,
+  EXPIRY_WINDOWS,
+  filterStockInventoryItems,
+  parseStockRange,
+  STOCK_ADJUSTMENT_STATES,
+  STOCK_LEVELS,
+  type AppliedStockInventoryFilters,
+  type ExpiryWindow,
+  type StockLevel,
+} from "./stockInventoryFilters";
+import { isStockRowActivationKey } from "./stockRowInteraction";
 import { StockEntryForm } from "./StockEntryForm";
 import styles from "./Stock.module.css";
 
@@ -24,6 +39,8 @@ interface StockItem {
   brand: string;
   manufacturer: string;
   category: string;
+  dosageType: string;
+  expiryDates: string[];
   pack: string;
   min: number;
   max: number;
@@ -31,7 +48,6 @@ interface StockItem {
   loc: string;
   discount: number;
   sellPrice: number;
-  margin: number;
   imageUrl: string;
   state: StockState;
 }
@@ -49,6 +65,8 @@ function productToStockItem(product: SalesProduct, index: number): StockItem {
     brand: product.brandName,
     manufacturer: product.manufacturerName,
     category: product.category,
+    dosageType: product.pack.childUnit,
+    expiryDates: product.batches.map((batch) => batch.expiryDate),
     pack: product.pack.label,
     min,
     max,
@@ -56,7 +74,6 @@ function productToStockItem(product: SalesProduct, index: number): StockItem {
     loc: product.location,
     discount: index % 4 === 0 ? 2 : index % 5 === 0 ? 1.5 : 0,
     sellPrice,
-    margin: Math.max(16, Math.min(42, Math.round(28 + product.weeklySold / 35))),
     imageUrl: product.imageUrl,
     state,
   };
@@ -88,18 +105,6 @@ function productToStockItemInput(product: SalesProduct): StockItemInput {
   };
 }
 
-const filterGroups = [
-  "Items",
-  "Category",
-  "Dosage Type",
-  "Schedule Type",
-  "Expiry",
-  "Stock",
-  "Stock Range",
-  "Manufacturer",
-];
-
-const stockAdjustmentStates = ["Pending", "Completed", "Blocked"];
 const SIDEBAR_MIN_WIDTH = 230;
 const SIDEBAR_MAX_WIDTH = 360;
 const SIDEBAR_DEFAULT_WIDTH = 270;
@@ -112,9 +117,74 @@ function formatPercent(value: number): string {
   return `${value.toFixed(2)}%`;
 }
 
+function stockStateLabel(state: StockState): string {
+  if (state === "low") return "Below minimum";
+  if (state === "overstock") return "Above maximum";
+  return "Within range";
+}
+
+type StockFilterPanel =
+  | "category"
+  | "dosageType"
+  | "expiry"
+  | "stock"
+  | "stockRange"
+  | "manufacturer"
+  | "stockAdjustment";
+
+interface DraftStockFilters {
+  categories: string[];
+  dosageTypes: string[];
+  expiryWindows: ExpiryWindow[];
+  stockLevels: StockLevel[];
+  manufacturers: string[];
+  adjustmentStatuses: string[];
+  minimumStock: string;
+  maximumStock: string;
+}
+
+type MultiSelectFilterKey = keyof Pick<
+  DraftStockFilters,
+  "categories" | "dosageTypes" | "expiryWindows" | "stockLevels" | "manufacturers" | "adjustmentStatuses"
+>;
+
+function createEmptyDraftFilters(): DraftStockFilters {
+  return {
+    categories: [],
+    dosageTypes: [],
+    expiryWindows: [],
+    stockLevels: [],
+    manufacturers: [],
+    adjustmentStatuses: [],
+    minimumStock: "",
+    maximumStock: "",
+  };
+}
+
+function createEmptyAppliedFilters(): AppliedStockInventoryFilters {
+  return {
+    categories: [],
+    dosageTypes: [],
+    expiryWindows: [],
+    stockLevels: [],
+    manufacturers: [],
+    stockRange: null,
+  };
+}
+
+function toggleSelectedOption<T extends string>(options: T[], option: string): T[] {
+  const selectedOption = option as T;
+  return options.includes(selectedOption)
+    ? options.filter((currentOption) => currentOption !== selectedOption)
+    : [...options, selectedOption];
+}
+
 export default function StockPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [query, setQuery] = useState("");
+  const [openFilterPanel, setOpenFilterPanel] = useState<StockFilterPanel | null>(null);
+  const [draftFilters, setDraftFilters] = useState<DraftStockFilters>(createEmptyDraftFilters);
+  const [appliedFilters, setAppliedFilters] = useState<AppliedStockInventoryFilters>(createEmptyAppliedFilters);
   const [stockWindowOpen, setStockWindowOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<SalesProduct | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
@@ -141,15 +211,36 @@ export default function StockPage() {
   const stockItems = useMemo(() => products.map(productToStockItem), [products]);
 
   const visibleItems = useMemo(() => {
+    const filteredItems = filterStockInventoryItems(stockItems, appliedFilters);
     const q = query.trim().toLowerCase();
-    if (!q) return stockItems;
+    if (!q) return filteredItems;
 
-    return stockItems.filter((item) =>
+    return filteredItems.filter((item) =>
       [item.name, item.brand, item.manufacturer, item.category, item.pack, item.loc, item.id].some((value) =>
         value.toLowerCase().includes(q),
       ),
     );
-  }, [query, stockItems]);
+  }, [appliedFilters, query, stockItems]);
+
+  const stockCategoryFilterOptions = useMemo(
+    () => buildStockCategoryOptions(products.map((product) => product.category)),
+    [products],
+  );
+
+  const dosageTypeFilterOptions = useMemo(
+    () => buildFilterOptions(COMMON_DOSAGE_TYPES, products.map((product) => product.pack.childUnit)),
+    [products],
+  );
+
+  const manufacturerFilterOptions = useMemo(
+    () => buildFilterOptions([], products.map((product) => product.manufacturerName)),
+    [products],
+  );
+
+  const stockRangeResult = useMemo(
+    () => parseStockRange(draftFilters.minimumStock, draftFilters.maximumStock),
+    [draftFilters.maximumStock, draftFilters.minimumStock],
+  );
 
   const categoryOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -172,9 +263,56 @@ export default function StockPage() {
     setEditingProduct(product);
     setStockWindowOpen(true);
   };
+  const openEditStockByBarcode = (barcode: string) => {
+    const product = products.find((candidate) => candidate.barcode === barcode);
+    if (product) openEditStock(product);
+  };
   const closeAddStock = () => {
     setStockWindowOpen(false);
     setEditingProduct(null);
+  };
+  const toggleFilterPanel = (panel: StockFilterPanel) => {
+    setOpenFilterPanel((openPanel) => openPanel === panel ? null : panel);
+  };
+  const toggleDraftFilterOption = (filter: MultiSelectFilterKey, option: string) => {
+    setDraftFilters((currentFilters) => {
+      if (filter === "categories") {
+        return { ...currentFilters, categories: toggleSelectedOption(currentFilters.categories, option) };
+      }
+      if (filter === "dosageTypes") {
+        return { ...currentFilters, dosageTypes: toggleSelectedOption(currentFilters.dosageTypes, option) };
+      }
+      if (filter === "expiryWindows") {
+        return { ...currentFilters, expiryWindows: toggleSelectedOption(currentFilters.expiryWindows, option) };
+      }
+      if (filter === "stockLevels") {
+        return { ...currentFilters, stockLevels: toggleSelectedOption(currentFilters.stockLevels, option) };
+      }
+      if (filter === "manufacturers") {
+        return { ...currentFilters, manufacturers: toggleSelectedOption(currentFilters.manufacturers, option) };
+      }
+      return {
+        ...currentFilters,
+        adjustmentStatuses: toggleSelectedOption(currentFilters.adjustmentStatuses, option),
+      };
+    });
+  };
+  const resetStockFilters = () => {
+    setDraftFilters(createEmptyDraftFilters());
+    setAppliedFilters(createEmptyAppliedFilters());
+    setOpenFilterPanel(null);
+  };
+  const applyStockFilters = () => {
+    if (!stockRangeResult.isValid) return;
+    setAppliedFilters({
+      categories: draftFilters.categories,
+      dosageTypes: draftFilters.dosageTypes,
+      expiryWindows: draftFilters.expiryWindows,
+      stockLevels: draftFilters.stockLevels,
+      manufacturers: draftFilters.manufacturers,
+      stockRange: stockRangeResult.range,
+    });
+    setOpenFilterPanel(null);
   };
   const handleSidebarResizeStart = (event: ReactMouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -222,6 +360,22 @@ export default function StockPage() {
       console.error(error);
     }
   };
+  const handleDeleteStock = async () => {
+    if (!editingProduct) throw new Error("No stock item is selected.");
+    const response = await fetch("/api/stock", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: editingProduct.id }),
+    });
+    const data = await response.json() as { products?: SalesProduct[]; error?: string };
+    if (!response.ok || !Array.isArray(data.products)) {
+      throw new Error(data.error || "Unable to delete stock item.");
+    }
+
+    updateStockCatalog(data.products);
+    setProducts(data.products);
+    closeAddStock();
+  };
 
   return (
     <div className={styles.page}>
@@ -267,36 +421,105 @@ export default function StockPage() {
             </button>
 
             <div className={styles.filterList}>
-              {filterGroups.map((group) => (
-                <button type="button" className={styles.filterButton} key={group}>
-                  <span className={styles.filterText}>
-                    <span className={styles.filterLabel}>{group}</span>
-                  </span>
-                  <ChevronDown size={16} />
-                </button>
-              ))}
-            </div>
-
-            <section className={styles.adjustmentBox} aria-label="Stock adjustment status">
-              <button type="button" className={styles.adjustmentHeader}>
-                <span>Stock Adjustment</span>
+              <button type="button" className={styles.filterButton}>
+                <span className={styles.filterText}>
+                  <span className={styles.filterLabel}>Items</span>
+                </span>
                 <ChevronDown size={16} />
               </button>
-              <div className={styles.checkboxList}>
-                {stockAdjustmentStates.map((status) => (
-                  <label key={status} className={styles.checkboxRow}>
-                    <input type="checkbox" />
-                    <span>{status}</span>
-                  </label>
-                ))}
-              </div>
-            </section>
+
+              <StockFilterDropdown
+                id="stock-category-options"
+                label="Category"
+                options={stockCategoryFilterOptions}
+                selectedOptions={draftFilters.categories}
+                isOpen={openFilterPanel === "category"}
+                onToggle={() => toggleFilterPanel("category")}
+                onToggleOption={(option) => toggleDraftFilterOption("categories", option)}
+              />
+
+              <StockFilterDropdown
+                id="stock-dosage-type-options"
+                label="Dosage Type"
+                options={dosageTypeFilterOptions}
+                selectedOptions={draftFilters.dosageTypes}
+                isOpen={openFilterPanel === "dosageType"}
+                onToggle={() => toggleFilterPanel("dosageType")}
+                onToggleOption={(option) => toggleDraftFilterOption("dosageTypes", option)}
+              />
+
+              <button type="button" className={styles.filterButton}>
+                <span className={styles.filterText}>
+                  <span className={styles.filterLabel}>Schedule Type</span>
+                </span>
+                <ChevronDown size={16} />
+              </button>
+
+              <StockFilterDropdown
+                id="stock-expiry-options"
+                label="Expiry"
+                options={EXPIRY_WINDOWS}
+                selectedOptions={draftFilters.expiryWindows}
+                isOpen={openFilterPanel === "expiry"}
+                onToggle={() => toggleFilterPanel("expiry")}
+                onToggleOption={(option) => toggleDraftFilterOption("expiryWindows", option)}
+                searchable={false}
+              />
+
+              <StockFilterDropdown
+                id="stock-level-options"
+                label="Stock"
+                options={STOCK_LEVELS}
+                selectedOptions={draftFilters.stockLevels}
+                isOpen={openFilterPanel === "stock"}
+                onToggle={() => toggleFilterPanel("stock")}
+                onToggleOption={(option) => toggleDraftFilterOption("stockLevels", option)}
+                searchable={false}
+              />
+
+              <StockRangeFilter
+                isOpen={openFilterPanel === "stockRange"}
+                minimum={draftFilters.minimumStock}
+                maximum={draftFilters.maximumStock}
+                isValid={stockRangeResult.isValid}
+                onToggle={() => toggleFilterPanel("stockRange")}
+                onMinimumChange={(minimumStock) => setDraftFilters((filters) => ({ ...filters, minimumStock }))}
+                onMaximumChange={(maximumStock) => setDraftFilters((filters) => ({ ...filters, maximumStock }))}
+              />
+
+              <StockFilterDropdown
+                id="stock-manufacturer-options"
+                label="Manufacturer"
+                options={manufacturerFilterOptions}
+                selectedOptions={draftFilters.manufacturers}
+                isOpen={openFilterPanel === "manufacturer"}
+                onToggle={() => toggleFilterPanel("manufacturer")}
+                onToggleOption={(option) => toggleDraftFilterOption("manufacturers", option)}
+              />
+
+              <StockFilterDropdown
+                id="stock-adjustment-options"
+                label="Stock Adjustment"
+                options={STOCK_ADJUSTMENT_STATES}
+                selectedOptions={draftFilters.adjustmentStatuses}
+                isOpen={openFilterPanel === "stockAdjustment"}
+                onToggle={() => toggleFilterPanel("stockAdjustment")}
+                onToggleOption={(option) => toggleDraftFilterOption("adjustmentStatuses", option)}
+                searchable={false}
+                helperText="Stock items do not currently include adjustment status, so these selections do not filter the item table."
+              />
+            </div>
 
             <div className={styles.sidebarActions}>
-              <button type="button" className={styles.resetButton}>
+              <button type="button" className={styles.resetButton} onClick={resetStockFilters}>
                 Reset
               </button>
-              <button type="button" className={styles.applyButton}>
+              <button
+                type="button"
+                className={styles.applyButton}
+                onClick={applyStockFilters}
+                disabled={!stockRangeResult.isValid}
+              >
                 Apply Filter
               </button>
             </div>
@@ -366,13 +589,22 @@ export default function StockPage() {
                   <th>Loc.</th>
                   <th>Disc.</th>
                   <th>Sell price</th>
-                  <th>Margin%</th>
                   <th className={styles.actionCol} aria-label="Item actions" />
                 </tr>
               </thead>
               <tbody>
                 {visibleItems.map((item) => (
-                  <tr key={item.id}>
+                  <tr
+                    key={item.id}
+                    tabIndex={0}
+                    aria-label={`Edit item detail for ${item.name}`}
+                    onClick={() => openEditStockByBarcode(item.id)}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget || !isStockRowActivationKey(event.key)) return;
+                      event.preventDefault();
+                      openEditStockByBarcode(item.id);
+                    }}
+                  >
                     <td>
                       <span className={styles.itemCell}>
                         <span className={styles.productImageFrame}>
@@ -391,7 +623,19 @@ export default function StockPage() {
                     <td>{item.min}</td>
                     <td>{item.max}</td>
                     <td>
-                      <span className={styles.stockValue}>{item.stock}</span>
+                      <span
+                        className={`${styles.stockValue} ${
+                          item.state === "low"
+                            ? styles.stockValueLow
+                            : item.state === "overstock"
+                              ? styles.stockValueOver
+                              : styles.stockValueNormal
+                        }`}
+                        title={stockStateLabel(item.state)}
+                        aria-label={`${item.stock} units, ${stockStateLabel(item.state).toLowerCase()}`}
+                      >
+                        {item.stock}
+                      </span>
                     </td>
                     <td>
                       <span className={styles.locationValue} title={item.loc}>
@@ -404,11 +648,14 @@ export default function StockPage() {
                       <span className={styles.priceValue}>{formatMoney(item.sellPrice)}</span>
                     </td>
                     <td>
-                      <span className={styles.marginValue}>{formatPercent(item.margin)}</span>
-                    </td>
-                    <td>
                       <span className={styles.actionCell}>
-                        <button type="button" className={styles.actionButton} title="Adjust stock" aria-label={`Adjust stock for ${item.name}`}>
+                        <button
+                          type="button"
+                          className={styles.actionButton}
+                          title="Adjust stock"
+                          aria-label={`Adjust stock for ${item.name}`}
+                          onClick={(event) => event.stopPropagation()}
+                        >
                           <PackagePlus size={17} />
                         </button>
                         <button
@@ -416,9 +663,9 @@ export default function StockPage() {
                           className={styles.actionButton}
                           title="Edit item detail"
                           aria-label={`Edit item detail for ${item.name}`}
-                          onClick={() => {
-                            const product = products.find((candidate) => candidate.barcode === item.id);
-                            if (product) openEditStock(product);
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEditStockByBarcode(item.id);
                           }}
                         >
                           <Edit3 size={16} />
@@ -454,8 +701,8 @@ export default function StockPage() {
               categoryOptions={categoryOptions}
               initialItem={editingProduct ? productToStockItemInput(editingProduct) : undefined}
               mode={editingProduct ? "edit" : "create"}
-              onClose={closeAddStock}
               onSave={handleSaveStock}
+              onDelete={editingProduct ? handleDeleteStock : undefined}
             />
           </section>
         </div>

@@ -1,5 +1,5 @@
-import { BlankFeaturePage } from "@/features/events/components/layout/BlankFeaturePage";
+import { MemberDirectory } from "./MemberDirectory";
 
 export default function MemberPage() {
-  return <BlankFeaturePage />;
+  return <MemberDirectory />;
 }

@@ -14,6 +14,12 @@ enum PurchaseBillStatus {
   PARTIAL
 }
 
+enum PurchaseCorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SaleStatus {
   PAID
   PENDING
@@ -68,6 +74,7 @@ model Product {
   favoriteCustomers CustomerFavoriteProduct[]
   purchaseLines     PurchaseLine[]
   saleLines         SaleLine[]
+  stockAdjustmentLines StockAdjustmentLine[]
 
   @@index([categoryId])
   @@index([manufacturerId])
@@ -170,9 +177,59 @@ model PurchaseBill {
   updatedAt       DateTime           @updatedAt
   distributor     Distributor?       @relation(fields: [distributorId], references: [id], onDelete: SetNull)
   lines           PurchaseLine[]
+  correctionRequests PurchaseCorrectionRequest[]
+  stockAdjustments StockAdjustment[]
 
   @@index([purchasedAt])
   @@index([distributorId])
+}
+
+model PurchaseCorrectionRequest {
+  id              String                   @id
+  purchaseBillId  String
+  reason          String
+  status          PurchaseCorrectionStatus @default(PENDING)
+  requestedBy     String
+  requestedRole   String
+  requestedAt     DateTime                 @default(now())
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNote      String?
+  purchaseBill    PurchaseBill             @relation(fields: [purchaseBillId], references: [id], onDelete: Cascade)
+  stockAdjustment StockAdjustment?
+
+  @@index([purchaseBillId])
+  @@index([status, requestedAt])
+}
+
+model StockAdjustment {
+  id                  String                     @id
+  purchaseBillId      String?
+  correctionRequestId String?                    @unique
+  reason              String
+  adjustedBy          String
+  createdAt           DateTime                   @default(now())
+  purchaseBill        PurchaseBill?              @relation(fields: [purchaseBillId], references: [id], onDelete: SetNull)
+  correctionRequest   PurchaseCorrectionRequest? @relation(fields: [correctionRequestId], references: [id], onDelete: SetNull)
+  lines               StockAdjustmentLine[]
+
+  @@index([purchaseBillId])
+  @@index([createdAt])
+}
+
+model StockAdjustmentLine {
+  id               String          @id
+  stockAdjustmentId String
+  productId        String
+  batchNo          String
+  previousQuantity Decimal         @db.Decimal(14, 3)
+  newQuantity      Decimal         @db.Decimal(14, 3)
+  delta            Decimal         @db.Decimal(14, 3)
+  stockAdjustment  StockAdjustment @relation(fields: [stockAdjustmentId], references: [id], onDelete: Cascade)
+  product          Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([stockAdjustmentId])
+  @@index([productId, batchNo])
 }
 
 model PurchaseLine {

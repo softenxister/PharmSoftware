@@ -1,7 +1,11 @@
 import { Prisma } from "@/generated/prisma/client";
 import type { SalesProduct, StockItemInput } from "./types";
 import { prisma } from "./prisma";
-import { createSavedStockItem, savedStockToSalesProduct } from "./stockItemMapper";
+import {
+  createSavedStockItem,
+  relatedLineUpdates,
+  savedStockToSalesProduct,
+} from "./stockItemMapper";
 
 export type PurchasedStockLineInput = {
   productId: string;
@@ -91,6 +95,7 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
   await tx.product.upsert({
     where: { id: mapped.id },
     update: {
+      isActive: true,
       barcode: mapped.barcode,
       itemName: mapped.itemName,
       brandName: mapped.brandName,
@@ -119,6 +124,12 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
       weeklySold: mapped.weeklySold,
     },
   });
+
+  const lineUpdates = relatedLineUpdates(mapped);
+  await Promise.all([
+    tx.purchaseLine.updateMany(lineUpdates.purchaseLines),
+    tx.saleLine.updateMany(lineUpdates.saleLines),
+  ]);
 
   await tx.productParentPack.deleteMany({ where: { productId: mapped.id } });
   if (mapped.parentPacks.length > 0) {
@@ -169,6 +180,15 @@ export async function saveStockItems(inputs: StockItemInput[]): Promise<SalesPro
   await prisma.$transaction(async (tx) => {
     for (const input of inputs) await upsertStockItem(tx, input);
   });
+  return readStockProducts();
+}
+
+export async function deleteStockItem(productId: string): Promise<SalesProduct[] | null> {
+  const result = await prisma.product.updateMany({
+    where: { id: productId, isActive: true },
+    data: { isActive: false },
+  });
+  if (result.count === 0) return null;
   return readStockProducts();
 }
 

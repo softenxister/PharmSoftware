@@ -20,6 +20,7 @@ export type SaleLineInput = {
     batchNo: string;
     exp: string;
     sellPrice: number;
+    stock?: number;
   };
   qty: number;
 };
@@ -256,7 +257,12 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
 
 export async function readSales(): Promise<SavedSale[]> {
   const sales = await prisma.sale.findMany({
-    include: { lines: { orderBy: { id: "asc" } } },
+    include: {
+      lines: {
+        include: { product: { include: { batches: true } } },
+        orderBy: { id: "asc" },
+      },
+    },
     orderBy: { soldAt: "desc" },
     take: 100,
   });
@@ -292,6 +298,7 @@ export async function readSales(): Promise<SavedSale[]> {
         batchNo: line.batchNo,
         exp: line.expiryDate,
         sellPrice: Number(line.sellPriceThb),
+        stock: Number(line.product.batches.find((batch) => batch.batchNo === line.batchNo)?.availableStock ?? 0),
       },
       qty: Number(line.quantity),
     })),

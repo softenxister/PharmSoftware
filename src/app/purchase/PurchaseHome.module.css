@@ -190,6 +190,35 @@
   gap: 3px;
 }
 
+.billLink {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.billLink:not(:disabled):hover .billNo,
+.billLink:not(:disabled):focus-visible .billNo {
+  text-decoration: underline;
+}
+
+.billLink:focus-visible {
+  border-radius: 4px;
+  box-shadow: 0 0 0 3px rgba(47, 124, 78, 0.12);
+  outline: none;
+}
+
+.billLink:disabled {
+  cursor: default;
+}
+
 .billNo {
   color: #1f4c31;
   font-weight: 780;
