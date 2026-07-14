@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import { PackagePlus, Search } from "lucide-react";
 import styles from "./PurchaseHome.module.css";
 import { purchaseStatusLabel } from "@/lib/purchaseWorkflow";
@@ -33,7 +33,7 @@ function formatBaht(value: number): string {
 }
 
 export function PurchaseHome() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [savedPurchaseBills, setSavedPurchaseBills] = useState<PurchaseBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +86,7 @@ export function PurchaseHome() {
           <button
             type="button"
             className={styles.newPurchaseButton}
-            onClick={() => router.push("/purchase/new")}
+            onClick={() => navigate("/purchase/new")}
           >
             <PackagePlus size={18} />
             <span>New Purchase</span>
@@ -153,7 +153,7 @@ export function PurchaseHome() {
                           type="button"
                           className={styles.billLink}
                           aria-label={bill.status === "received" ? `View completed bill ${bill.billNo}` : `Open ${bill.billNo}`}
-                          onClick={() => router.push(`/purchase/new?id=${encodeURIComponent(bill.id)}`)}
+                          onClick={() => navigate(`/purchase/new?id=${encodeURIComponent(bill.id)}`)}
                         >
                           <span className={styles.billNo}>{bill.billNo}</span>
                           <span className={styles.billDate}>{formatDate(bill.date)}</span>

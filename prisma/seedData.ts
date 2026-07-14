@@ -292,7 +292,7 @@ export const recentSales: RecentSale[] = [
     billDate: "2026-07-01 10:42",
     customerName: "Narin Chaiyaporn",
     pharmacistName: "John Doe",
-    paymentMethod: "PromptPay",
+    paymentMethod: "Bank transfer",
     totalQuantity: 5,
     uniqueItems: 3,
     netPayableThb: 143,

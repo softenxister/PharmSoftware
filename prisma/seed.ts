@@ -18,12 +18,13 @@ import {
   type StockProductOverride,
 } from "../src/server/db/stockDataMapper";
 import type { SavedPurchaseBill } from "../src/server/db/purchaseRepository";
+import { normalizePostgresConnectionString } from "../src/server/db/postgresConnection";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not configured.");
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString }),
+  adapter: new PrismaPg({ connectionString: normalizePostgresConnectionString(connectionString) }),
 });
 
 const seedDataDirectory = path.join(process.cwd(), "prisma/seed-data");

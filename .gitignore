@@ -1,12 +1,13 @@
 # Dependencies
 node_modules/
 
-# Next.js
+# Legacy framework cache
 .next/
 out/
 
 # Build output
 dist/
+dist-server/
 build/
 /src/generated/prisma/
 

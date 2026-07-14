@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { canTransitionPurchaseStatus } from "@/lib/purchaseWorkflow";
-import { resolvePharmUser } from "@/server/auth/pharmUser";
+import { canManageStoreSettings, toPharmUser } from "@/server/auth/pharmUser";
 import {
   isValidCorrectionRequestInput,
   isValidStockAdjustmentInput,
@@ -19,14 +19,25 @@ test("a prepared purchase can return to draft but a completed purchase is immuta
   assert.equal(canTransitionPurchaseStatus("received", "partial"), false);
 });
 
-test("server role policy defaults to staff and accepts only known manager roles", () => {
-  assert.deepEqual(resolvePharmUser({}), { name: "Pharmacy staff", role: "staff", canManageStock: false });
-  assert.deepEqual(resolvePharmUser({ PHARM_USER_ROLE: "owner", PHARM_USER_NAME: "Narin" }), {
-    name: "Narin",
-    role: "owner",
-    canManageStock: true,
-  });
-  assert.equal(resolvePharmUser({ PHARM_USER_ROLE: "superuser" }).role, "staff");
+const account = {
+  id: "account-1",
+  name: "Narin",
+  username: "narin",
+  phone: "",
+  pharmacistLicenseNumber: null,
+  avatarUrl: null,
+  isActive: true,
+  mustChangePassword: false,
+};
+
+test("server role policy grants direct stock changes only to the owner", () => {
+  assert.equal(toPharmUser({ ...account, role: "pharmacist" }).canManageStock, false);
+  assert.equal(toPharmUser({ ...account, role: "owner" }).canManageStock, true);
+});
+
+test("only owner-level accounts can change store-wide POS settings", () => {
+  assert.equal(canManageStoreSettings(toPharmUser({ ...account, role: "pharmacist" })), false);
+  assert.equal(canManageStoreSettings(toPharmUser({ ...account, role: "owner" })), true);
 });
 
 test("a normal correction request requires a purchase id and a useful reason", () => {

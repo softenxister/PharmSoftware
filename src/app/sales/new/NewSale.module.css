@@ -119,9 +119,18 @@
 }
 
 .customSelectValue {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.customSelectValue > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .customSelectMenu {
@@ -140,6 +149,9 @@
 }
 
 .customSelectOption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   width: 100%;
   border: none;
   border-radius: 8px;
@@ -151,6 +163,21 @@
   line-height: 1.25;
   padding: 8px 9px;
   text-align: left;
+}
+
+.customSelectShortcut {
+  min-width: 24px;
+  flex: 0 0 auto;
+  border: 1px solid #ccd8d0;
+  border-bottom-color: #aebdb3;
+  border-radius: 4px;
+  background: #fff;
+  color: #42614d;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
 }
 
 .customSelectOption:hover,
@@ -166,6 +193,61 @@
 
 .settingsCustomSelect {
   width: 100%;
+}
+
+.paymentMethodToggle {
+  display: inline-flex;
+  min-height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #f5f8f6;
+}
+
+.paymentMethodToggleOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.paymentMethodToggleOption:last-child {
+  border-right: 0;
+}
+
+.paymentMethodToggleOptionActive {
+  background: var(--primary);
+  color: #fff;
+}
+
+.paymentMethodToggleOption:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid var(--primary-soft);
+  outline-offset: -2px;
+}
+
+.paymentMethodToggleOption kbd,
+.actionShortcut,
+.netPayableShortcut {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 16px;
+  opacity: 0.78;
+  padding: 0 4px;
+  white-space: nowrap;
 }
 
 .reminderButton {
@@ -272,6 +354,9 @@
 }
 
 .saveMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: none;
   background: var(--primary);
   color: #fff;
@@ -774,7 +859,7 @@
 
 .searchSection {
   position: relative;
-  width: 100%;
+  width: min(100%, 760px);
   flex-shrink: 0;
 }
 
@@ -800,6 +885,37 @@
   font-family: inherit;
   background: var(--surface);
   color: var(--ink);
+}
+
+.itemSearchInputWithHints {
+  padding-right: 270px;
+}
+
+.keyboardHint {
+  position: absolute;
+  right: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6b7971;
+  font-size: 10px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.keyboardHint kbd {
+  min-width: 21px;
+  border: 1px solid #d4ddd7;
+  border-bottom-color: #bac7bf;
+  border-radius: 4px;
+  background: #f4f7f5;
+  color: #46564d;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 17px;
+  padding: 0 4px;
+  text-align: center;
 }
 
 .itemSearchInput:focus-visible {
@@ -872,12 +988,19 @@
 }
 
 .itemOptionSub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11.5px;
   color: var(--ink-muted);
 }
 
 .itemOptionPrice {
-  font-size: 13px;
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
   font-weight: 700;
   font-family: 'Manrope', 'Inter', system-ui, sans-serif;
   color: var(--primary-dark);
@@ -926,6 +1049,32 @@
 
 .editorRow > :nth-child(7) {
   padding-right: 14px;
+}
+
+.editorRowWithoutLocation {
+  grid-template-columns:
+    32px
+    minmax(220px, 2.4fr)
+    minmax(145px, 1fr)
+    minmax(130px, 1fr)
+    minmax(80px, 0.7fr)
+    minmax(90px, 0.7fr)
+    minmax(68px, 0.45fr)
+    minmax(112px, 0.75fr);
+}
+
+.editorRowWithoutLocation > :nth-child(6),
+.editorRowWithoutLocation > :nth-child(7),
+.editorRowWithoutLocation > :nth-child(8) {
+  justify-self: end;
+}
+
+.editorRowWithoutLocation > :nth-child(6) {
+  padding-right: 14px;
+}
+
+.editorRowWithoutLocation > :nth-child(7) {
+  padding-right: 0;
 }
 
 .packChoice {
@@ -1206,6 +1355,105 @@
   font-weight: 800;
 }
 
+/* ── Destructive action confirmation ───────────────────────────── */
+
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 22, 18, 0.42);
+  padding: 20px;
+}
+
+.confirmDialog {
+  display: grid;
+  width: min(430px, 100%);
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid #e2d5c4;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 24px 60px -28px rgba(8, 28, 20, 0.62);
+  padding: 18px;
+}
+
+.confirmIcon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #fbf1dd;
+  color: #9b651b;
+}
+
+.confirmCopy {
+  min-width: 0;
+}
+
+.confirmCopy h2 {
+  margin: 1px 0 0;
+  color: var(--ink);
+  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.confirmCopy p {
+  margin: 5px 0 0;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.confirmActions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.confirmCancel,
+.confirmProceed {
+  height: 34px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 0 12px;
+}
+
+.confirmCancel {
+  border: 1px solid #ccd6d0;
+  background: #fff;
+  color: #4c5b52;
+}
+
+.confirmProceed {
+  border: 1px solid #a93e36;
+  background: #b6453b;
+  color: #fff;
+}
+
+.confirmCancel:hover {
+  background: #f5f8f6;
+}
+
+.confirmProceed:hover {
+  background: #9d382f;
+}
+
+.confirmCancel:focus-visible,
+.confirmProceed:focus-visible {
+  outline: 3px solid rgba(47, 124, 78, 0.2);
+  outline-offset: 1px;
+}
+
 /* ── Bottom summary bar ─────────────────────────────────────────── */
 
 .summaryBar {
@@ -1283,6 +1531,12 @@
   font-weight: 800;
   font-family: 'Manrope', 'Inter', system-ui, sans-serif;
   color: #fff;
+}
+
+.netPayableShortcut {
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .discountBadge {

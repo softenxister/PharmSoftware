@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import styles from './SalesHome.module.css';
 
 /**
@@ -52,11 +52,15 @@ function initials(name: string): string {
 
 type StatusFilter = 'all' | BillStatus;
 
-export default function SaleHome(): React.ReactElement {
-  const router = useRouter();
+export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: StatusFilter }): React.ReactElement {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
   const [bills, setBills] = useState<RecentBill[]>([]);
+
+  useEffect(() => {
+    setStatusFilter(initialStatus);
+  }, [initialStatus]);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,10 +111,10 @@ export default function SaleHome(): React.ReactElement {
   const paidCount = bills.filter((bill) => bill.status === 'paid').length;
   const pendingCount = bills.filter((bill) => bill.status === 'pending').length;
 
-  const goToNewSale = () => router.push('/sales/new');
+  const goToNewSale = () => navigate('/sales/new');
   const openPendingBill = (bill: RecentBill) => {
     if (bill.status !== 'pending') return;
-    router.push(`/sales/new?billId=${encodeURIComponent(bill.id)}`);
+    navigate(`/sales/new?billId=${encodeURIComponent(bill.id)}`);
   };
 
   return (

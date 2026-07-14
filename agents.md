@@ -44,3 +44,6 @@ Use these project rules for all future edits in this pharmacy retail software.
 
 - Do not run npm commands unless the user explicitly asks.
 - Use lightweight checks such as `git diff --check` after edits.
+- For frontend changes, use the project `chrome-devtools` MCP server with its isolated browser profile when it is available.
+- Visually verify changed screens at desktop and tablet widths, exercise the affected interactions, inspect the accessibility tree, and confirm the browser console has no errors or warnings.
+- If browser verification is unavailable, say so explicitly and do not claim that the UI was visually verified.

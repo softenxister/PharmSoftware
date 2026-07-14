@@ -1,14 +1,9 @@
 import { StockAdjustment } from "./StockAdjustment";
+import { useSearchParams } from "react-router";
 
-type StockAdjustmentPageProps = {
-  searchParams?: {
-    purchaseId?: string | string[];
-    requestId?: string | string[];
-  };
-};
-
-export default function StockAdjustmentPage({ searchParams }: StockAdjustmentPageProps) {
-  const purchaseId = typeof searchParams?.purchaseId === "string" ? searchParams.purchaseId : undefined;
-  const requestId = typeof searchParams?.requestId === "string" ? searchParams.requestId : undefined;
+export default function StockAdjustmentPage() {
+  const [searchParams] = useSearchParams();
+  const purchaseId = searchParams.get("purchaseId")?.trim() || undefined;
+  const requestId = searchParams.get("requestId")?.trim() || undefined;
   return <StockAdjustment initialPurchaseId={purchaseId} initialRequestId={requestId} />;
 }

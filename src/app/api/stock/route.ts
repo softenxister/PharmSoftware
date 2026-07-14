@@ -1,9 +1,7 @@
-import { NextResponse } from "next/server";
 import { parseStockDeleteRequest } from "@/server/db/stockDeleteRequest";
 import { deleteStockItem, readStockProducts, saveStockItem, saveStockItems } from "@/server/db/stockRepository";
 import type { StockItemInput } from "@/server/db/types";
-
-export const dynamic = "force-dynamic";
+import { isAuthenticationError, requireAuthenticatedUser } from "@/server/auth/pharmUser";
 
 function isStockItemInput(value: unknown): value is StockItemInput {
   if (!value || typeof value !== "object") return false;
@@ -19,43 +17,49 @@ function isStockItemInput(value: unknown): value is StockItemInput {
 
 export async function GET() {
   try {
+    await requireAuthenticatedUser();
     const products = await readStockProducts();
-    return NextResponse.json({ products });
-  } catch {
-    return NextResponse.json({ error: "Unable to load stock." }, { status: 500 });
+    return Response.json({ products });
+  } catch (error) {
+    if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
+    return Response.json({ error: "Unable to load stock." }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
+    await requireAuthenticatedUser();
     const body = await request.json();
     const inputs = Array.isArray(body?.items) ? body.items : [body];
     if (inputs.length === 0 || !inputs.every(isStockItemInput)) {
-      return NextResponse.json({ error: "Stock item data is invalid." }, { status: 400 });
+      return Response.json({ error: "Stock item data is invalid." }, { status: 400 });
     }
 
     const products = Array.isArray(body?.items)
       ? await saveStockItems(inputs)
       : await saveStockItem(inputs[0]);
-    return NextResponse.json({ products });
-  } catch {
-    return NextResponse.json({ error: "Unable to save stock item." }, { status: 400 });
+    return Response.json({ products });
+  } catch (error) {
+    if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
+    return Response.json({ error: "Unable to save stock item." }, { status: 400 });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
+    await requireAuthenticatedUser();
     const input = parseStockDeleteRequest(await request.json());
     if (!input) {
-      return NextResponse.json({ error: "Stock item identifier is invalid." }, { status: 400 });
+      return Response.json({ error: "Stock item identifier is invalid." }, { status: 400 });
     }
 
     const products = await deleteStockItem(input.productId);
     if (!products) {
-      return NextResponse.json({ error: "Stock item was not found." }, { status: 404 });
+      return Response.json({ error: "Stock item was not found." }, { status: 404 });
     }
-    return NextResponse.json({ products });
-  } catch {
-    return NextResponse.json({ error: "Unable to delete stock item." }, { status: 400 });
+    return Response.json({ products });
+  } catch (error) {
+    if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
+    return Response.json({ error: "Unable to delete stock item." }, { status: 400 });
   }
 }

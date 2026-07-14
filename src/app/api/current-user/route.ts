@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { getCurrentPharmUser } from "@/server/auth/pharmUser";
 
-export const dynamic = "force-dynamic";
-
 export async function GET() {
-  return NextResponse.json({ user: getCurrentPharmUser() });
+  const user = await getCurrentPharmUser();
+  return user
+    ? Response.json({ user })
+    : Response.json({ error: "Authentication required." }, { status: 401 });
 }

@@ -1,10 +1,8 @@
 import { PurchaseEntry } from "./PurchaseEntry";
+import { useSearchParams } from "react-router";
 
-type NewPurchasePageProps = {
-  searchParams?: { id?: string | string[] };
-};
-
-export default function NewPurchasePage({ searchParams }: NewPurchasePageProps) {
-  const purchaseId = typeof searchParams?.id === "string" ? searchParams.id : undefined;
+export default function NewPurchasePage() {
+  const [searchParams] = useSearchParams();
+  const purchaseId = searchParams.get("id")?.trim() || undefined;
   return <PurchaseEntry purchaseId={purchaseId} />;
 }

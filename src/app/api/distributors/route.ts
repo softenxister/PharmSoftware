@@ -1,12 +1,14 @@
-import { NextResponse } from "next/server";
 import { readDistributorNames } from "@/server/db/purchaseRepository";
-
-export const dynamic = "force-dynamic";
+import { requireAuthenticatedUser } from "@/server/auth/pharmUser";
 
 export async function GET() {
   try {
-    return NextResponse.json({ distributors: await readDistributorNames() });
-  } catch {
-    return NextResponse.json({ error: "Unable to load distributors." }, { status: 500 });
+    await requireAuthenticatedUser();
+    return Response.json({ distributors: await readDistributorNames() });
+  } catch (error) {
+    if (error instanceof Error && /required/.test(error.message)) {
+      return Response.json({ error: error.message }, { status: 401 });
+    }
+    return Response.json({ error: "Unable to load distributors." }, { status: 500 });
   }
 }

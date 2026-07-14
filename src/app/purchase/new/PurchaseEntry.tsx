@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import {
   ChevronRight,
   PackagePlus,
@@ -72,7 +72,7 @@ type EditablePurchaseBill = {
 
 type CurrentPharmUser = {
   name: string;
-  role: "staff" | "owner" | "admin";
+  role: "owner" | "pharmacist";
   canManageStock: boolean;
 };
 
@@ -100,7 +100,7 @@ function matchesItemQuery(product: SalesProduct, rawQuery: string) {
 }
 
 export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [activePurchaseId, setActivePurchaseId] = useState(purchaseId);
   const [distributor, setDistributor] = useState("");
   const [distributorOptions, setDistributorOptions] = useState<string[]>([]);
@@ -131,7 +131,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentPharmUser>({
     name: "Pharmacy staff",
-    role: "staff",
+    role: "pharmacist",
     canManageStock: false,
   });
   const [correctionRequests, setCorrectionRequests] = useState<PurchaseCorrection[]>([]);
@@ -414,9 +414,9 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
       setEditingBillStatus(status);
       setReviewConfirmed(false);
       if (status === "partial" && wasNewPurchase) {
-        router.replace(`/purchase/new?id=${encodeURIComponent(data.bill.id)}`);
+        navigate(`/purchase/new?id=${encodeURIComponent(data.bill.id)}`, { replace: true });
       } else if (!stayOnPage) {
-        router.push("/purchase");
+        navigate("/purchase");
       }
     } catch (error) {
       console.error(error);
@@ -1089,7 +1089,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
             if (!activePurchaseId) return;
             const pendingRequest = correctionRequests.find(request => request.status === "pending");
             const requestQuery = pendingRequest ? `&requestId=${encodeURIComponent(pendingRequest.id)}` : "";
-            router.push(`/stock/adjustment?purchaseId=${encodeURIComponent(activePurchaseId)}${requestQuery}`);
+            navigate(`/stock/adjustment?purchaseId=${encodeURIComponent(activePurchaseId)}${requestQuery}`);
           }}
         />
       )}

@@ -1,11 +1,24 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Settings } from 'lucide-react';
 import styles from './NewSale.module.css';
 import type { ParentPack, ProductPack, SalesProduct } from '@/server/db/types';
+import type { PharmUser } from '@/server/auth/pharmUser';
 import { loadStockCatalog, updateStockCatalog } from '@/app/stock/stockCatalogClient';
+import { requiresPosConfirmation } from '@/app/settings/posPreferences';
+import {
+  getPaymentMethodShortcut,
+  resolveConfiguredPaymentMethod,
+  shouldUsePaymentToggle,
+  type StorePaymentMethod,
+} from '@/app/settings/storePosSettings';
+import { usePosPreferences } from '@/app/settings/usePosPreferences';
+import { useStorePosSettings } from '@/app/settings/useStorePosSettings';
+import { PosConfirmationDialog } from './PosConfirmationDialog';
+import { buildProductDescription } from './salesPresentation';
+import { resolveSaleShortcut, subscribeSaleShortcuts } from './salesShortcuts';
 import morningReminderIcon from '@/styles/vector/morning.png';
 import noonReminderIcon from '@/styles/vector/noon.png';
 import eveningReminderIcon from '@/styles/vector/evening.png';
@@ -98,6 +111,7 @@ interface EditorState {
 type SelectOption = {
   value: string;
   label: string;
+  shortcut?: string;
 };
 
 type InvoiceCreated = {
@@ -107,6 +121,10 @@ type InvoiceCreated = {
   paymentMode: string;
   createdAt: string;
 };
+
+type PendingConfirmation =
+  | { kind: 'remove-item'; lineId: string; itemName: string }
+  | { kind: 'cancel-sale' };
 
 type SalesApiResponse = {
   products?: SalesProduct[] | null;
@@ -139,10 +157,10 @@ type SavedSale = {
 };
 
 const REMINDER_TIMES = [
-  { label: '8 AM', icon: morningReminderIcon.src },
-  { label: '1 PM', icon: noonReminderIcon.src },
-  { label: '7 PM', icon: eveningReminderIcon.src },
-  { label: '10 PM', icon: nightReminderIcon.src },
+  { label: '8 AM', icon: morningReminderIcon },
+  { label: '1 PM', icon: noonReminderIcon },
+  { label: '7 PM', icon: eveningReminderIcon },
+  { label: '10 PM', icon: nightReminderIcon },
 ] as const;
 
 function createDefaultReminder(totalTabs = 1): ReminderState {
@@ -159,7 +177,6 @@ const OWNERS: Owner[] = [
   { id: 'o3', name: 'Head Office Account' },
 ];
 
-const PAYMENT_METHODS = ['Cash', 'PromptPay', 'Credit card', 'Bank transfer'];
 const SAVED_SALES_KEY = 'pharm_recent_sales';
 
 const PHARMACISTS: Pharmacist[] = [
@@ -454,7 +471,10 @@ function CustomSelect({
           }
         }}
       >
-        <span className={styles.customSelectValue}>{selected?.label ?? ''}</span>
+        <span className={styles.customSelectValue}>
+          {selected?.shortcut && <kbd className={styles.customSelectShortcut}>{selected.shortcut}</kbd>}
+          <span>{selected?.label ?? ''}</span>
+        </span>
         <IconChevronDown className={open ? styles.chevronOpen : ''} />
       </button>
       {open && (
@@ -470,7 +490,8 @@ function CustomSelect({
               onMouseMove={() => setHighlightedIndex(index)}
               onClick={() => choose(option.value)}
             >
-              {option.label}
+              {option.shortcut && <kbd className={styles.customSelectShortcut}>{option.shortcut}</kbd>}
+              <span>{option.label}</span>
             </button>
           ))}
         </div>
@@ -543,15 +564,19 @@ const IconPrint = ({ className }: { className?: string }) => (
    Main component
    ════════════════════════════════════════════════════════════════════ */
 
-export default function NewSale(): React.ReactElement {
-  const router = useRouter();
+export default function NewSale({ user }: { user: PharmUser }): React.ReactElement {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const pendingBillId = searchParams.get('billId');
+  const { preferences } = usePosPreferences(user);
+  const { settings: storeSettings } = useStorePosSettings();
 
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingBillNo, setEditingBillNo] = useState<string | null>(null);
 
   // Row 1 — toolbar
   const [ownerId, setOwnerId] = useState(OWNERS[0].id);
-  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
+  const [paymentMethod, setPaymentMethod] = useState<StorePaymentMethod>('Cash');
   const [purchaseMethod, setPurchaseMethod] = useState<PurchaseMethod>('pickup');
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const saveMenuRef = useClickOutside<HTMLDivElement>(() => setSaveMenuOpen(false));
@@ -611,6 +636,8 @@ export default function NewSale(): React.ReactElement {
   const [paperSize, setPaperSize] = useState('80mm thermal');
   const [autoPrint, setAutoPrint] = useState(true);
   const [autoOpenCashDrawer, setAutoOpenCashDrawer] = useState(true);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const saleShortcutHandlerRef = useRef<(event: KeyboardEvent) => void>(() => undefined);
 
   /* ── Derived values ─────────────────────────────────────────────── */
 
@@ -647,6 +674,10 @@ export default function NewSale(): React.ReactElement {
       return Math.min(current, itemMatches.length - 1);
     });
   }, [itemMatches.length]);
+
+  useEffect(() => {
+    setPaymentMethod((current) => resolveConfiguredPaymentMethod(current, storeSettings.paymentMethods));
+  }, [storeSettings.paymentMethods]);
 
   const totalQty = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty, 0), [cartLines]);
   const uniqueItemCount = cartLines.length;
@@ -727,6 +758,11 @@ export default function NewSale(): React.ReactElement {
   }, []);
 
   useEffect(() => {
+    const focusTimer = window.setTimeout(() => itemSearchInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(focusTimer);
+  }, []);
+
+  useEffect(() => {
     if (!discountOpen) return;
     window.setTimeout(() => {
       customerPayInputRef.current?.focus();
@@ -755,21 +791,20 @@ export default function NewSale(): React.ReactElement {
 
   useEffect(() => {
     let cancelled = false;
-    const billId = new URLSearchParams(window.location.search).get('billId');
-    if (!billId) return;
+    if (!pendingBillId) return;
 
     async function loadPendingBill() {
       try {
         const response = await fetch('/api/sales', { cache: 'no-store' });
         if (!response.ok) throw new Error('Unable to load pending sale.');
         const data = await response.json() as { sales?: SavedSale[] };
-        const savedBill = data.sales?.find((bill) => bill.id === billId && bill.status === 'pending');
+        const savedBill = data.sales?.find((bill) => bill.id === pendingBillId && bill.status === 'pending');
         if (cancelled || !savedBill || !Array.isArray(savedBill.lines) || savedBill.lines.length === 0) return;
 
         setEditingBillId(savedBill.id);
         setEditingBillNo(savedBill.billNo);
         setOwnerId(savedBill.ownerId ?? OWNERS[0].id);
-        setPaymentMethod(savedBill.paymentMethod ?? PAYMENT_METHODS[0]);
+        setPaymentMethod(resolveConfiguredPaymentMethod(savedBill.paymentMethod ?? 'Cash', storeSettings.paymentMethods));
         setPurchaseMethod(savedBill.purchaseMethod ?? 'pickup');
         setBillDate(savedBill.billDate ?? savedBill.date.slice(0, 10));
         setPharmacistId(savedBill.pharmacistId ?? PHARMACISTS[0].id);
@@ -793,7 +828,7 @@ export default function NewSale(): React.ReactElement {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pendingBillId]);
 
   /* ── Handlers ───────────────────────────────────────────────────── */
 
@@ -826,7 +861,7 @@ export default function NewSale(): React.ReactElement {
       return;
     }
 
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) {
       const highlightedItem = itemMatches[highlightedItemIndex] ?? itemMatches[0];
       if (highlightedItem) {
         event.preventDefault();
@@ -862,7 +897,7 @@ export default function NewSale(): React.ReactElement {
       return;
     }
 
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) {
       const highlightedCustomer = customerMatches[highlightedCustomerIndex] ?? customerMatches[0];
       if (highlightedCustomer) {
         event.preventDefault();
@@ -944,7 +979,7 @@ export default function NewSale(): React.ReactElement {
     }, 0);
   }
 
-  function removeCartLine(lineId: string) {
+  function removeCartLineImmediately(lineId: string) {
     setCartLines((prev) => prev.filter((l) => l.lineId !== lineId));
     setCartQtyDrafts((prev) => {
       const next = { ...prev };
@@ -956,6 +991,35 @@ export default function NewSale(): React.ReactElement {
       delete next[lineId];
       return next;
     });
+  }
+
+  function removeCartLine(lineId: string) {
+    const line = cartLines.find((cartLine) => cartLine.lineId === lineId);
+    if (!line) return;
+    if (requiresPosConfirmation(preferences, 'remove-item', cartLines.length > 0)) {
+      setPendingConfirmation({ kind: 'remove-item', lineId, itemName: line.itemName });
+      return;
+    }
+    removeCartLineImmediately(lineId);
+  }
+
+  function leaveUnsavedSale() {
+    if (requiresPosConfirmation(preferences, 'cancel-sale', cartLines.length > 0)) {
+      setPendingConfirmation({ kind: 'cancel-sale' });
+      return;
+    }
+    navigate('/sales');
+  }
+
+  function confirmPendingAction() {
+    if (!pendingConfirmation) return;
+    if (pendingConfirmation.kind === 'remove-item') {
+      removeCartLineImmediately(pendingConfirmation.lineId);
+      setPendingConfirmation(null);
+      return;
+    }
+    setPendingConfirmation(null);
+    navigate('/sales');
   }
 
   function updateCartQty(lineId: string, qty: number) {
@@ -1303,12 +1367,39 @@ export default function NewSale(): React.ReactElement {
         resetForNewWalkIn();
         return;
       }
-      router.push('/sales');
+      navigate('/sales');
     } catch (error) {
       setSaleSubmitError(error instanceof Error ? error.message : 'Unable to save this sale.');
       setSaleSubmitting(false);
     }
   }
+
+  function handleSaleShortcut(event: KeyboardEvent) {
+    if (event.defaultPrevented || event.repeat) return;
+    const action = resolveSaleShortcut(event, storeSettings.paymentMethods);
+    if (!action) return;
+    event.preventDefault();
+
+    if (action.type === 'select-payment') {
+      setPaymentMethod(action.method);
+      return;
+    }
+    if (invoiceCreated || reminderOpen || settingsOpen || pendingConfirmation) return;
+    if (action.type === 'save-pending') {
+      if (!discountOpen) void handleSave('save');
+      return;
+    }
+    if (!discountOpen) openDiscountDrawer();
+  }
+
+  useEffect(() => {
+    saleShortcutHandlerRef.current = handleSaleShortcut;
+  });
+
+  useEffect(() => subscribeSaleShortcuts(
+    window,
+    (event) => saleShortcutHandlerRef.current(event),
+  ), []);
 
   /* ── Render ─────────────────────────────────────────────────────── */
 
@@ -1317,7 +1408,7 @@ export default function NewSale(): React.ReactElement {
       {/* Row 1 — toolbar */}
       <div className={styles.toolbarRow}>
         <div className={styles.breadcrumb}>
-          <button type="button" className={styles.breadcrumbLink} onClick={() => router.push('/sales')}>Sales</button>
+          <button type="button" className={styles.breadcrumbLink} onClick={leaveUnsavedSale}>Sales</button>
           <span className={styles.breadcrumbSep}>&gt;</span>
           <span className={styles.breadcrumbCurrent}>New sale</span>
         </div>
@@ -1330,12 +1421,33 @@ export default function NewSale(): React.ReactElement {
             onChange={setOwnerId}
           />
 
-          <CustomSelect
-            ariaLabel="Payment method"
-            value={paymentMethod}
-            options={PAYMENT_METHODS.map((method) => ({ value: method, label: method }))}
-            onChange={setPaymentMethod}
-          />
+          {shouldUsePaymentToggle(storeSettings.paymentMethods) ? (
+            <div className={styles.paymentMethodToggle} role="group" aria-label="Payment method">
+              {storeSettings.paymentMethods.map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  className={`${styles.paymentMethodToggleOption} ${paymentMethod === method ? styles.paymentMethodToggleOptionActive : ''}`}
+                  aria-pressed={paymentMethod === method}
+                  onClick={() => setPaymentMethod(method)}
+                >
+                  {preferences.showKeyboardHints && <kbd>{getPaymentMethodShortcut(method)}</kbd>}
+                  <span>{method}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <CustomSelect
+              ariaLabel="Payment method"
+              value={paymentMethod}
+              options={storeSettings.paymentMethods.map((method) => ({
+                value: method,
+                label: method,
+                shortcut: preferences.showKeyboardHints ? getPaymentMethodShortcut(method) : undefined,
+              }))}
+              onChange={(method) => setPaymentMethod(method as StorePaymentMethod)}
+            />
+          )}
 
           <button
             type="button"
@@ -1362,7 +1474,8 @@ export default function NewSale(): React.ReactElement {
 
           <div className={styles.saveSplit} ref={saveMenuRef}>
             <button type="button" className={styles.saveMain} onClick={() => handleSave('save')} disabled={!canSaveSale}>
-              Save
+              <span>Save</span>
+              {preferences.showKeyboardHints && <kbd className={styles.actionShortcut}>Ctrl + S</kbd>}
             </button>
             <button
               type="button"
@@ -1488,6 +1601,7 @@ export default function NewSale(): React.ReactElement {
             <IconSearch className={styles.itemSearchIcon} />
             <input
               ref={itemSearchInputRef}
+              autoFocus
               type="text"
               value={itemQuery}
               onChange={(e) => { setItemQuery(e.target.value); setItemDropdownOpen(true); }}
@@ -1497,14 +1611,20 @@ export default function NewSale(): React.ReactElement {
               }}
               onKeyDown={handleItemSearchKeyDown}
               placeholder="Search item — barcode, product name, etc."
-              className={styles.itemSearchInput}
+              className={`${styles.itemSearchInput} ${preferences.showKeyboardHints ? styles.itemSearchInputWithHints : ''}`}
             />
+            {preferences.showKeyboardHints && (
+              <span className={styles.keyboardHint} aria-hidden="true">
+                <kbd>↑↓</kbd> Browse <kbd>Enter</kbd> Add <kbd>Esc</kbd> Close
+              </span>
+            )}
           </div>
           {itemDropdownOpen && itemQuery.trim() && (
             <div className={styles.itemDropdownPanel}>
               {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>No matching item.</div>}
               {itemMatches.map((it, index) => {
                 const nearest = nearestExpiryBatch(it.batches);
+                const totalStock = it.batches.reduce((sum, batch) => sum + batch.stock, 0);
                 const isHighlighted = index === highlightedItemIndex;
                 return (
                   <button
@@ -1519,10 +1639,17 @@ export default function NewSale(): React.ReactElement {
                     <img src={it.image} alt="" className={styles.itemOptionThumb} />
                     <div className={styles.itemOptionMeta}>
                       <span className={styles.itemOptionName}>{it.name}</span>
-                      <span className={styles.itemOptionSub}>{it.brand} · {it.packLabel} · {it.loc}</span>
+                      <span className={styles.itemOptionSub}>{buildProductDescription({
+                        brand: it.brand,
+                        packLabel: it.packLabel,
+                        location: it.loc,
+                        totalStock,
+                        showLocation: storeSettings.showProductLocation,
+                        showStock: preferences.showAvailableStock,
+                      })}</span>
                     </div>
                     <span className={styles.itemOptionPrice}>
-                      {nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}
+                      <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
                     </span>
                   </button>
                 );
@@ -1534,7 +1661,7 @@ export default function NewSale(): React.ReactElement {
         {/* Editor row — staged item awaiting batch confirmation + qty */}
         {editor && (
           <div className={styles.editorBlock} ref={batchPickerRef}>
-            <div className={styles.editorRow}>
+            <div className={`${styles.editorRow} ${storeSettings.showProductLocation ? '' : styles.editorRowWithoutLocation}`}>
               <button type="button" className={styles.binButton} onClick={() => setEditor(null)} aria-label="Cancel adding item">
                 <IconBin />
               </button>
@@ -1556,7 +1683,7 @@ export default function NewSale(): React.ReactElement {
                   );
                 })}
               </span>
-              <span className={styles.muted}>{editor.item.loc}</span>
+              {storeSettings.showProductLocation && <span className={styles.muted}>{editor.item.loc}</span>}
               <button
                 type="button"
                 className={styles.batchToggle}
@@ -1580,7 +1707,7 @@ export default function NewSale(): React.ReactElement {
                     return;
                   }
 
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
                     e.preventDefault();
                     commitEditorToCart();
                   }
@@ -1618,7 +1745,9 @@ export default function NewSale(): React.ReactElement {
                       </span>
                       <span className={styles.batchOptionRow}><span className={styles.muted}>Exp.</span> {formatExp(b.exp)}</span>
                       <span className={styles.batchOptionRow}><span className={styles.muted}>Sell</span> ฿{formatBaht(sellPriceForPack(b, editor.sellPack))}</span>
-                      <span className={styles.batchOptionRow}><span className={styles.muted}>Stock</span> {availableStockForPack(b, editor.sellPack)} {displayPackUnit(editor.sellPack.unit)}</span>
+                      {preferences.showAvailableStock && (
+                        <span className={styles.batchOptionRow}><span className={styles.muted}>Stock</span> {availableStockForPack(b, editor.sellPack)} {displayPackUnit(editor.sellPack.unit)}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1636,7 +1765,7 @@ export default function NewSale(): React.ReactElement {
                   <th aria-hidden="true" />
                   <th>Item</th>
                   <th>Pack</th>
-                  <th>Loc.</th>
+                  {storeSettings.showProductLocation && <th>Loc.</th>}
                   <th>Batch</th>
                   <th>Exp.</th>
                   <th className={styles.alignRight}>Price</th>
@@ -1656,7 +1785,7 @@ export default function NewSale(): React.ReactElement {
                     <td className={styles.packCell}>
                       <span className={styles.packCellUnit}>{line.packLabel}</span>
                     </td>
-                    <td className={styles.muted}>{line.loc}</td>
+                    {storeSettings.showProductLocation && <td className={styles.muted}>{line.loc}</td>}
                     <td className={styles.muted}>{line.batch.batchNo}</td>
                     <td className={styles.muted}>{formatExp(line.batch.exp)}</td>
                     <td className={styles.alignRight}>฿{formatBaht(line.batch.sellPrice * line.packMultiplier)}</td>
@@ -1720,6 +1849,14 @@ export default function NewSale(): React.ReactElement {
             <div className={styles.topItemsRail}>
               {topItems.map((it) => {
                 const nearest = nearestExpiryBatch(it.batches);
+                const productDescription = buildProductDescription({
+                  brand: it.brand,
+                  packLabel: it.packLabel,
+                  location: it.loc,
+                  totalStock: it.batches.reduce((sum, batch) => sum + batch.stock, 0),
+                  showLocation: storeSettings.showProductLocation,
+                  showStock: preferences.showAvailableStock,
+                });
                 return (
                   <button
                     key={it.id}
@@ -1735,19 +1872,17 @@ export default function NewSale(): React.ReactElement {
                     <img src={it.image} alt={it.name} className={styles.topItemImage} />
                     <span className={styles.topItemDetail} aria-hidden="true">
                       <span className={styles.topItemDetailName}>{it.name}</span>
-                      <span className={styles.topItemDetailSub}>{it.brand} | {it.packLabel} | {it.loc}</span>
+                      <span className={styles.topItemDetailSub}>{productDescription}</span>
                       <span className={styles.topItemDetailBottom}>
                         <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
-                        <span>{nearest ? `Stock ${nearest.stock} ${displayPackUnit(it.packUnit)}` : 'Stock 0'}</span>
                       </span>
                     </span>
                     {heldItemId === it.id && (
                       <div className={styles.topItemTouchPreview}>
                         <span className={styles.topItemDetailName}>{it.name}</span>
-                        <span className={styles.topItemDetailSub}>{it.brand} | {it.packLabel} | {it.loc}</span>
+                        <span className={styles.topItemDetailSub}>{productDescription}</span>
                         <span className={styles.topItemDetailBottom}>
                           <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
-                          <span>{nearest ? `Stock ${nearest.stock} ${displayPackUnit(it.packUnit)}` : 'Stock 0'}</span>
                         </span>
                       </div>
                     )}
@@ -1781,6 +1916,7 @@ export default function NewSale(): React.ReactElement {
         >
           <span className={styles.summaryStatLabel}>
             Net payable {appliedDiscount && <span className={styles.discountBadge}>discount applied</span>}
+            {preferences.showKeyboardHints && <kbd className={styles.netPayableShortcut}>Ctrl + Enter</kbd>}
           </span>
           <span className={styles.netPayableValue}>฿{formatBaht(netPayable)}</span>
         </button>
@@ -1831,7 +1967,8 @@ export default function NewSale(): React.ReactElement {
                               <span className={styles.reminderDrugText}>
                                 <span className={styles.reminderDrugName}>{line.itemName}</span>
                                 <span className={styles.reminderDrugSub}>
-                                  {totalTabs.toLocaleString('en-US')} tabs total | {catalogItem?.packLabel ?? line.packLabel} | {line.packLabel} | {line.loc}
+                                  {totalTabs.toLocaleString('en-US')} tabs total | {catalogItem?.packLabel ?? line.packLabel} | {line.packLabel}
+                                  {storeSettings.showProductLocation ? ` | ${line.loc}` : ''}
                                 </span>
                               </span>
                             </label>
@@ -2170,6 +2307,17 @@ export default function NewSale(): React.ReactElement {
           </div>
         </div>
       )}
+
+      <PosConfirmationDialog
+        open={pendingConfirmation !== null}
+        title={pendingConfirmation?.kind === 'remove-item' ? 'Remove this item?' : 'Cancel this sale?'}
+        description={pendingConfirmation?.kind === 'remove-item'
+          ? `${pendingConfirmation.itemName} will be removed from the current sale.`
+          : 'The unsaved items in this sale will be discarded when you return to Sales.'}
+        confirmLabel={pendingConfirmation?.kind === 'remove-item' ? 'Remove item' : 'Cancel sale'}
+        onCancel={() => setPendingConfirmation(null)}
+        onConfirm={confirmPendingAction}
+      />
     </div>
   );
 }

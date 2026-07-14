@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { useAuth } from "@/app/AuthProvider";
+import type { PharmUser } from "@/server/auth/pharmUser";
+import { getSalesLandingHref } from "@/app/settings/posPreferences";
+import { usePosPreferences } from "@/app/settings/usePosPreferences";
+import { shouldCloseProfileMenu } from "./profileMenu";
 import {
   Home, ShoppingCart, Package, Archive, Users,
   BarChart2, Plug, MoreHorizontal, Settings, Globe, ChevronDown, Bell,
   RefreshCw, Tag, SlidersHorizontal, Gauge,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
@@ -29,11 +34,53 @@ const stockMenuItems = [
 
 const getTopLevelPath = (href: string) => (href === "/" ? "/" : `/${href.split("/")[1]}`);
 
-export function TopBar() {
-  const pathname = usePathname();
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
+export function TopBar({ user }: { user: PharmUser }) {
+  const pathname = useLocation().pathname;
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [langOpen, setLangOpen] = useState(false);
   const [lang, setLang] = useState("EN");
   const [stockMenuOpen, setStockMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const { preferences } = usePosPreferences(user);
+  const salesHref = getSalesLandingHref(preferences.defaultSalesLanding);
+  const roleLabel = user.role === "owner" ? "Owner" : "Pharmacist";
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (shouldCloseProfileMenu(profileRef.current, event.target as Node)) setProfileOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [profileOpen]);
+
+  const logout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setUser(null);
+      navigate("/login", { replace: true });
+    }
+  };
 
   return (
     <div
@@ -58,6 +105,7 @@ export function TopBar() {
 
         {/* Nav Items */}
         {navItems.map(({ label, href, icon: Icon }) => {
+          const resolvedHref = label === "Sales" ? salesHref : href;
           const topLevelPath = getTopLevelPath(href);
           const isActive = topLevelPath === "/" ? pathname === "/" : pathname.startsWith(topLevelPath);
           const isHome = label === "Home";
@@ -65,7 +113,7 @@ export function TopBar() {
           const navLink = (
             <Link
               key={label}
-              href={href}
+              to={resolvedHref}
               className={`flex h-full items-center transition-colors ${isHome ? "w-11 justify-center" : "gap-2 px-4"}`}
               style={{
                 background: isActive ? "#275c3a" : "transparent",
@@ -122,7 +170,7 @@ export function TopBar() {
                   {stockMenuItems.map(({ label: menuLabel, href: menuHref, icon: MenuIcon }, index) => (
                     <Link
                       key={menuHref}
-                      href={menuHref}
+                      to={menuHref}
                       className="flex items-center gap-2.5 px-4 py-2.5 transition-colors"
                       style={{
                         color: "#24533a",
@@ -148,7 +196,7 @@ export function TopBar() {
       {/* Right: Language, Bell, Gear, Profile */}
       <div className="flex items-center gap-0.5">
         {/* Language */}
-        <div className="relative">
+        <div className="relative" ref={profileRef}>
           <button
             onClick={() => setLangOpen(v => !v)}
             className="flex items-center gap-1.5 px-3 h-9 transition-colors"
@@ -190,31 +238,55 @@ export function TopBar() {
         </button>
 
         {/* Settings */}
-        <button className="flex items-center justify-center w-9 h-9 transition-colors"
+        <Link to="/settings" aria-label="Open settings" title="Settings"
+          className="flex items-center justify-center w-9 h-9 transition-colors"
           style={{ color: "#b8d4c4", background: "transparent" }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#243d2e"; (e.currentTarget as HTMLElement).style.color = "#e0f0e8"; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#b8d4c4"; }}>
           <Settings size={18} />
-        </button>
+        </Link>
 
         {/* Divider */}
         <div className="w-px h-5 mx-2" style={{ background: "#354e3e" }} />
 
         {/* User Profile */}
-        <button className="flex items-center gap-2.5 px-3 h-9 transition-colors"
-          style={{ background: "transparent" }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#243d2e"}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-          <div className="w-7 h-7 flex items-center justify-center"
-            style={{ background: "#4a7a5e", color: "#d8f0e4", fontSize: "14.4px", fontWeight: 700 }}>
-            JD
-          </div>
-          <div className="text-left">
-            <p style={{ fontSize: "15px", fontWeight: 600, color: "#f0f7f3", lineHeight: 0.95 }}>John Doe</p>
-            <p style={{ fontSize: "12px", color: "#8bbfa0", lineHeight: 0.85 }}>Pharmacist</p>
-          </div>
-          <ChevronDown size={13.2} style={{ color: "#8bbfa0" }} />
-        </button>
+        <div className="relative" ref={profileRef}>
+          <button className="flex items-center gap-2.5 px-3 h-9 transition-colors"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+            onClick={() => setProfileOpen((value) => !value)}
+            style={{ background: profileOpen ? "#243d2e" : "transparent" }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#243d2e"}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = profileOpen ? "#243d2e" : "transparent"}>
+            <div className="w-7 h-7 flex items-center justify-center overflow-hidden"
+              style={{ background: "#4a7a5e", color: "#d8f0e4", fontSize: "14.4px", fontWeight: 700 }}>
+              {user.avatarUrl
+                ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                : getInitials(user.name)}
+            </div>
+            <div className="text-left min-w-0 max-w-36">
+              <p className="overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: "15px", fontWeight: 600, color: "#f0f7f3", lineHeight: 0.95 }}>{user.name}</p>
+              <p style={{ fontSize: "12px", color: "#8bbfa0", lineHeight: 0.85 }}>{roleLabel}</p>
+            </div>
+            <ChevronDown size={13.2} style={{ color: "#8bbfa0", transform: profileOpen ? "rotate(180deg)" : undefined }} />
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 top-11 z-50 w-52 border bg-white p-1.5 shadow-xl" style={{ borderColor: "#cbd8cf" }} role="menu">
+              <div className="border-b px-3 py-2" style={{ borderColor: "#e4ebe6" }}>
+                <p className="overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "#2a3b30", fontSize: "12px", fontWeight: 700 }}>{user.name}</p>
+                <p className="overflow-hidden text-ellipsis whitespace-nowrap" style={{ color: "#748178", fontSize: "10.5px", marginTop: "2px" }}>@{user.username} · {roleLabel}</p>
+              </div>
+              <button type="button" role="menuitem" onClick={logout} disabled={loggingOut}
+                className="mt-1 flex h-9 w-full items-center gap-2 px-3 text-left transition-colors"
+                style={{ color: "#74453e", background: "transparent", fontSize: "12px", fontWeight: 650 }}
+                onMouseEnter={event => { event.currentTarget.style.background = "#f8efed"; }}
+                onMouseLeave={event => { event.currentTarget.style.background = "transparent"; }}>
+                <LogOut size={15} aria-hidden="true" />{loggingOut ? "Logging out…" : "Log out"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

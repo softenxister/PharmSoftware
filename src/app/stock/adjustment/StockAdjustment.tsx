@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { Link } from "react-router";
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,7 +17,7 @@ import styles from "./StockAdjustment.module.css";
 
 type PharmUser = {
   name: string;
-  role: "staff" | "owner" | "admin";
+  role: "owner" | "pharmacist";
   canManageStock: boolean;
 };
 
@@ -297,7 +297,7 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
           <ShieldCheck size={30} />
           <h1>Owner or admin access required</h1>
           <p>Staff can submit a correction reason from the completed purchase bill. Stock remains unchanged until it is reviewed.</p>
-          <Link href="/purchase"><ArrowLeft size={15} /> Back to purchases</Link>
+          <Link to="/purchase"><ArrowLeft size={15} /> Back to purchases</Link>
         </div>
       </main>
     );
@@ -310,7 +310,7 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
           <AlertCircle size={30} />
           <h1>Stock adjustment unavailable</h1>
           <p>{error || "The current user could not be verified."}</p>
-          <Link href="/purchase"><ArrowLeft size={15} /> Back to purchases</Link>
+          <Link to="/purchase"><ArrowLeft size={15} /> Back to purchases</Link>
         </div>
       </main>
     );
@@ -323,7 +323,7 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <div className={styles.breadcrumb}><Link href="/stock">Stock</Link><span>/</span><strong>Adjustment</strong></div>
+          <div className={styles.breadcrumb}><Link to="/stock">Stock</Link><span>/</span><strong>Adjustment</strong></div>
           <h1>Purchase stock corrections</h1>
           <p>Review the completed bill, record the reason, then save only the stock difference.</p>
         </div>
@@ -387,7 +387,7 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
                 </div>
                 <div className={styles.billLinks}>
                   <span>{new Intl.DateTimeFormat("en-GB").format(new Date(bill.date))}</span>
-                  <Link href={`/purchase/new?id=${encodeURIComponent(bill.id)}`}>View original bill</Link>
+                  <Link to={`/purchase/new?id=${encodeURIComponent(bill.id)}`}>View original bill</Link>
                 </div>
               </div>
 
