@@ -31,11 +31,18 @@ const productGraph = {
   manufacturer: true,
   parentPacks: { orderBy: { packUnit: "asc" as const } },
   batches: { orderBy: [{ expiryDate: "asc" as const }, { batchNo: "asc" as const }] },
+  activeIngredients: {
+    orderBy: { ingredient: { canonicalName: "asc" as const } },
+    include: { ingredient: true },
+  },
 };
 
 type StockProductRow = Prisma.ProductGetPayload<{ include: typeof productGraph }>;
 
-function productRowToSalesProduct(product: StockProductRow): SalesProduct {
+function productRowToSalesProduct(
+  product: StockProductRow,
+  batchCosts: ReadonlyMap<string, number> = new Map(),
+): SalesProduct {
   return {
     id: product.id,
     itemName: product.itemName,
@@ -59,10 +66,20 @@ function productRowToSalesProduct(product: StockProductRow): SalesProduct {
     category: product.category.name,
     imageUrl: product.imageUrl,
     weeklySold: product.weeklySold,
+    compositionStatus: product.compositionStatus.toLowerCase() as SalesProduct["compositionStatus"],
+    activeIngredients: product.activeIngredients.map(({ ingredient, strength, sourceName, sourceUrl }) => ({
+      id: ingredient.id,
+      canonicalName: ingredient.canonicalName,
+      ...(ingredient.thaiName ? { thaiName: ingredient.thaiName } : {}),
+      ...(strength ? { strength } : {}),
+      sourceName,
+      sourceUrl,
+    })),
     batches: product.batches.map((batch) => ({
       batchNo: batch.batchNo,
       expiryDate: batch.expiryDate,
       sellPriceThb: Number(batch.sellPriceThb),
+      costThb: batchCosts.get(`${product.id}::${batch.batchNo}`),
       availableStock: Number(batch.availableStock),
     })),
   };
@@ -91,6 +108,12 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
       create: { name: mapped.manufacturerName || "Unknown manufacturer" },
     }),
   ]);
+  const compositionIdentityChanged = Boolean(current) && (
+    current.barcode !== mapped.barcode
+    || current.itemName !== mapped.itemName
+    || current.brandName !== mapped.brandName
+    || current.manufacturerId !== manufacturer.id
+  );
 
   await tx.product.upsert({
     where: { id: mapped.id },
@@ -107,6 +130,12 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
       packLabel: mapped.pack.label,
       location: mapped.location,
       imageUrl: mapped.imageUrl,
+      ...(compositionIdentityChanged ? {
+        compositionStatus: "PENDING",
+        compositionCheckedAt: null,
+        compositionRetryAt: null,
+        compositionError: null,
+      } : {}),
     },
     create: {
       id: mapped.id,
@@ -124,6 +153,10 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
       weeklySold: mapped.weeklySold,
     },
   });
+
+  if (compositionIdentityChanged) {
+    await tx.productIngredient.deleteMany({ where: { productId: mapped.id } });
+  }
 
   const lineUpdates = relatedLineUpdates(mapped);
   await Promise.all([
@@ -168,7 +201,24 @@ export async function readStockProducts(): Promise<SalesProduct[]> {
     include: productGraph,
     orderBy: { itemName: "asc" },
   });
-  return products.map(productRowToSalesProduct);
+  const purchaseLines = products.length === 0
+    ? []
+    : await prisma.$queryRaw<Array<{ productId: string; batchNo: string; cost: unknown }>>(Prisma.sql`
+        SELECT DISTINCT ON (line."productId", line."batchNo")
+          line."productId",
+          line."batchNo",
+          line."cost"
+        FROM "PurchaseLine" line
+        INNER JOIN "PurchaseBill" bill ON bill."id" = line."purchaseBillId"
+        WHERE line."productId" IN (${Prisma.join(products.map((product) => product.id))})
+        ORDER BY line."productId", line."batchNo", bill."purchasedAt" DESC, bill."createdAt" DESC
+      `);
+  const batchCosts = new Map<string, number>();
+  for (const line of purchaseLines) {
+    const key = `${line.productId}::${line.batchNo}`;
+    if (!batchCosts.has(key)) batchCosts.set(key, Number(line.cost));
+  }
+  return products.map((product) => productRowToSalesProduct(product, batchCosts));
 }
 
 export async function saveStockItem(input: StockItemInput): Promise<SalesProduct[]> {

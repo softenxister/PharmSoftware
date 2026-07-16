@@ -59,6 +59,7 @@ export type SavedSale = {
   billNo: string;
   date: string;
   customerName: string;
+  customerMobile: string;
   isMember: boolean;
   itemCount: number;
   paymentMethod: string;
@@ -258,6 +259,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
 export async function readSales(): Promise<SavedSale[]> {
   const sales = await prisma.sale.findMany({
     include: {
+      customer: { select: { mobile: true } },
       lines: {
         include: { product: { include: { batches: true } } },
         orderBy: { id: "asc" },
@@ -272,6 +274,7 @@ export async function readSales(): Promise<SavedSale[]> {
     billNo: sale.billNo,
     date: sale.soldAt.toISOString(),
     customerName: sale.customerName,
+    customerMobile: sale.customer?.mobile ?? "",
     isMember: sale.isMember,
     itemCount: sale.itemCount,
     paymentMethod: sale.paymentMethod,

@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { Banknote, CreditCard, Landmark, Store, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { usePreferences } from '@/app/PreferencesProvider';
+import { formatThaiPhoneNumber } from '@/lib/thaiPhoneNumber';
 import styles from './SalesHome.module.css';
 
 /**
@@ -17,6 +19,7 @@ interface RecentBill {
   billNo: string;
   date: string; // ISO
   customerName: string;
+  customerMobile?: string;
   customerAvatar?: string;
   isMember: boolean;
   itemCount: number;
@@ -89,7 +92,8 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
       if (!q) return true;
       return (
         bill.billNo.toLowerCase().includes(q) ||
-        bill.customerName.toLowerCase().includes(q)
+        bill.customerName.toLowerCase().includes(q) ||
+        bill.customerMobile?.toLowerCase().includes(q)
       );
     });
   }, [bills, query, statusFilter]);
@@ -109,38 +113,39 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-        <header className={styles.header}>
-          <div>
-            <p className={styles.eyebrow}>{t('sales.counter')}</p>
-            <h1 className={styles.title}>{t('sales.recentBills')}</h1>
-          </div>
-          <button
-            type="button"
-            className={styles.newSaleButton}
-            onClick={goToNewSale}
-            aria-label={t('sales.startNew')}
-            title={t('nav.newSale')}
-          >
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-              <circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M12 7.5v9M7.5 12h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-            <span>{t('nav.newSale')}</span>
-          </button>
-        </header>
+        <section className={styles.overview} aria-labelledby="sales-page-title">
+          <header className={styles.header}>
+            <div className={styles.headerCopy}>
+              <p className={styles.eyebrow}>{t('sales.counter')}</p>
+              <h1 id="sales-page-title" className={styles.title}>{t('sales.recentBills')}</h1>
+            </div>
+            <button
+              type="button"
+              className={styles.newSaleButton}
+              onClick={goToNewSale}
+              aria-label={t('sales.startNew')}
+              title={t('nav.newSale')}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <span>{t('nav.newSale')}</span>
+            </button>
+          </header>
 
-        <section className={styles.summaryGrid} aria-label={t('sales.summary')}>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>{t('sales.paidSales')}</span>
-            <strong className={styles.metricValue}>฿{formatMoney(totalSales)}</strong>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>{t('sales.paidBills')}</span>
-            <strong className={styles.metricValue}>{paidCount}</strong>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>{t('sales.pending')}</span>
-            <strong className={styles.metricValue}>{pendingCount}</strong>
+          <div className={styles.summaryGrid} aria-label={t('sales.summary')}>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t('sales.paidSales')}</span>
+              <strong className={styles.metricValue}>฿{formatMoney(totalSales)}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t('sales.paidBills')}</span>
+              <strong className={styles.metricValue}>{paidCount}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t('sales.pending')}</span>
+              <strong className={`${styles.metricValue} ${styles.metricPending}`}>{pendingCount}</strong>
+            </div>
           </div>
         </section>
 
@@ -161,6 +166,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  aria-label={t('sales.search')}
                   placeholder={t('sales.search')}
                   className={styles.searchInput}
                 />
@@ -185,20 +191,41 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
 
           <div className={styles.tableWrap}>
             <table className={styles.table}>
+              <colgroup>
+                <col className={styles.fulfilmentColumn} />
+                <col className={styles.billColumn} />
+                <col className={styles.dateColumn} />
+                <col className={styles.customerColumn} />
+                <col className={styles.mobileColumn} />
+                <col className={styles.amountColumn} />
+                <col className={styles.paymentColumn} />
+                <col className={styles.statusColumn} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th>{t('sales.bill')}</th>
+                  <th className={styles.iconHeader} aria-label={t('sales.fulfilment')} />
+                  <th className={styles.billNoCell}>{t('sales.billNo')}</th>
+                  <th>{t('sales.billDate')}</th>
                   <th>{t('sales.customer')}</th>
-                  <th>{t('sales.items')}</th>
-                  <th>{t('sales.payment')}</th>
-                  <th>{t('sales.fulfilment')}</th>
-                  <th className={styles.alignRight}>{t('sales.netTotal')}</th>
+                  <th>{t('sales.mobileNo')}</th>
+                  <th className={styles.alignRight}>{t('sales.billAmount')}</th>
+                  <th className={styles.iconHeader} aria-label={t('sales.payment')} />
                   <th>{t('sales.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredBills.map((bill) => {
                   const isPending = bill.status === 'pending';
+                  const paymentKey = bill.paymentMethod.toLowerCase();
+                  const PaymentIcon = paymentKey.includes('cash')
+                    ? Banknote
+                    : paymentKey.includes('bank') ? Landmark : CreditCard;
+                  const paymentTone = paymentKey.includes('cash')
+                    ? styles.iconCash
+                    : paymentKey.includes('bank') ? styles.iconBank : styles.iconCard;
+                  const fulfilmentLabel = t(bill.purchaseMethod === 'pickup' ? 'sales.pickup' : 'sales.delivery');
+                  const FulfilmentIcon = bill.purchaseMethod === 'pickup' ? Store : Truck;
+                  const fulfilmentTone = bill.purchaseMethod === 'pickup' ? styles.iconPickup : styles.iconDelivery;
                   return (
                     <tr
                       key={bill.id}
@@ -216,30 +243,47 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                         }
                       }}
                     >
+                    <td className={styles.iconColumnCell}>
+                      <span className={`${styles.iconCell} ${fulfilmentTone}`} title={fulfilmentLabel}>
+                        <FulfilmentIcon size={16} aria-hidden="true" />
+                        <span className={styles.visuallyHidden}>{fulfilmentLabel}</span>
+                      </span>
+                    </td>
+                    <td className={styles.billNoCell}>
+                      <span className={styles.billNo}>{bill.billNo}</span>
+                    </td>
                     <td>
-                      <div className={styles.billCell}>
-                        <span className={styles.billNo}>{bill.billNo}</span>
-                        <span className={styles.billDate}>{formatDate(bill.date, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
+                      <time className={styles.dateCell} dateTime={bill.date}>
+                        <span className={styles.billDate}>{formatDate(bill.date, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span className={styles.billTime}>{formatDate(bill.date, { hour: '2-digit', minute: '2-digit' })}</span>
+                      </time>
                     </td>
                     <td>
                       <div className={styles.customerCell}>
                         <span className={styles.avatar}>{initials(bill.customerName)}</span>
                         <div className={styles.customerMeta}>
-                          <span className={styles.customerName}>{bill.customerName}</span>
+                          <span className={styles.customerName} title={bill.customerName}>{bill.customerName}</span>
                           {bill.isMember && <span className={styles.memberTag}>{t('sales.member')}</span>}
                         </div>
                       </div>
                     </td>
-                    <td>{bill.itemCount}</td>
-                    <td>{bill.paymentMethod}</td>
-                    <td>{t(bill.purchaseMethod === 'pickup' ? 'sales.pickup' : 'sales.delivery')}</td>
+                    <td>
+                      <span className={styles.mobileValue} title={bill.customerMobile || undefined}>
+                        {bill.customerMobile ? formatThaiPhoneNumber(bill.customerMobile) : '—'}
+                      </span>
+                    </td>
                     <td className={styles.alignRight}>
                       <span className={styles.amount}>฿{formatMoney(bill.netTotal)}</span>
                     </td>
+                    <td className={styles.iconColumnCell}>
+                      <span className={`${styles.iconCell} ${paymentTone}`} title={bill.paymentMethod}>
+                        <PaymentIcon size={16} aria-hidden="true" />
+                        <span className={styles.visuallyHidden}>{bill.paymentMethod}</span>
+                      </span>
+                    </td>
                     <td>
                       <span className={`${styles.status} ${styles[`status_${bill.status}`]}`}>
-                        {statusLabel(bill.status)}
+                        {bill.status === 'pending' ? t('sales.pending') : statusLabel(bill.status)}
                       </span>
                     </td>
                   </tr>

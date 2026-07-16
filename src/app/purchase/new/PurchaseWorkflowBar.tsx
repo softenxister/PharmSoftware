@@ -48,8 +48,14 @@ export function PurchaseWorkflowBar({
   onAdjustStock,
 }: PurchaseWorkflowBarProps) {
   const { t, formatMoney } = usePreferences();
+  const summaryStateClass = status === "partial"
+    ? styles.purchaseSummaryBarReview
+    : status === "received"
+      ? styles.purchaseSummaryBarCompleted
+      : styles.purchaseSummaryBarDraft;
+
   return (
-    <div className={styles.purchaseSummaryBar} aria-label={t("purchaseEntry.summary")}>
+    <div className={`${styles.purchaseSummaryBar} ${summaryStateClass}`} aria-label={t("purchaseEntry.summary")}>
       <div className={styles.purchaseSummaryStat}>
         <span className={styles.purchaseSummaryLabel}>{t("purchase.items")}</span>
         <span className={styles.purchaseSummaryValue}>{itemCount}</span>

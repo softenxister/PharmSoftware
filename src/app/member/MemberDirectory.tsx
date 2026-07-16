@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Plus, Search, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Plus, Search, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import { usePreferences } from "@/app/PreferencesProvider";
 import {
@@ -11,18 +11,16 @@ import {
   type MemberRecord,
   type MemberSort,
 } from "./memberData";
+import {
+  formatThaiPhoneInput,
+  formatThaiPhoneNumber,
+  isValidThaiPhoneNumber,
+  shouldShowThaiPhoneValidationError,
+} from "@/lib/thaiPhoneNumber";
+import { MemberAvatar } from "./MemberAvatarView";
 import styles from "./MemberDirectory.module.css";
 
 const initialSort: MemberSort = { key: "lastOrderAt", direction: "desc" };
-
-function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 function SortIcon({ active, direction }: { active: boolean; direction: MemberSort["direction"] }) {
   if (!active) return <ChevronsUpDown size={14} aria-hidden="true" />;
@@ -49,6 +47,10 @@ export function MemberDirectory() {
     () => sortMembers(filterMembers(members, query), sort),
     [members, query, sort],
   );
+  const totalMemberPurchase = members.reduce((sum, member) => sum + member.totalPurchase, 0);
+  const membersWithoutPurchases = members.filter((member) => !member.lastOrderAt).length;
+  const mobileValid = isValidThaiPhoneNumber(mobile);
+  const showMobileError = shouldShowThaiPhoneValidationError(mobile);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +86,7 @@ export function MemberDirectory() {
 
   const submitCreate = async (event: FormEvent) => {
     event.preventDefault();
-    if (!name.trim() || !mobile.trim() || creating) return;
+    if (!name.trim() || !mobileValid || creating) return;
     setCreating(true);
     setCreateError("");
     try {
@@ -130,22 +132,38 @@ export function MemberDirectory() {
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-        <header className={styles.header}>
-          <div>
-            <p className={styles.eyebrow}>{t("member.directory")}</p>
-            <h1 className={styles.title}>{t("member.members")}</h1>
+        <section className={styles.overview} aria-labelledby="member-page-title">
+          <header className={styles.header}>
+            <div className={styles.headerCopy}>
+              <p className={styles.eyebrow}>{t("member.directory")}</p>
+              <h1 id="member-page-title" className={styles.title}>{t("member.members")}</h1>
+            </div>
+            <button type="button" className={styles.createButton} onClick={() => setCreateOpen(true)}>
+              <Plus size={17} aria-hidden="true" />
+              {t("member.create")}
+            </button>
+          </header>
+
+          <div className={styles.summaryGrid} aria-label={t("member.memberSummary")}>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t("member.members")}</span>
+              <strong className={styles.metricValue}>{members.length}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t("member.totalPurchase")}</span>
+              <strong className={styles.metricValue}>฿{formatMoney(totalMemberPurchase)}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t("member.noPurchases")}</span>
+              <strong className={`${styles.metricValue} ${styles.metricPending}`}>{membersWithoutPurchases}</strong>
+            </div>
           </div>
-          <button type="button" className={styles.createButton} onClick={() => setCreateOpen(true)}>
-            <Plus size={17} aria-hidden="true" />
-            {t("member.create")}
-          </button>
-        </header>
+        </section>
 
         <section className={styles.panel} aria-labelledby="member-table-title">
           <div className={styles.panelHeader}>
             <div className={styles.panelHeading}>
               <div className={styles.panelTitleRow}>
-                <Users size={17} aria-hidden="true" />
                 <h2 id="member-table-title" className={styles.panelTitle}>{t("member.list")}</h2>
               </div>
               <p className={styles.panelMeta}>{t("member.count", { visible: visibleMembers.length, total: members.length })}</p>
@@ -202,13 +220,15 @@ export function MemberDirectory() {
                   >
                     <td>
                       <div className={styles.customerCell}>
-                        <span className={`${styles.avatar} ${styles[`avatar${Number(member.id.slice(-1)) % 4}`]}`} aria-hidden="true">
-                          {initials(member.name)}
-                        </span>
+                        <MemberAvatar
+                          name={member.name}
+                          avatarUrl={member.avatarUrl}
+                          className={`${styles.avatar} ${styles[`avatar${Number(member.id.slice(-1)) % 4}`]}`}
+                        />
                         <span className={styles.customerName} title={member.name}>{member.name}</span>
                       </div>
                     </td>
-                    <td><span className={styles.mobileValue}>{member.mobile}</span></td>
+                    <td><span className={styles.mobileValue}>{formatThaiPhoneNumber(member.mobile)}</span></td>
                     <td><time dateTime={member.registeredAt}>{formatDate(member.registeredAt)}</time></td>
                     <td>{member.lastOrderAt
                       ? <time dateTime={member.lastOrderAt}>{formatDate(member.lastOrderAt)}</time>
@@ -261,13 +281,28 @@ export function MemberDirectory() {
               </label>
               <label>
                 <span>{t("member.mobile")}</span>
-                <input value={mobile} onChange={(event) => setMobile(event.target.value)} inputMode="tel" maxLength={20} required />
+                <input
+                  value={mobile}
+                  onChange={(event) => setMobile(formatThaiPhoneInput(event.target.value))}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  maxLength={12}
+                  placeholder="081-234-5678"
+                  aria-describedby={showMobileError ? "create-member-mobile-error" : undefined}
+                  aria-invalid={showMobileError}
+                  required
+                />
               </label>
+              {showMobileError && (
+                <p id="create-member-mobile-error" className={styles.formError} role="alert">
+                  {t("member.mobileInvalid")}
+                </p>
+              )}
               <p className={styles.formHint}>{t("member.createHint")}</p>
               {createError && <p className={styles.formError} role="alert">{createError}</p>}
               <div className={styles.dialogActions}>
                 <button type="button" className={styles.cancelButton} onClick={closeCreate}>{t("member.cancel")}</button>
-                <button type="submit" className={styles.saveButton} disabled={!name.trim() || !mobile.trim() || creating}>
+                <button type="submit" className={styles.saveButton} disabled={!name.trim() || !mobileValid || creating}>
                   {creating ? t("common.saving") : t("member.create")}
                 </button>
               </div>

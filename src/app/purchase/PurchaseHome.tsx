@@ -74,35 +74,37 @@ export function PurchaseHome() {
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-        <header className={styles.header}>
-          <button
-            type="button"
-            className={styles.newPurchaseButton}
-            onClick={() => navigate("/purchase/new")}
-          >
-            <PackagePlus size={18} />
-            <span>{t("purchase.new")}</span>
-          </button>
-          <div>
-            <p className={styles.eyebrow}>{t("purchase.counter")}</p>
-            <h1 className={styles.title}>{t("purchase.bills")}</h1>
-          </div>
-        </header>
+        <section className={styles.overview} aria-labelledby="purchase-page-title">
+          <header className={styles.header}>
+            <div className={styles.headerCopy}>
+              <p className={styles.eyebrow}>{t("purchase.counter")}</p>
+              <h1 id="purchase-page-title" className={styles.title}>{t("purchase.bills")}</h1>
+            </div>
+            <button
+              type="button"
+              className={styles.newPurchaseButton}
+              onClick={() => navigate("/purchase/new")}
+            >
+              <PackagePlus size={17} aria-hidden="true" />
+              <span>{t("purchase.new")}</span>
+            </button>
+          </header>
 
-        <section className={styles.summaryGrid} aria-label={t("purchase.summary")}>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>{t("purchase.receivedValue")}</span>
-            <strong className={styles.metricValue}>฿{formatMoney(receivedTotal)}</strong>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>{t("purchase.billCount")}</span>
-            <strong className={styles.metricValue}>{purchaseBills.length}</strong>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>{t("purchase.draftReady")}</span>
-            <strong className={styles.metricValue}>
-              {purchaseBills.filter((bill) => bill.status !== "received").length}
-            </strong>
+          <div className={styles.summaryGrid} aria-label={t("purchase.summary")}>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t("purchase.receivedValue")}</span>
+              <strong className={styles.metricValue}>฿{formatMoney(receivedTotal)}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t("purchase.billCount")}</span>
+              <strong className={styles.metricValue}>{purchaseBills.length}</strong>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>{t("purchase.draftReady")}</span>
+              <strong className={`${styles.metricValue} ${styles.metricPending}`}>
+                {purchaseBills.filter((bill) => bill.status !== "received").length}
+              </strong>
+            </div>
           </div>
         </section>
 
@@ -118,6 +120,7 @@ export function PurchaseHome() {
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                aria-label={t("purchase.search")}
                 placeholder={t("purchase.search")}
               />
             </label>
@@ -125,6 +128,15 @@ export function PurchaseHome() {
 
           <div className={styles.tableWrap}>
             <table className={styles.table}>
+              <colgroup>
+                <col className={styles.billColumn} />
+                <col className={styles.invoiceColumn} />
+                <col className={styles.distributorColumn} />
+                <col className={styles.itemsColumn} />
+                <col className={styles.qtyColumn} />
+                <col className={styles.totalColumn} />
+                <col className={styles.statusColumn} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>{t("purchase.bill")}</th>
@@ -152,8 +164,8 @@ export function PurchaseHome() {
                         </button>
                       </div>
                     </td>
-                    <td>{bill.invoiceNo}</td>
-                    <td>{bill.distributor}</td>
+                    <td><span className={styles.cellText} title={bill.invoiceNo}>{bill.invoiceNo}</span></td>
+                    <td><span className={styles.cellText} title={bill.distributor}>{bill.distributor}</span></td>
                     <td>{bill.itemCount}</td>
                     <td>{formatNumber(bill.totalQty)}</td>
                     <td className={styles.alignRight}>

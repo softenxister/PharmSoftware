@@ -2,6 +2,7 @@ export type MemberRecord = {
   id: string;
   name: string;
   mobile: string;
+  avatarUrl?: string | null;
   isMember: true;
   registeredAt: string;
   lastOrderAt: string | null;
@@ -9,6 +10,11 @@ export type MemberRecord = {
   points: number;
   membershipRank: string;
   topItemIds: string[];
+  allergies: Array<{
+    id: string;
+    canonicalName: string;
+    thaiName?: string;
+  }>;
 };
 
 export type MemberSort = {

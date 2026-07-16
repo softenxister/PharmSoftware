@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent as Reac
 import { useNavigate, useSearchParams } from 'react-router';
 import { Settings } from 'lucide-react';
 import { usePreferences } from '@/app/PreferencesProvider';
+import { MemberAvatar } from '@/app/member/MemberAvatarView';
 import styles from './NewSale.module.css';
 import type { ParentPack, ProductPack, SalesProduct } from '@/server/db/types';
 import type { PharmUser } from '@/server/auth/pharmUser';
@@ -51,10 +52,16 @@ interface Customer {
   id: string;
   name: string;
   mobile: string;
+  avatarUrl?: string | null;
   isMember: boolean;
   points: number;
   membershipRank: string;
   topItemIds?: string[]; // this customer's personal top-10 purchased items
+  allergies: Array<{
+    id: string;
+    canonicalName: string;
+    thaiName?: string;
+  }>;
 }
 
 interface Batch {
@@ -87,6 +94,11 @@ interface CatalogItem {
   loc: string;
   image: string;
   weeklySold: number;
+  activeIngredients: Array<{
+    id: string;
+    canonicalName: string;
+    thaiName?: string;
+  }>;
   batches: Batch[];
 }
 
@@ -118,6 +130,7 @@ type SelectOption = {
 type InvoiceCreated = {
   invoiceNo: string;
   amountPaid: number;
+  netTotal: number;
   changeDue: number;
   paymentMode: string;
   createdAt: string;
@@ -238,6 +251,11 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
     loc: product.location,
     image: product.imageUrl,
     weeklySold: product.weeklySold,
+    activeIngredients: (product.activeIngredients ?? []).map((ingredient) => ({
+      id: ingredient.id,
+      canonicalName: ingredient.canonicalName,
+      ...(ingredient.thaiName ? { thaiName: ingredient.thaiName } : {}),
+    })),
     batches: product.batches.map((batch) => ({
       batchId: `${product.id}-${batch.batchNo}`,
       batchNo: batch.batchNo,
@@ -340,33 +358,27 @@ function calculateDiscountAmount(discount: AppliedDiscount | null, subtotal: num
   return Math.min(Math.max(raw, 0), subtotal);
 }
 
-/** Supports barcode, product name, brand, manufacturer, pack, and "c, <term>" category search. */
-function matchesQuery(item: CatalogItem, rawQuery: string): boolean {
+/** Ranks barcode and item-name matches ahead of lower-priority manufacturer matches. */
+function getItemSearchPriority(item: CatalogItem, rawQuery: string): number | null {
   const q = rawQuery.trim().toLowerCase();
-  if (!q) return false;
-
-  if (q.startsWith('c,') || q.startsWith('c ')) {
-    const term = q.slice(2).trim();
-    return term.length === 0 || item.category.toLowerCase().includes(term);
-  }
+  if (!q) return null;
   if (/^\d{5,}$/.test(q)) {
-    return item.barcode.includes(q);
+    return item.barcode.includes(q) ? 0 : null;
   }
-  return (
-    item.name.toLowerCase().includes(q) ||
-    item.brand.toLowerCase().includes(q) ||
-    item.manufacturer.toLowerCase().includes(q) ||
-    item.category.toLowerCase().includes(q) ||
-    item.packLabel.toLowerCase().includes(q) ||
-    item.sellPacks.some((pack) => pack.unit.toLowerCase().startsWith(q))
-  );
+
+  const itemName = item.name.toLowerCase();
+  const manufacturer = item.manufacturer.toLowerCase();
+  if (itemName.startsWith(q)) return 1;
+  if (itemName.includes(q)) return 2;
+  if (manufacturer.startsWith(q)) return 3;
+  if (manufacturer.includes(q)) return 4;
+  return null;
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(' ').filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
+function matchedAllergyIngredients(customer: Customer | null, item: CatalogItem) {
+  if (!customer?.allergies?.length || item.activeIngredients.length === 0) return [];
+  const allergyIds = new Set(customer.allergies.map((ingredient) => ingredient.id));
+  return item.activeIngredients.filter((ingredient) => allergyIds.has(ingredient.id));
 }
 
 function useClickOutside<T extends HTMLElement>(onOutside: () => void) {
@@ -558,6 +570,12 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const paymentMethodLabel = (method: StorePaymentMethod) => t(method === 'Cash'
     ? 'pos.cash'
     : method === 'Bank transfer' ? 'pos.bankTransfer' : 'pos.creditCard');
+  const allergyWarningForItem = (item: CatalogItem) => {
+    const matches = matchedAllergyIngredients(customer, item);
+    return matches.length > 0
+      ? t('newSale.allergyWarning', { ingredients: matches.map((ingredient) => ingredient.canonicalName).join(', ') })
+      : '';
+  };
   const formatExpiry = (value: string) => {
     const date = parseExpiryDate(value);
     return Number.isNaN(date.getTime()) ? value : formatDate(date, { month: 'short', year: '2-digit' });
@@ -660,7 +678,12 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const itemMatches = useMemo(() => {
     const q = itemQuery.trim();
     if (!q) return [];
-    return catalog.filter((it) => matchesQuery(it, q)).slice(0, 8);
+    return catalog
+      .map((item) => ({ item, priority: getItemSearchPriority(item, q) }))
+      .filter((result): result is { item: CatalogItem; priority: number } => result.priority !== null)
+      .sort((a, b) => a.priority - b.priority || a.item.name.localeCompare(b.item.name))
+      .slice(0, 8)
+      .map(({ item }) => item);
   }, [catalog, itemQuery]);
 
   useEffect(() => {
@@ -1196,6 +1219,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     setEditingBillId(null);
     setEditingBillNo(null);
     setBillDate(new Date().toISOString().slice(0, 10));
+    window.setTimeout(() => {
+      itemSearchInputRef.current?.focus();
+    }, 0);
   }
 
   function persistSale(mode: SaveMode, overrides: {
@@ -1251,6 +1277,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     return {
       invoiceNo,
       amountPaid: effectiveCustomerPaid ?? effectiveNetPayable,
+      netTotal: effectiveNetPayable,
       changeDue: effectiveChangeDue,
       paymentMode: paymentMethod,
       createdAt: billDateTime.toISOString(),
@@ -1539,7 +1566,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
           <span className={styles.metaLabel}>{t('sales.customer')}</span>
           {customer ? (
             <div className={styles.customerChip}>
-              <span className={styles.avatar}>{initials(customer.name)}</span>
+              <MemberAvatar name={customer.name} avatarUrl={customer.avatarUrl} className={styles.avatar} />
               <div className={styles.customerChipMeta}>
                 <span className={styles.customerChipName}>{customer.name}</span>
                 <span className={styles.customerChipMobile}>
@@ -1586,7 +1613,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                         onMouseMove={() => setHighlightedCustomerIndex(index)}
                         onClick={() => selectCustomer(c)}
                       >
-                        <span className={styles.avatar}>{initials(c.name)}</span>
+                        <MemberAvatar name={c.name} avatarUrl={c.avatarUrl} className={styles.avatar} />
                         <div className={styles.customerChipMeta}>
                           <span className={styles.customerChipName}>{c.name}</span>
                           <span className={styles.customerChipMobile}>
@@ -1646,6 +1673,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                 const nearest = nearestExpiryBatch(it.batches);
                 const totalStock = it.batches.reduce((sum, batch) => sum + batch.stock, 0);
                 const isHighlighted = index === highlightedItemIndex;
+                const allergyWarning = allergyWarningForItem(it);
                 return (
                   <button
                     key={it.id}
@@ -1658,7 +1686,10 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                   >
                     <img src={it.image} alt="" className={styles.itemOptionThumb} />
                     <div className={styles.itemOptionMeta}>
-                      <span className={styles.itemOptionName}>{it.name}</span>
+                      <span className={styles.itemOptionName}>
+                        <span>{it.name}</span>
+                        {allergyWarning && <strong className={styles.allergyWarning}>{allergyWarning}</strong>}
+                      </span>
                       <span className={styles.itemOptionSub}>{buildProductDescription({
                         brand: it.brand,
                         packLabel: it.packLabel,
@@ -1688,7 +1719,12 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                 </button>
                 <div className={styles.editorField}>
                   <span className={styles.editorFieldLabel}>{t('newSale.item')}</span>
-                  <span className={styles.editorItemName} title={editor.item.name}>{editor.item.name}</span>
+                  <span className={styles.editorItemLine}>
+                    <span className={styles.editorItemName} title={editor.item.name}>{editor.item.name}</span>
+                    {allergyWarningForItem(editor.item) && (
+                      <strong className={styles.allergyWarning}>{allergyWarningForItem(editor.item)}</strong>
+                    )}
+                  </span>
                   {storeSettings.showProductLocation && (
                     <span className={styles.editorFieldMeta}>{editor.item.loc}</span>
                   )}
@@ -1825,14 +1861,20 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                 </tr>
               </thead>
               <tbody>
-                {cartLines.map((line) => (
+                {cartLines.map((line) => {
+                  const catalogItem = catalogItemForLine(line, catalog);
+                  const allergyWarning = catalogItem ? allergyWarningForItem(catalogItem) : '';
+                  return (
                   <tr key={line.lineId}>
                     <td>
                       <button type="button" className={styles.binButton} onClick={() => removeCartLine(line.lineId)} aria-label={`Remove ${line.itemName}`}>
                         <IconBin />
                       </button>
                     </td>
-                    <td className={styles.itemNameCell}>{line.itemName}</td>
+                    <td className={styles.itemNameCell}>
+                      <span className={styles.cartItemName}>{line.itemName}</span>
+                      {allergyWarning && <strong className={styles.allergyWarning}>{allergyWarning}</strong>}
+                    </td>
                     <td className={styles.packCell}>
                       <span className={styles.packCellUnit}>{line.packLabel}</span>
                     </td>
@@ -1888,7 +1930,8 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       <span className={styles.lineTotal}>฿{formatBaht(line.qty * line.batch.sellPrice * line.packMultiplier)}</span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -2320,6 +2363,10 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
               <div className={styles.invoiceCreatedRow}>
                 <span>{t('newSale.amountPaid')}</span>
                 <strong>฿{formatBaht(invoiceCreated.amountPaid)}</strong>
+              </div>
+              <div className={styles.invoiceCreatedRow}>
+                <span>{t('sales.netTotal')}</span>
+                <strong>฿{formatBaht(invoiceCreated.netTotal)}</strong>
               </div>
               <div className={styles.invoiceCreatedRow}>
                 <span>{t('newSale.change')}</span>

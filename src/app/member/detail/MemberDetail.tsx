@@ -1,23 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  Camera,
   ChevronDown,
   ChevronRight,
   Edit3,
   ReceiptText,
+  Search,
+  ShieldAlert,
   ShoppingBag,
   UserRound,
+  X,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { usePreferences } from "@/app/PreferencesProvider";
+import { formatThaiPhoneInput, formatThaiPhoneNumber, isValidThaiPhoneNumber } from "@/lib/thaiPhoneNumber";
+import { isAllowedMemberAvatarFile } from "../memberAvatar";
+import { MemberAvatar } from "../MemberAvatarView";
 import type { MemberRecord } from "../memberData";
 import styles from "./MemberDetail.module.css";
 
 type TransactionStatus = "paid" | "pending" | "void";
+
+type IngredientOption = {
+  id: string;
+  canonicalName: string;
+  thaiName?: string;
+  aliases?: string[];
+};
 
 type MemberDetailRecord = MemberRecord & {
   paidTransactionCount: number;
@@ -49,10 +63,6 @@ type MemberDetailRecord = MemberRecord & {
   }>;
 };
 
-function initials(name: string): string {
-  return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
-}
-
 export function MemberDetail() {
   const { memberId = "" } = useParams();
   const navigate = useNavigate();
@@ -68,8 +78,39 @@ export function MemberDetail() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState("");
+  const [selectedAllergies, setSelectedAllergies] = useState<IngredientOption[]>([]);
+  const [ingredientQuery, setIngredientQuery] = useState("");
+  const [ingredientOptions, setIngredientOptions] = useState<IngredientOption[]>([]);
+  const [ingredientSearching, setIngredientSearching] = useState(false);
+  const [ingredientSearchError, setIngredientSearchError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const mobileValid = isValidThaiPhoneNumber(mobile);
+
+  useEffect(() => {
+    if (!editing) return;
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      setIngredientSearching(true);
+      setIngredientSearchError("");
+      try {
+        const response = await fetch(`/api/ingredients?q=${encodeURIComponent(ingredientQuery.trim())}`, { cache: "no-store" });
+        const data = await response.json() as { ingredients?: IngredientOption[]; error?: string };
+        if (!response.ok) throw new Error(data.error || t("member.allergySearchError"));
+        if (!cancelled) setIngredientOptions(Array.isArray(data.ingredients) ? data.ingredients : []);
+      } catch (error) {
+        if (!cancelled) setIngredientSearchError(error instanceof Error ? error.message : t("member.allergySearchError"));
+      } finally {
+        if (!cancelled) setIngredientSearching(false);
+      }
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [editing, ingredientQuery, t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +129,8 @@ export function MemberDetail() {
         if (!cancelled) {
           setMember(data.member);
           setName(data.member.name);
-          setMobile(data.member.mobile);
+          setMobile(formatThaiPhoneNumber(data.member.mobile));
+          setAvatarUrl(data.member.avatarUrl ?? null);
         }
       } catch (error) {
         if (!cancelled) setLoadError(error instanceof Error ? error.message : t("member.loadError"));
@@ -113,7 +155,13 @@ export function MemberDetail() {
   const beginEdit = () => {
     if (!member) return;
     setName(member.name);
-    setMobile(member.mobile);
+    setMobile(formatThaiPhoneNumber(member.mobile));
+    setAvatarUrl(member.avatarUrl ?? null);
+    setAvatarError("");
+    setSelectedAllergies(member.allergies);
+    setIngredientQuery("");
+    setIngredientOptions([]);
+    setIngredientSearchError("");
     setSaveError("");
     setEditing(true);
   };
@@ -121,19 +169,43 @@ export function MemberDetail() {
   const cancelEdit = () => {
     if (saving) return;
     setEditing(false);
+    setAvatarError("");
     setSaveError("");
+  };
+
+  const selectAvatar = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setAvatarError("");
+    if (!file) return;
+    if (!isAllowedMemberAvatarFile(file)) {
+      setAvatarError(t("member.imageError"));
+      event.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setAvatarUrl(reader.result);
+    };
+    reader.onerror = () => setAvatarError(t("member.imageError"));
+    reader.readAsDataURL(file);
   };
 
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
-    if (!member || saving || !name.trim() || !mobile.trim()) return;
+    if (!member || saving || !name.trim() || !mobileValid) return;
     setSaving(true);
     setSaveError("");
     try {
       const response = await fetch("/api/members", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ memberId: member.id, name, mobile }),
+        body: JSON.stringify({
+          memberId: member.id,
+          name,
+          mobile,
+          avatarUrl,
+          allergyIngredientIds: selectedAllergies.map((ingredient) => ingredient.id),
+        }),
       });
       const data = await response.json() as { member?: MemberRecord; error?: string };
       if (!response.ok || !data.member) throw new Error(data.error || t("member.updateError"));
@@ -167,7 +239,15 @@ export function MemberDetail() {
     </div>
   );
 
-  const profileUnchanged = name.trim() === member.name && mobile.trim() === member.mobile;
+  const profileUnchanged = name.trim() === member.name
+    && formatThaiPhoneNumber(mobile) === formatThaiPhoneNumber(member.mobile)
+    && avatarUrl === (member.avatarUrl ?? null)
+    && selectedAllergies.map((ingredient) => ingredient.id).sort().join("|")
+      === member.allergies.map((ingredient) => ingredient.id).sort().join("|");
+  const availableIngredientOptions = ingredientOptions.filter((ingredient) => (
+    !selectedAllergies.some((selected) => selected.id === ingredient.id)
+  ));
+  const visibleAvatarUrl = editing ? avatarUrl : member.avatarUrl;
 
   return (
     <div className={styles.page}>
@@ -179,11 +259,11 @@ export function MemberDetail() {
 
         <header className={styles.profileHeader}>
           <div className={styles.identity}>
-            <span className={styles.avatar} aria-hidden="true">{initials(member.name)}</span>
+            <MemberAvatar name={member.name} avatarUrl={visibleAvatarUrl} className={styles.avatar} />
             <div className={styles.identityText}>
               <p>{t("member.profile")}</p>
               <h1 title={member.name}>{member.name}</h1>
-              <span>{member.mobile} · {t("member.memberId")}: {member.id}</span>
+              <span>{formatThaiPhoneNumber(member.mobile)} · {t("member.memberId")}: {member.id}</span>
             </div>
           </div>
           <button type="button" className={styles.editButton} onClick={beginEdit}>
@@ -216,6 +296,24 @@ export function MemberDetail() {
           <div className={styles.summaryCard}>
             <span>{t("member.lastOrder")}</span>
             <strong>{member.lastOrderAt ? formatDate(member.lastOrderAt) : t("member.noPurchases")}</strong>
+          </div>
+        </section>
+
+        <section className={styles.allergyPanel} aria-labelledby="member-allergies-title">
+          <div className={styles.allergyPanelHeading}>
+            <span className={styles.allergyPanelIcon}><ShieldAlert size={17} aria-hidden="true" /></span>
+            <div>
+              <h2 id="member-allergies-title">{t("member.drugAllergies")}</h2>
+              <p>{t("member.drugAllergiesHint")}</p>
+            </div>
+          </div>
+          <div className={styles.allergyList}>
+            {member.allergies.length > 0 ? member.allergies.map((ingredient) => (
+              <span key={ingredient.id} className={styles.allergyTag}>
+                <strong>{ingredient.canonicalName}</strong>
+                {ingredient.thaiName && <small>{ingredient.thaiName}</small>}
+              </span>
+            )) : <span className={styles.noAllergies}>{t("member.noDrugAllergies")}</span>}
           </div>
         </section>
 
@@ -294,11 +392,108 @@ export function MemberDetail() {
           <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="edit-member-title">
             <div className={styles.dialogHeader}><div><p>{t("member.profile")}</p><h2 id="edit-member-title">{t("member.editProfile")}</h2></div></div>
             <form className={styles.editForm} onSubmit={saveProfile}>
+              <div className={styles.avatarEditor}>
+                <MemberAvatar
+                  name={name || member.name}
+                  avatarUrl={avatarUrl}
+                  className={styles.avatarPreview}
+                />
+                <div className={styles.avatarCopy}>
+                  <strong>{t("member.profilePhoto")}</strong>
+                  <small id="member-photo-hint">{t("member.photoHint")}</small>
+                </div>
+                <label className={styles.photoButton}>
+                  <Camera size={14} aria-hidden="true" />
+                  {t("member.chooseImage")}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    aria-describedby="member-photo-hint"
+                    onChange={selectAvatar}
+                  />
+                </label>
+                {avatarUrl && (
+                  <button type="button" className={styles.removePhotoButton} onClick={() => { setAvatarUrl(null); setAvatarError(""); }}>
+                    {t("member.removePhoto")}
+                  </button>
+                )}
+                {avatarError && <p className={styles.avatarError} role="alert">{avatarError}</p>}
+              </div>
               <label><span>{t("member.customerName")}</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={100} required autoFocus /></label>
-              <label><span>{t("member.mobile")}</span><input value={mobile} onChange={(event) => setMobile(event.target.value)} inputMode="tel" maxLength={20} required /></label>
+              <label>
+                <span>{t("member.mobile")}</span>
+                <input
+                  value={mobile}
+                  onChange={(event) => setMobile(formatThaiPhoneInput(event.target.value))}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  maxLength={12}
+                  placeholder="081-234-5678"
+                  aria-describedby="edit-member-mobile-hint"
+                  aria-invalid={mobile.length > 0 && !mobileValid}
+                  required
+                />
+              </label>
+              <p id="edit-member-mobile-hint" className={styles.readOnlyNote}>{t("member.mobileHint")}</p>
+              <div className={styles.allergyEditor}>
+                <div className={styles.allergyEditorLabel}>
+                  <span>{t("member.drugAllergies")}</span>
+                  <small>{t("member.allergySelectHint")}</small>
+                </div>
+                {selectedAllergies.length > 0 && (
+                  <div className={styles.selectedAllergies} aria-label={t("member.selectedAllergies")}>
+                    {selectedAllergies.map((ingredient) => (
+                      <span key={ingredient.id} className={styles.selectedAllergyTag}>
+                        <span>{ingredient.canonicalName}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAllergies((current) => current.filter((item) => item.id !== ingredient.id))}
+                          aria-label={t("member.removeAllergy", { name: ingredient.canonicalName })}
+                        >
+                          <X size={13} aria-hidden="true" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className={styles.ingredientCombobox}>
+                  <Search size={15} aria-hidden="true" />
+                  <input
+                    id="member-allergy-search"
+                    type="search"
+                    value={ingredientQuery}
+                    onChange={(event) => setIngredientQuery(event.target.value)}
+                    placeholder={t("member.searchIngredients")}
+                    autoComplete="off"
+                    aria-controls="member-allergy-options"
+                  />
+                </div>
+                <div id="member-allergy-options" className={styles.ingredientOptions} role="listbox" aria-label={t("member.ingredientResults")}>
+                  {ingredientSearching && <span className={styles.ingredientState}>{t("common.loading")}</span>}
+                  {!ingredientSearching && ingredientSearchError && <span className={styles.ingredientState} role="alert">{ingredientSearchError}</span>}
+                  {!ingredientSearching && !ingredientSearchError && availableIngredientOptions.map((ingredient) => (
+                    <button
+                      key={ingredient.id}
+                      type="button"
+                      role="option"
+                      aria-selected="false"
+                      onClick={() => {
+                        setSelectedAllergies((current) => [...current, ingredient]);
+                        setIngredientQuery("");
+                      }}
+                    >
+                      <strong>{ingredient.canonicalName}</strong>
+                      <span>{ingredient.thaiName || ingredient.aliases?.slice(0, 2).join(" · ") || t("member.standardIngredient")}</span>
+                    </button>
+                  ))}
+                  {!ingredientSearching && !ingredientSearchError && availableIngredientOptions.length === 0 && (
+                    <span className={styles.ingredientState}>{t("member.noIngredients")}</span>
+                  )}
+                </div>
+              </div>
               <p className={styles.readOnlyNote}>{t("member.loyaltyReadOnly")}</p>
               {saveError && <p className={styles.formError} role="alert">{saveError}</p>}
-              <div className={styles.dialogActions}><button type="button" onClick={cancelEdit}>{t("member.cancel")}</button><button type="submit" disabled={saving || !name.trim() || !mobile.trim() || profileUnchanged}>{saving ? t("common.saving") : t("member.saveChanges")}</button></div>
+              <div className={styles.dialogActions}><button type="button" onClick={cancelEdit}>{t("member.cancel")}</button><button type="submit" disabled={saving || !name.trim() || !mobileValid || profileUnchanged}>{saving ? t("common.saving") : t("member.saveChanges")}</button></div>
             </form>
           </section>
         </div>

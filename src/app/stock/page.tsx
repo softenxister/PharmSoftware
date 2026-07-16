@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
+  CheckCircle2,
   ChevronDown,
   ChevronsUpDown,
   Edit3,
@@ -12,10 +13,11 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import type { SalesProduct, StockItemInput } from "@/server/db/types";
+import { useAuth } from "@/app/AuthProvider";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { buildStockCategoryOptions, getStockCategoryLabel } from "./stockCategoryFilter";
 import { getStockFilterOptionLabel } from "./stockFilterLabels";
-import { loadStockCatalog, updateStockCatalog } from "./stockCatalogClient";
+import { invalidateStockCatalog, loadStockCatalog, updateStockCatalog } from "./stockCatalogClient";
 import { StockFilterDropdown, StockRangeFilter } from "./StockFilterDropdown";
 import {
   buildFilterOptions,
@@ -31,6 +33,7 @@ import {
 } from "./stockInventoryFilters";
 import { isStockRowActivationKey } from "./stockRowInteraction";
 import { StockEntryForm } from "./StockEntryForm";
+import { StockBatchAdjustmentDialog } from "./StockBatchAdjustmentDialog";
 import styles from "./Stock.module.css";
 
 type StockState = "normal" | "low" | "overstock";
@@ -172,6 +175,7 @@ function toggleSelectedOption<T extends string>(options: T[], option: string): T
 }
 
 export default function StockPage() {
+  const { user } = useAuth();
   const { t, formatNumber, preferences } = usePreferences();
   const localizeFilterOption = useCallback(
     (option: string) => getStockFilterOptionLabel(preferences.locale, option),
@@ -193,6 +197,8 @@ export default function StockPage() {
   const [appliedFilters, setAppliedFilters] = useState<AppliedStockInventoryFilters>(createEmptyAppliedFilters);
   const [stockWindowOpen, setStockWindowOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<SalesProduct | null>(null);
+  const [adjustmentProduct, setAdjustmentProduct] = useState<SalesProduct | null>(null);
+  const [adjustmentSuccess, setAdjustmentSuccess] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [products, setProducts] = useState<SalesProduct[]>([]);
 
@@ -214,6 +220,12 @@ export default function StockPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!adjustmentSuccess) return;
+    const timeout = window.setTimeout(() => setAdjustmentSuccess(false), 2600);
+    return () => window.clearTimeout(timeout);
+  }, [adjustmentSuccess]);
+
   const stockItems = useMemo(() => products.map(productToStockItem), [products]);
 
   const visibleItems = useMemo(() => {
@@ -221,11 +233,24 @@ export default function StockPage() {
     const q = query.trim().toLowerCase();
     if (!q) return filteredItems;
 
-    return filteredItems.filter((item) =>
-      [item.name, item.brand, item.manufacturer, item.category, item.pack, item.loc, item.id].some((value) =>
-        value.toLowerCase().includes(q),
-      ),
-    );
+    return filteredItems
+      .map((item) => {
+        const itemName = item.name.toLowerCase();
+        const manufacturer = item.manufacturer.toLowerCase();
+        const priority = itemName.startsWith(q)
+          ? 0
+          : itemName.includes(q)
+            ? 1
+            : manufacturer.startsWith(q)
+              ? 2
+              : manufacturer.includes(q)
+                ? 3
+                : null;
+        return { item, priority };
+      })
+      .filter((result): result is { item: StockItem; priority: number } => result.priority !== null)
+      .sort((a, b) => a.priority - b.priority || a.item.name.localeCompare(b.item.name))
+      .map(({ item }) => item);
   }, [appliedFilters, query, stockItems]);
 
   const stockCategoryFilterOptions = useMemo(
@@ -259,6 +284,32 @@ export default function StockPage() {
   const openEditStockByBarcode = (barcode: string) => {
     const product = products.find((candidate) => candidate.barcode === barcode);
     if (product) openEditStock(product);
+  };
+  const openStockAdjustmentByBarcode = (barcode: string) => {
+    if (user?.role !== "owner") return;
+    const product = products.find((candidate) => candidate.barcode === barcode);
+    if (product) setAdjustmentProduct(product);
+  };
+  const handleStockAdjustmentUpdated = (
+    productId: string,
+    quantities: Array<{ batchNo: string; availableStock: number }>,
+  ) => {
+    const quantityByBatch = new Map(quantities.map((quantity) => [quantity.batchNo, quantity.availableStock]));
+    const nextProducts = products.map((product) => product.id !== productId ? product : ({
+      ...product,
+      batches: product.batches.map((batch) => quantityByBatch.has(batch.batchNo) ? ({
+        ...batch,
+        availableStock: quantityByBatch.get(batch.batchNo) ?? batch.availableStock,
+      }) : batch),
+    }));
+    updateStockCatalog(nextProducts);
+    setProducts(nextProducts);
+    setAdjustmentProduct(null);
+    setAdjustmentSuccess(true);
+    invalidateStockCatalog();
+    void loadStockCatalog()
+      .then((refreshedProducts) => setProducts(refreshedProducts))
+      .catch((error) => console.error(error));
   };
   const closeAddStock = () => {
     setStockWindowOpen(false);
@@ -647,15 +698,20 @@ export default function StockPage() {
                     </td>
                     <td>
                       <span className={styles.actionCell}>
-                        <button
-                          type="button"
-                          className={styles.actionButton}
-                          title={t("stock.adjust")}
-                          aria-label={t("stock.adjustFor", { name: item.name })}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <PackagePlus size={17} />
-                        </button>
+                        {user?.role === "owner" && (
+                          <button
+                            type="button"
+                            className={styles.actionButton}
+                            title={t("stock.adjust")}
+                            aria-label={t("stock.adjustFor", { name: item.name })}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openStockAdjustmentByBarcode(item.id);
+                            }}
+                          >
+                            <PackagePlus size={17} />
+                          </button>
+                        )}
                         <button
                           type="button"
                           className={styles.actionButton}
@@ -697,11 +753,26 @@ export default function StockPage() {
             <StockEntryForm
               key={editingProduct?.id ?? "new-item"}
               initialItem={editingProduct ? productToStockItemInput(editingProduct) : undefined}
+              activeIngredients={editingProduct?.activeIngredients}
+              compositionStatus={editingProduct?.compositionStatus}
               mode={editingProduct ? "edit" : "create"}
               onSave={handleSaveStock}
               onDelete={editingProduct ? handleDeleteStock : undefined}
             />
           </section>
+        </div>
+      )}
+      {adjustmentProduct && user?.role === "owner" && (
+        <StockBatchAdjustmentDialog
+          product={adjustmentProduct}
+          onClose={() => setAdjustmentProduct(null)}
+          onUpdated={handleStockAdjustmentUpdated}
+        />
+      )}
+      {adjustmentSuccess && (
+        <div className={styles.adjustmentSuccessToast} role="status">
+          <CheckCircle2 size={17} />
+          <span>{t("stock.adjustmentSaved")}</span>
         </div>
       )}
     </div>

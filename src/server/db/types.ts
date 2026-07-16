@@ -5,12 +5,28 @@ export type Customer = {
   avatarUrl?: string;
   isMember: boolean;
   frequentProductIds: string[];
+  allergies?: IngredientSummary[];
+};
+
+export type IngredientSummary = {
+  id: string;
+  canonicalName: string;
+  thaiName?: string;
+};
+
+export type ProductCompositionStatus = "pending" | "verified" | "unavailable" | "not_applicable";
+
+export type ProductIngredient = IngredientSummary & {
+  strength?: string;
+  sourceName: string;
+  sourceUrl: string;
 };
 
 export type ProductBatch = {
   batchNo: string;
   expiryDate: string;
   sellPriceThb: number;
+  costThb?: number;
   availableStock: number;
 };
 
@@ -41,6 +57,8 @@ export type SalesProduct = {
   category: string;
   imageUrl: string;
   weeklySold: number;
+  compositionStatus?: ProductCompositionStatus;
+  activeIngredients?: ProductIngredient[];
   batches: ProductBatch[];
 };
 

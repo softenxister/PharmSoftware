@@ -4,6 +4,7 @@ import * as login from "@/app/api/auth/login/route";
 import * as logout from "@/app/api/auth/logout/route";
 import * as setupOwner from "@/app/api/auth/setup-owner/route";
 import * as currentUser from "@/app/api/current-user/route";
+import * as ingredients from "@/app/api/ingredients/route";
 import * as members from "@/app/api/members/route";
 import * as preferences from "@/app/api/preferences/route";
 import * as distributors from "@/app/api/distributors/route";
@@ -12,6 +13,7 @@ import * as purchase from "@/app/api/purchase/route";
 import * as sales from "@/app/api/sales/route";
 import * as staff from "@/app/api/staff/route";
 import * as stockAdjustments from "@/app/api/stock-adjustments/route";
+import * as stockBatchAdjustments from "@/app/api/stock/batch-adjustments/route";
 import * as stock from "@/app/api/stock/route";
 import * as storePosSettings from "@/app/api/store-pos-settings/route";
 
@@ -37,6 +39,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "GET", path: "/api/auth/setup-owner", handler: handler(setupOwner.GET) },
   { method: "POST", path: "/api/auth/setup-owner", handler: handler(setupOwner.POST) },
   { method: "GET", path: "/api/current-user", handler: handler(currentUser.GET) },
+  { method: "GET", path: "/api/ingredients", handler: handler(ingredients.GET) },
   { method: "GET", path: "/api/members", handler: handler(members.GET) },
   { method: "POST", path: "/api/members", handler: handler(members.POST) },
   { method: "PATCH", path: "/api/members", handler: handler(members.PATCH) },
@@ -55,6 +58,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "POST", path: "/api/staff", handler: handler(staff.POST) },
   { method: "PATCH", path: "/api/staff", handler: handler(staff.PATCH) },
   { method: "POST", path: "/api/stock-adjustments", handler: handler(stockAdjustments.POST) },
+  { method: "POST", path: "/api/stock/batch-adjustments", handler: handler(stockBatchAdjustments.POST) },
   { method: "GET", path: "/api/stock", handler: handler(stock.GET) },
   { method: "POST", path: "/api/stock", handler: handler(stock.POST) },
   { method: "DELETE", path: "/api/stock", handler: handler(stock.DELETE) },

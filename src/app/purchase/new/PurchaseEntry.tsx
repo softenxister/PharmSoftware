@@ -27,6 +27,19 @@ import { PurchaseUnitDropdown } from "./PurchaseUnitDropdown";
 import { PurchaseWorkflowBar } from "./PurchaseWorkflowBar";
 import { PurchaseCorrectionDialog } from "./PurchaseCorrectionDialog";
 
+const IconBin = () => (
+  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+    <path
+      d="M4 6.5h12M8 6.5V5a1.5 1.5 0 0 1 1.5-1.5h1A1.5 1.5 0 0 1 12 5v1.5M6 6.5l.6 9a1.5 1.5 0 0 0 1.5 1.4h3.8a1.5 1.5 0 0 0 1.5-1.4l.6-9"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 function parsePositiveNumber(value: string) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
@@ -83,21 +96,19 @@ type PurchaseCorrection = {
   reason: string;
 };
 
-function matchesItemQuery(product: SalesProduct, rawQuery: string) {
+function getItemSearchPriority(product: SalesProduct, rawQuery: string): number | null {
   const query = rawQuery.trim().toLowerCase();
-  if (!query) return false;
+  if (!query) return null;
 
-  if (/^\d{5,}$/.test(query)) return product.barcode.includes(query);
+  if (/^\d{5,}$/.test(query)) return product.barcode.includes(query) ? 0 : null;
 
-  return (
-    product.itemName.toLowerCase().includes(query) ||
-    product.brandName.toLowerCase().includes(query) ||
-    product.manufacturerName.toLowerCase().includes(query) ||
-    product.category.toLowerCase().includes(query) ||
-    product.pack.label.toLowerCase().includes(query) ||
-    product.pack.packUnit.toLowerCase().includes(query) ||
-    product.parentPacks.some(pack => pack.packUnit.toLowerCase().includes(query))
-  );
+  const itemName = product.itemName.toLowerCase();
+  const manufacturer = product.manufacturerName.toLowerCase();
+  if (itemName.startsWith(query)) return 1;
+  if (itemName.includes(query)) return 2;
+  if (manufacturer.startsWith(query)) return 3;
+  if (manufacturer.includes(query)) return 4;
+  return null;
 }
 
 export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
@@ -164,10 +175,17 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
     });
   }, [matches.length]);
 
-  const itemMatches = useMemo(
-    () => catalog.filter(product => matchesItemQuery(product, manualItem)).slice(0, 8),
-    [catalog, manualItem],
-  );
+  const itemMatches = useMemo(() => {
+    const query = manualItem.trim();
+    if (!query) return [];
+
+    return catalog
+      .map(product => ({ product, priority: getItemSearchPriority(product, query) }))
+      .filter((result): result is { product: SalesProduct; priority: number } => result.priority !== null)
+      .sort((a, b) => a.priority - b.priority || a.product.itemName.localeCompare(b.product.itemName))
+      .slice(0, 8)
+      .map(({ product }) => product);
+  }, [catalog, manualItem]);
 
   useEffect(() => {
     setHighlightedItemIndex(0);
@@ -796,18 +814,29 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
               <table className={styles.purchaseLineTable} aria-label={t("purchaseEntry.lines")}>
                 <thead>
                   <tr>
+                    <th aria-hidden="true" />
                     <th>{t("newSale.item")}</th>
                     <th>{t("purchase.qty")}</th>
                     <th>{t("purchaseEntry.cost")}</th>
                     <th>{t("purchaseEntry.freeQty")}</th>
                     <th>{t("purchaseEntry.lotNo")}</th>
                     <th>{t("purchaseEntry.expDate")}</th>
-                    <th aria-label={t("purchaseEntry.actions")} />
                   </tr>
                 </thead>
                 <tbody>
                   {purchaseLines.map(line => (
                     <tr key={line.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className={styles.removeLineButton}
+                          aria-label={`Remove ${line.itemName}`}
+                          disabled={!isEditable}
+                          onClick={() => setPurchaseLines(lines => lines.filter(candidate => candidate.id !== line.id))}
+                        >
+                          <IconBin />
+                        </button>
+                      </td>
                       <td>
                         <div className={styles.purchaseLineItem}>
                           <img src={line.imageUrl} alt="" />
@@ -819,17 +848,6 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                       <td>{line.freeQty ? `${line.freeQty} ${line.freeUnit}` : "-"}</td>
                       <td>{line.lotNo || "-"}</td>
                       <td>{line.expiryDate || "-"}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.removeLineButton}
-                          aria-label={`Remove ${line.itemName}`}
-                          disabled={!isEditable}
-                          onClick={() => setPurchaseLines(lines => lines.filter(candidate => candidate.id !== line.id))}
-                        >
-                          <X size={15} />
-                        </button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>

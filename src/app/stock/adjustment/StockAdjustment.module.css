@@ -14,7 +14,7 @@
   overflow: hidden;
   background: #f5f8f6;
   color: var(--ink);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
 }
 
 .page *,
@@ -426,7 +426,9 @@
   border-radius: 6px;
   outline: none;
   color: var(--ink);
-  font: 800 12px 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
+  font-size: 12px;
+  font-weight: 800;
   padding: 0 9px;
   text-align: right;
 }
@@ -471,7 +473,10 @@
   border-radius: 7px;
   outline: none;
   color: var(--ink);
-  font: 400 12px/1.4 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
   padding: 8px 10px;
 }
 

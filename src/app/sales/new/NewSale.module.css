@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&display=swap');
-
 .page {
   --bg: #F6F9F7;
   --surface: #FFFFFF;
@@ -16,7 +14,7 @@
   --summary-bg: #0B3B2E;
   --summary-bg-light: #12523F;
 
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--app-font);
   color: var(--ink);
   background: var(--bg);
   display: flex;
@@ -360,7 +358,7 @@
   border: none;
   background: var(--primary);
   color: #fff;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-weight: 700;
   font-size: 13.5px;
   padding: 9px 16px;
@@ -559,6 +557,13 @@
   font-size: 11px;
   font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .customerChipMeta {
@@ -749,6 +754,18 @@
   font-weight: 600;
 }
 
+.cartItemName {
+  color: var(--ink);
+}
+
+.allergyWarning {
+  margin-left: 7px;
+  color: #b42318;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .packCell {
   color: var(--ink);
   min-width: 0;
@@ -766,7 +783,7 @@
 
 .lineTotal {
   font-weight: 700;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
 }
 
 .binButton {
@@ -980,11 +997,26 @@
 }
 
 .itemOptionName {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
   font-size: 13.5px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.itemOptionName > span:first-child {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.itemOptionName .allergyWarning {
+  flex: 0 0 auto;
+  margin-left: 0;
 }
 
 .itemOptionSub {
@@ -1002,7 +1034,7 @@
   gap: 2px;
   font-size: 15px;
   font-weight: 700;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   color: var(--primary-dark);
   flex-shrink: 0;
 }
@@ -1077,6 +1109,22 @@
   white-space: nowrap;
 }
 
+.editorItemLine {
+  display: flex;
+  min-width: 0;
+  height: 34px;
+  align-items: center;
+}
+
+.editorItemLine .editorItemName {
+  min-width: 0;
+  line-height: 34px;
+}
+
+.editorItemLine .allergyWarning {
+  flex: 0 0 auto;
+}
+
 .editorFieldMeta {
   overflow: hidden;
   color: var(--ink-muted);
@@ -1142,7 +1190,7 @@
   justify-content: flex-start;
   min-height: 34px;
   color: var(--primary-dark);
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-size: 14px;
   font-weight: 800;
   white-space: nowrap;
@@ -1270,7 +1318,7 @@
   border: none;
   background: var(--primary);
   color: #fff;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-weight: 700;
   font-size: 13px;
   min-width: 54px;
@@ -1389,7 +1437,7 @@
   color: var(--ink);
   font-size: 13px;
   font-weight: 700;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   line-height: 1.2;
 }
 
@@ -1454,7 +1502,7 @@
 .confirmCopy h2 {
   margin: 1px 0 0;
   color: var(--ink);
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-size: 16px;
   font-weight: 800;
 }
@@ -1546,7 +1594,7 @@
 .summaryStatValue {
   font-size: 19px;
   font-weight: 800;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
 }
 
 .summaryDivider {
@@ -1587,7 +1635,7 @@
 .netPayableValue {
   font-size: 24px;
   font-weight: 800;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   color: #fff;
 }
 
@@ -1639,7 +1687,7 @@
 
 .drawerTitle {
   margin: 0;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-weight: 800;
   font-size: 17px;
 }
@@ -1673,7 +1721,7 @@
 .drawerNetPayable {
   font-weight: 800;
   font-size: 17px;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   color: var(--primary-dark);
 }
 
@@ -1747,7 +1795,7 @@
 .customerPayInput {
   font-size: 20px;
   font-weight: 800;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   color: var(--primary-dark);
   text-align: right;
 }
@@ -1769,7 +1817,7 @@
   border-radius: 9px;
   padding: 7px 9px;
   cursor: pointer;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   color: #fff;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
@@ -1858,7 +1906,7 @@
 
 .changePanel strong {
   font-size: 24px;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
 }
 
 .cashDrawerStatus {
@@ -2034,7 +2082,7 @@
   background: var(--surface);
   color: var(--ink);
   cursor: pointer;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-size: 14px;
   font-weight: 900;
 }
@@ -2085,7 +2133,7 @@
   padding: 9px 18px;
   border-radius: 9px;
   cursor: pointer;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
 }
 
 .drawerPrimaryBtn:hover {
@@ -2164,7 +2212,7 @@
 
 .invoiceCreatedTitle {
   margin: 0;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-size: 22px;
   font-weight: 800;
   color: var(--ink);
@@ -2198,7 +2246,7 @@
 
 .invoiceCreatedRow strong {
   color: var(--ink);
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-size: 14px;
   text-align: right;
 }
@@ -2219,7 +2267,7 @@
   width: 100%;
   border-radius: 10px;
   min-height: 42px;
-  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-family: var(--app-font);
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;

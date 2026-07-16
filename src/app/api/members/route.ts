@@ -6,6 +6,7 @@ import {
   updateMember,
 } from "@/server/db/memberRepository";
 import { parseMemberProfileInput } from "@/server/db/memberValidation";
+import { ingredientIdsExist } from "@/server/db/ingredientRepository";
 
 async function authenticatedOrResponse() {
   try {
@@ -49,7 +50,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Member details are invalid." }, { status: 400 });
   }
   const input = parseMemberProfileInput(body);
-  if (!input) return Response.json({ error: "Enter a valid name and mobile number." }, { status: 400 });
+  if (!input) return Response.json({ error: "Enter a valid name and Thai phone number." }, { status: 400 });
+  if (input.allergyIngredientIds && !await ingredientIdsExist(input.allergyIngredientIds)) {
+    return Response.json({ error: "One or more allergy ingredients are invalid." }, { status: 400 });
+  }
   try {
     return Response.json({ member: await createMember(input) }, { status: 201 });
   } catch (error) {
@@ -72,6 +76,9 @@ export async function PATCH(request: Request) {
   const memberId = memberIdFrom(request, record);
   const input = parseMemberProfileInput(body);
   if (!memberId || !input) return Response.json({ error: "Member details are invalid." }, { status: 400 });
+  if (input.allergyIngredientIds && !await ingredientIdsExist(input.allergyIngredientIds)) {
+    return Response.json({ error: "One or more allergy ingredients are invalid." }, { status: 400 });
+  }
   try {
     const member = await updateMember(memberId, input);
     if (!member) return Response.json({ error: "Member was not found." }, { status: 404 });

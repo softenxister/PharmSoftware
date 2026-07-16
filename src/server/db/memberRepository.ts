@@ -2,11 +2,13 @@ import { randomUUID } from "node:crypto";
 import { SaleStatus } from "@/generated/prisma/client";
 import { prisma } from "./prisma";
 import type { MemberProfileInput } from "./memberValidation";
+import type { IngredientSummary } from "./types";
 
 export type MemberSummary = {
   id: string;
   name: string;
   mobile: string;
+  avatarUrl: string | null;
   isMember: true;
   registeredAt: string;
   lastOrderAt: string | null;
@@ -14,6 +16,7 @@ export type MemberSummary = {
   points: number;
   membershipRank: string;
   topItemIds: string[];
+  allergies: IngredientSummary[];
 };
 
 export type MemberTransaction = {
@@ -54,6 +57,7 @@ function memberSummary(customer: {
   id: string;
   name: string;
   mobile: string | null;
+  avatarUrl: string | null;
   points: number;
   membershipRank: string | null;
   createdAt: Date;
@@ -61,6 +65,9 @@ function memberSummary(customer: {
     soldAt: Date;
     netTotal: unknown;
     lines: Array<{ productId: string; quantity: unknown; packMultiplier: unknown }>;
+  }>;
+  ingredientAllergies: Array<{
+    ingredient: { id: string; canonicalName: string; thaiName: string | null };
   }>;
 }): MemberSummary {
   const itemTotals = new Map<string, { quantity: number; lastPurchasedAt: number }>();
@@ -77,6 +84,7 @@ function memberSummary(customer: {
     id: customer.id,
     name: customer.name,
     mobile: customer.mobile ?? "",
+    avatarUrl: customer.avatarUrl,
     isMember: true,
     registeredAt: customer.createdAt.toISOString(),
     lastOrderAt: customer.sales[0]?.soldAt.toISOString() ?? null,
@@ -90,6 +98,11 @@ function memberSummary(customer: {
       ))
       .slice(0, 10)
       .map(([productId]) => productId),
+    allergies: customer.ingredientAllergies.map(({ ingredient }) => ({
+      id: ingredient.id,
+      canonicalName: ingredient.canonicalName,
+      ...(ingredient.thaiName ? { thaiName: ingredient.thaiName } : {}),
+    })),
   };
 }
 
@@ -103,10 +116,17 @@ const paidSalesSelection = {
   },
 };
 
+const ingredientAllergiesSelection = {
+  orderBy: { ingredient: { canonicalName: "asc" as const } },
+  include: {
+    ingredient: { select: { id: true, canonicalName: true, thaiName: true } },
+  },
+};
+
 export async function listMembers(): Promise<MemberSummary[]> {
   const customers = await prisma.customer.findMany({
     where: { isMember: true },
-    include: { sales: paidSalesSelection },
+    include: { sales: paidSalesSelection, ingredientAllergies: ingredientAllergiesSelection },
     orderBy: { name: "asc" },
   });
   return customers.map(memberSummary);
@@ -116,6 +136,7 @@ export async function readMember(memberId: string) {
   const customer = await prisma.customer.findFirst({
     where: { id: memberId, isMember: true },
     include: {
+      ingredientAllergies: ingredientAllergiesSelection,
       sales: {
         orderBy: { soldAt: "desc" },
         include: {
@@ -185,11 +206,15 @@ export async function createMember(input: MemberProfileInput): Promise<MemberSum
       id: `member-${randomUUID()}`,
       name: input.name,
       mobile: input.mobile,
+      avatarUrl: input.avatarUrl,
       isMember: true,
       points: 0,
       membershipRank: "Regular",
+      ingredientAllergies: input.allergyIngredientIds?.length
+        ? { create: input.allergyIngredientIds.map((ingredientId) => ({ ingredientId })) }
+        : undefined,
     },
-    include: { sales: paidSalesSelection },
+    include: { sales: paidSalesSelection, ingredientAllergies: ingredientAllergiesSelection },
   });
   return memberSummary(customer);
 }
@@ -199,8 +224,18 @@ export async function updateMember(memberId: string, input: MemberProfileInput):
   if (!existing) return null;
   const customer = await prisma.customer.update({
     where: { id: memberId },
-    data: { name: input.name, mobile: input.mobile },
-    include: { sales: paidSalesSelection },
+    data: {
+      name: input.name,
+      mobile: input.mobile,
+      ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+      ...(input.allergyIngredientIds ? {
+        ingredientAllergies: {
+          deleteMany: {},
+          create: input.allergyIngredientIds.map((ingredientId) => ({ ingredientId })),
+        },
+      } : {}),
+    },
+    include: { sales: paidSalesSelection, ingredientAllergies: ingredientAllergiesSelection },
   });
   return memberSummary(customer);
 }

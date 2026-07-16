@@ -36,26 +36,33 @@ enum PharmAccountRole {
   PHARMACIST
 }
 
+enum ProductCompositionStatus {
+  PENDING
+  VERIFIED
+  UNAVAILABLE
+  NOT_APPLICABLE
+}
+
 model PharmAccount {
-  id                       String            @id
-  username                 String            @unique
-  passwordHash             String?
-  name                     String
-  phone                    String            @default("")
-  pharmacistLicenseNumber  String?
-  avatarUrl                String?
-  role                     PharmAccountRole
-  isActive                 Boolean           @default(true)
-  mustChangePassword       Boolean           @default(false)
-  setupCompletedAt         DateTime?
-  lastLoginAt              DateTime?
-  createdById              String?
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime          @updatedAt
-  createdBy                PharmAccount?     @relation("PharmAccountCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAccounts          PharmAccount[]    @relation("PharmAccountCreator")
-  preferences              PharmAccountPreference?
-  sessions                 AuthSession[]
+  id                      String                  @id
+  username                String                  @unique
+  passwordHash            String?
+  name                    String
+  phone                   String                  @default("")
+  pharmacistLicenseNumber String?
+  avatarUrl               String?
+  role                    PharmAccountRole
+  isActive                Boolean                 @default(true)
+  mustChangePassword      Boolean                 @default(false)
+  setupCompletedAt        DateTime?
+  lastLoginAt             DateTime?
+  createdById             String?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  createdBy               PharmAccount?           @relation("PharmAccountCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAccounts         PharmAccount[]          @relation("PharmAccountCreator")
+  preferences             PharmAccountPreference?
+  sessions                AuthSession[]
 
   @@index([role, isActive])
 }
@@ -110,34 +117,70 @@ model Manufacturer {
 }
 
 model Product {
-  id                String                    @id
-  barcode           String                    @unique
-  itemName          String
-  brandName         String
-  manufacturerId    String
-  categoryId        String
-  packUnit          String
-  childUnit         String
-  childQuantity     Decimal                   @db.Decimal(14, 3)
-  packLabel         String
-  location          String
-  imageUrl          String
-  weeklySold        Int                       @default(0)
-  isActive          Boolean                   @default(true)
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  manufacturer      Manufacturer              @relation(fields: [manufacturerId], references: [id])
-  category          Category                  @relation(fields: [categoryId], references: [id])
-  parentPacks       ProductParentPack[]
-  batches           ProductBatch[]
-  favoriteCustomers CustomerFavoriteProduct[]
-  purchaseLines     PurchaseLine[]
-  saleLines         SaleLine[]
+  id                   String                    @id
+  barcode              String                    @unique
+  itemName             String
+  brandName            String
+  manufacturerId       String
+  categoryId           String
+  packUnit             String
+  childUnit            String
+  childQuantity        Decimal                   @db.Decimal(14, 3)
+  packLabel            String
+  location             String
+  imageUrl             String
+  weeklySold           Int                       @default(0)
+  isActive             Boolean                   @default(true)
+  compositionStatus    ProductCompositionStatus  @default(PENDING)
+  compositionCheckedAt DateTime?
+  compositionRetryAt   DateTime?
+  compositionError     String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  manufacturer         Manufacturer              @relation(fields: [manufacturerId], references: [id])
+  category             Category                  @relation(fields: [categoryId], references: [id])
+  parentPacks          ProductParentPack[]
+  batches              ProductBatch[]
+  favoriteCustomers    CustomerFavoriteProduct[]
+  purchaseLines        PurchaseLine[]
+  saleLines            SaleLine[]
   stockAdjustmentLines StockAdjustmentLine[]
+  activeIngredients    ProductIngredient[]
 
   @@index([categoryId])
   @@index([manufacturerId])
   @@index([itemName])
+}
+
+model Ingredient {
+  id                String                      @id
+  canonicalName     String                      @unique
+  normalizedName    String                      @unique
+  thaiName          String?
+  aliases           String[]                    @default([])
+  rxNormId          String?                     @unique
+  unii              String?                     @unique
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  products          ProductIngredient[]
+  customerAllergies CustomerIngredientAllergy[]
+
+  @@index([canonicalName])
+}
+
+model ProductIngredient {
+  productId      String
+  ingredientId   String
+  strength       String?
+  sourceName     String
+  sourceRecordId String?
+  sourceUrl      String
+  verifiedAt     DateTime   @default(now())
+  product        Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient     Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@id([productId, ingredientId])
+  @@index([ingredientId])
 }
 
 model ProductParentPack {
@@ -182,17 +225,29 @@ model Distributor {
 }
 
 model Customer {
-  id               String                    @id
-  name             String
-  mobile           String?                   @unique
-  avatarUrl        String?
-  isMember         Boolean                   @default(false)
-  points           Int                       @default(0)
-  membershipRank   String?
-  favoriteProducts CustomerFavoriteProduct[]
-  sales            Sale[]
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
+  id                  String                      @id
+  name                String
+  mobile              String?                     @unique
+  avatarUrl           String?
+  isMember            Boolean                     @default(false)
+  points              Int                         @default(0)
+  membershipRank      String?
+  favoriteProducts    CustomerFavoriteProduct[]
+  sales               Sale[]
+  ingredientAllergies CustomerIngredientAllergy[]
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+}
+
+model CustomerIngredientAllergy {
+  customerId   String
+  ingredientId String
+  createdAt    DateTime   @default(now())
+  customer     Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@id([customerId, ingredientId])
+  @@index([ingredientId])
 }
 
 model CustomerFavoriteProduct {
@@ -231,22 +286,22 @@ model StorePosSettings {
 }
 
 model PurchaseBill {
-  id              String             @id
-  billNo          String             @unique
-  invoiceNo       String
-  purchasedAt     DateTime
-  distributorId   String?
-  distributorName String
-  itemCount       Int
-  totalQty        Decimal            @db.Decimal(14, 3)
-  netTotal        Decimal            @db.Decimal(14, 2)
-  status          PurchaseBillStatus
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  distributor     Distributor?       @relation(fields: [distributorId], references: [id], onDelete: SetNull)
-  lines           PurchaseLine[]
+  id                 String                      @id
+  billNo             String                      @unique
+  invoiceNo          String
+  purchasedAt        DateTime
+  distributorId      String?
+  distributorName    String
+  itemCount          Int
+  totalQty           Decimal                     @db.Decimal(14, 3)
+  netTotal           Decimal                     @db.Decimal(14, 2)
+  status             PurchaseBillStatus
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  distributor        Distributor?                @relation(fields: [distributorId], references: [id], onDelete: SetNull)
+  lines              PurchaseLine[]
   correctionRequests PurchaseCorrectionRequest[]
-  stockAdjustments StockAdjustment[]
+  stockAdjustments   StockAdjustment[]
 
   @@index([purchasedAt])
   @@index([distributorId])
@@ -286,15 +341,15 @@ model StockAdjustment {
 }
 
 model StockAdjustmentLine {
-  id               String          @id
+  id                String          @id
   stockAdjustmentId String
-  productId        String
-  batchNo          String
-  previousQuantity Decimal         @db.Decimal(14, 3)
-  newQuantity      Decimal         @db.Decimal(14, 3)
-  delta            Decimal         @db.Decimal(14, 3)
-  stockAdjustment  StockAdjustment @relation(fields: [stockAdjustmentId], references: [id], onDelete: Cascade)
-  product          Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId         String
+  batchNo           String
+  previousQuantity  Decimal         @db.Decimal(14, 3)
+  newQuantity       Decimal         @db.Decimal(14, 3)
+  delta             Decimal         @db.Decimal(14, 3)
+  stockAdjustment   StockAdjustment @relation(fields: [stockAdjustmentId], references: [id], onDelete: Cascade)
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([stockAdjustmentId])
   @@index([productId, batchNo])

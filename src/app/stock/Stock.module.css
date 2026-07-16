@@ -1114,6 +1114,101 @@
   gap: 12px;
 }
 
+.genericNamePanel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  border: 1px solid #cfe0d6;
+  border-radius: 7px;
+  background: #f6faf7;
+  padding: 10px;
+}
+
+.genericNameHeading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.genericNameHeading > span {
+  color: var(--stock-muted);
+  font-family: var(--app-font);
+  font-size: 11px;
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
+  font-weight: 820;
+  text-transform: uppercase;
+}
+
+.genericNameHeading > small {
+  color: #667a6e;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.genericIngredientList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.genericIngredient {
+  display: flex;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--stock-border-soft);
+  border-radius: 6px;
+  background: var(--stock-surface);
+  padding: 7px 9px;
+}
+
+.genericIngredientNames {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.genericIngredientNames strong {
+  overflow: hidden;
+  color: var(--stock-ink);
+  font-size: 12.5px;
+  font-weight: 820;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.genericIngredientNames small {
+  overflow: hidden;
+  color: var(--stock-muted);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.genericIngredientStrength {
+  flex: 0 0 auto;
+  color: var(--stock-primary-dark);
+  font-size: 11px;
+  font-weight: 790;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.genericNameEmpty {
+  margin: 0;
+  color: var(--stock-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .field {
   display: flex;
   min-width: 0;
@@ -1484,6 +1579,352 @@
 .stockEntryWindow .stockForm {
   height: 100%;
   padding: 12px;
+}
+
+.adjustmentBackdrop {
+  position: fixed;
+  inset: 56px 0 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(19, 34, 24, 0.3);
+  padding: 20px;
+}
+
+.adjustmentDialog {
+  display: flex;
+  width: min(920px, calc(100vw - 40px));
+  max-height: min(720px, calc(100vh - 96px));
+  min-height: 390px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #bfd1c7;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(10, 31, 20, 0.32);
+}
+
+.adjustmentHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 13px;
+  border-bottom: 1px solid var(--stock-border);
+  background: #f8fbf9;
+  padding: 18px 24px;
+}
+
+.adjustmentImageFrame {
+  display: inline-flex;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--stock-border);
+  border-radius: 8px;
+  background: #fff;
+  color: #7b9185;
+}
+
+.adjustmentImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.adjustmentProductInfo {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.adjustmentProductInfo h2 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--stock-ink);
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adjustmentProductMeta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--stock-muted);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.adjustmentProductMeta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adjustmentCloseButton {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #50635a;
+  cursor: pointer;
+}
+
+.adjustmentCloseButton:hover:not(:disabled) {
+  border-color: var(--stock-border);
+  background: var(--stock-primary-soft);
+  color: var(--stock-primary-dark);
+}
+
+.adjustmentCloseButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.adjustmentTableWrap {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.adjustmentTable {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.adjustmentTable th,
+.adjustmentTable td {
+  height: 50px;
+  border-bottom: 1px solid var(--stock-border-soft);
+  padding: 8px 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.adjustmentTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 38px;
+  background: #f3f7f5;
+  color: #52665c;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.adjustmentTable th:first-child,
+.adjustmentTable td:first-child {
+  padding-left: 24px;
+  text-align: left;
+}
+
+.adjustmentTable th:last-child,
+.adjustmentTable td:last-child {
+  padding-right: 24px;
+}
+
+.adjustmentBatch {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--stock-ink);
+  font-weight: 750;
+  text-overflow: ellipsis;
+}
+
+.adjustmentCurrentQuantity {
+  color: #3d5046;
+  font-weight: 750;
+}
+
+.adjustmentQuantityInput {
+  width: 92px;
+  height: 32px;
+  border: 1px solid #b9cbc1;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--stock-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  outline: none;
+  padding: 0 9px;
+}
+
+.adjustmentQuantityInput:focus {
+  border-color: var(--stock-primary);
+  box-shadow: 0 0 0 2px rgba(31, 111, 72, 0.14);
+}
+
+.adjustmentQuantityInput[aria-invalid="true"] {
+  border-color: var(--stock-danger);
+  background: #fff9f8;
+}
+
+.adjustmentQuantityInput:disabled {
+  background: #eef3f0;
+  color: #718078;
+}
+
+.adjustmentChange {
+  min-width: 74px;
+  color: #55675e;
+  font-weight: 850;
+}
+
+.adjustmentChangePositive {
+  color: #087e43 !important;
+}
+
+.adjustmentChangeNegative {
+  color: #b3423b !important;
+}
+
+.adjustmentEmpty {
+  display: flex;
+  min-height: 170px;
+  align-items: center;
+  justify-content: center;
+  color: var(--stock-muted);
+  font-size: 13px;
+}
+
+.adjustmentFooter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 16px;
+  border-top: 1px solid var(--stock-border);
+  background: #f8fbf9;
+  padding: 18px 24px;
+}
+
+.adjustmentTotals {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 18px;
+  color: var(--stock-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.adjustmentTotals strong {
+  margin-left: 4px;
+  color: currentColor;
+  font-size: 13.5px;
+  font-weight: 850;
+}
+
+.adjustmentError {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0;
+  color: var(--stock-danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adjustmentSubmitButton {
+  min-width: 144px;
+  height: 36px;
+  border: 1px solid var(--stock-primary);
+  border-radius: 6px;
+  background: var(--stock-primary);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 0 16px;
+}
+
+.adjustmentSubmitButton:hover:not(:disabled) {
+  background: var(--stock-primary-dark);
+}
+
+.adjustmentSubmitButton:disabled {
+  border-color: #bdcbc3;
+  background: #dce5e0;
+  color: #728178;
+  cursor: not-allowed;
+}
+
+.adjustmentSuccessToast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 120;
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #afd2bf;
+  border-radius: 7px;
+  background: #eff8f3;
+  box-shadow: 0 10px 28px rgba(22, 73, 47, 0.16);
+  color: #155c3e;
+  font-size: 12.5px;
+  font-weight: 750;
+  padding: 8px 12px;
+}
+
+@media (max-width: 820px) {
+  .adjustmentBackdrop {
+    padding: 12px;
+  }
+
+  .adjustmentDialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 80px);
+  }
+
+  .adjustmentHeader,
+  .adjustmentFooter {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .adjustmentTable th:first-child,
+  .adjustmentTable td:first-child {
+    padding-left: 18px;
+  }
+
+  .adjustmentTable th:last-child,
+  .adjustmentTable td:last-child {
+    padding-right: 18px;
+  }
+
+  .adjustmentFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .adjustmentTotals {
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .adjustmentSubmitButton {
+    width: 100%;
+  }
 }
 
 .stockFormPortrait .formBody {

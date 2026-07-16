@@ -1,3 +1,16 @@
+html,
+body,
+#root {
+  font-family: var(--app-font);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 .app-shell {
   display: flex;
   width: 100%;
@@ -6,7 +19,6 @@
   flex-direction: column;
   overflow: hidden;
   background: #f6f8f6;
-  font-family: var(--app-font);
 }
 
 .app-main {

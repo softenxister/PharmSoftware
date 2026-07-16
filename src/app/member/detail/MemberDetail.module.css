@@ -4,7 +4,8 @@
 .backButton:hover { background: #eaf0ec; color: #24533a; }
 .profileHeader { display: flex; min-height: 84px; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; border: 1px solid #d7e0da; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(20,35,25,.05); }
 .identity { display: flex; min-width: 0; align-items: center; gap: 13px; }
-.avatar { display: inline-flex; width: 50px; height: 50px; flex: 0 0 50px; align-items: center; justify-content: center; border: 1px solid #c8d9ce; border-radius: 50%; background: #e0ede4; color: #24533a; font-size: 15px; font-weight: 780; }
+.avatar { display: inline-flex; width: 50px; height: 50px; flex: 0 0 50px; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #c8d9ce; border-radius: 50%; background: #e0ede4; color: #24533a; font-size: 15px; font-weight: 780; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
 .identityText { min-width: 0; }
 .identityText p, .dialogHeader p { margin: 0 0 2px; color: #65756a; font-size: 11px; font-weight: 680; }
 .identityText h1 { overflow: hidden; margin: 0; color: #132218; font-size: 22px; font-weight: 780; text-overflow: ellipsis; white-space: nowrap; }
@@ -16,6 +17,16 @@
 .summaryCard span { display: block; overflow: hidden; color: #6a786f; font-size: 10px; font-weight: 720; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .summaryCard strong { display: block; overflow: hidden; margin-top: 7px; color: #1e3c2a; font-size: 15px; font-weight: 780; text-overflow: ellipsis; white-space: nowrap; }
 .summaryCard .rankValue { color: #8a641e; }
+.allergyPanel { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: 18px; margin: 0 0 10px; padding: 11px 14px; border: 1px solid #ead1d1; border-radius: 8px; background: #fffafa; }
+.allergyPanelHeading { display: flex; min-width: 220px; align-items: center; gap: 10px; }
+.allergyPanelIcon { display: inline-flex; width: 30px; height: 30px; flex: 0 0 30px; align-items: center; justify-content: center; border-radius: 6px; background: #f7dfdf; color: #a33030; }
+.allergyPanelHeading h2 { margin: 0; color: #482626; font-size: 13px; font-weight: 760; }
+.allergyPanelHeading p { margin: 2px 0 0; color: #836666; font-size: 10px; }
+.allergyList { display: flex; min-width: 0; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.allergyTag { display: inline-flex; min-width: 0; min-height: 30px; align-items: baseline; gap: 6px; padding: 6px 9px; border: 1px solid #e2bcbc; border-radius: 6px; background: #fff; color: #8f2929; }
+.allergyTag strong { overflow: hidden; max-width: 190px; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.allergyTag small { color: #8d6b6b; font-size: 10px; white-space: nowrap; }
+.noAllergies { color: #7d736f; font-size: 11px; }
 .historyPanel { overflow: hidden; border: 1px solid #d7e0da; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(20,35,25,.05); }
 .tabs { display: flex; height: 48px; align-items: stretch; gap: 2px; padding: 0 12px; border-bottom: 1px solid #e3e9e5; }
 .tabs button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #68766d; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; padding: 0 12px; }
@@ -34,7 +45,7 @@
 .table th:nth-child(3) { width: 180px; }
 .table tbody tr:not(.lineDetailRow):hover { background: #fbfdfb; }
 .billNo { color: #285b78; font-weight: 760; }
-.amount { color: #183c29; font-weight: 760; font-variant-numeric: tabular-nums; }
+.amount { color: #183c29; font-weight: 760; }
 .expandButton { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border: 0; border-radius: 4px; background: transparent; color: #53655b; cursor: pointer; }
 .expandButton:hover { background: #eaf1ec; }
 .status { display: inline-flex; min-width: 62px; height: 24px; align-items: center; justify-content: center; border-radius: 999px; font-size: 10px; font-weight: 740; padding: 0 8px; }
@@ -48,23 +59,52 @@
 .itemTable th:first-child, .itemTable td:first-child { width: 50%; text-align: left; }
 .itemTable td:first-child { overflow: hidden; text-overflow: ellipsis; }
 .emptyState { display: flex; min-height: 170px; align-items: center; justify-content: center; border-top: 1px solid #edf1ee; color: #6b7970; font-size: 13px; }
-.statePage { display: flex; min-height: 60vh; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 20px; background: #f6f8f6; color: #647269; font-size: 13px; text-align: center; }
+.statePage { display: flex; box-sizing: border-box; width: 100%; min-width: 0; min-height: 0; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 20px; background: #f6f8f6; color: #647269; font-size: 13px; text-align: center; }
 .statePage strong { color: #26362c; font-size: 16px; }
 .statePage button { height: 34px; margin-top: 7px; border: 1px solid #b8cabe; border-radius: 5px; background: #fff; color: #24533a; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; padding: 0 12px; }
 .dialogBackdrop { position: fixed; z-index: 100; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(14,29,20,.42); }
-.dialog { width: min(440px, 100%); overflow: hidden; border: 1px solid #cad8cf; border-radius: 8px; background: #fff; box-shadow: 0 18px 48px rgba(16,34,23,.22); }
+.dialog { width: min(520px, 100%); max-height: calc(100vh - 40px); overflow: auto; border: 1px solid #cad8cf; border-radius: 8px; background: #fff; box-shadow: 0 18px 48px rgba(16,34,23,.22); }
 .dialogHeader { padding: 13px 16px; border-bottom: 1px solid #e3ebe6; }
 .dialogHeader h2 { margin: 0; color: #132218; font-size: 17px; }
 .editForm { display: grid; gap: 14px; padding: 16px; }
 .editForm label { display: grid; gap: 6px; color: #34463b; font-size: 12px; font-weight: 700; }
 .editForm input { box-sizing: border-box; width: 100%; height: 38px; border: 1px solid #cad6ce; border-radius: 6px; color: #132218; font: inherit; font-size: 13px; padding: 0 11px; }
 .editForm input:focus { border-color: #2f7c4e; box-shadow: 0 0 0 3px rgba(47,124,78,.12); outline: 0; }
+.avatarEditor { display: grid; grid-template-columns: 52px minmax(120px, 1fr) auto auto; align-items: center; gap: 8px 10px; padding: 10px; border: 1px solid #d9e2dc; border-radius: 7px; background: #f8faf9; }
+.avatarPreview { display: inline-flex; width: 52px; height: 52px; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #bfd0c5; border-radius: 50%; background: #e0ede4; color: #24533a; font-size: 14px; font-weight: 780; }
+.avatarPreview img { width: 100%; height: 100%; object-fit: cover; }
+.avatarCopy { display: grid; min-width: 0; align-self: stretch; align-content: center; gap: 2px; }
+.avatarCopy strong { color: #2f4136; font-size: 12px; }
+.avatarCopy small { color: #718078; font-size: 10px; font-weight: 520; }
+.photoButton, .removePhotoButton { display: inline-flex; height: 32px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #bdcec3; border-radius: 6px; background: #fff; color: #24533a; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; padding: 0 10px; }
+.editForm .photoButton { position: relative; display: inline-flex; width: auto; flex: 0 0 auto; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; }
+.photoButton input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.removePhotoButton { color: #68766e; }
+.photoButton:hover, .removePhotoButton:hover { background: #edf4ef; }
+.avatarError { grid-column: 2 / -1; margin: 0; color: #9d2d2d; font-size: 10px; }
 .readOnlyNote, .formError { margin: -3px 0 0; color: #68766e; font-size: 11px; }
 .formError { color: #9d2d2d; }
+.allergyEditor { display: grid; gap: 7px; }
+.allergyEditorLabel { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #34463b; font-size: 12px; font-weight: 700; }
+.allergyEditorLabel small { color: #718078; font-size: 10px; font-weight: 520; }
+.selectedAllergies { display: flex; flex-wrap: wrap; gap: 5px; }
+.selectedAllergyTag { display: inline-flex; height: 27px; align-items: center; gap: 4px; border: 1px solid #e0b9b9; border-radius: 5px; background: #fff4f4; color: #8f2929; font-size: 10px; font-weight: 700; padding: 0 3px 0 8px; }
+.selectedAllergyTag button { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border: 0; border-radius: 4px; background: transparent; color: #9b4b4b; cursor: pointer; padding: 0; }
+.selectedAllergyTag button:hover { background: #f2dddd; color: #7d2020; }
+.ingredientCombobox { position: relative; color: #718078; }
+.ingredientCombobox > svg { position: absolute; z-index: 1; top: 50%; left: 10px; pointer-events: none; transform: translateY(-50%); }
+.editForm .ingredientCombobox input { padding-left: 32px; }
+.ingredientOptions { overflow-y: auto; max-height: 156px; border: 1px solid #d8e1db; border-radius: 6px; background: #fff; }
+.ingredientOptions button { display: flex; width: 100%; min-height: 42px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; border: 0; border-top: 1px solid #edf1ee; background: #fff; color: #2d4034; cursor: pointer; font: inherit; padding: 6px 10px; text-align: left; }
+.ingredientOptions button:first-of-type { border-top: 0; }
+.ingredientOptions button:hover { background: #f0f6f2; }
+.ingredientOptions button strong { font-size: 11px; }
+.ingredientOptions button span { color: #718078; font-size: 10px; }
+.ingredientState { display: flex; min-height: 42px; align-items: center; color: #718078; font-size: 11px; padding: 0 10px; }
 .dialogActions { display: flex; justify-content: flex-end; gap: 8px; }
 .dialogActions button { height: 36px; border: 1px solid #cad6ce; border-radius: 6px; background: #fff; color: #405147; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; padding: 0 14px; }
 .dialogActions button[type="submit"] { border-color: #23643e; background: #2f7c4e; color: #fff; }
 .dialogActions button:disabled { border-color: #aec2b5; background: #aec2b5; cursor: not-allowed; }
-.backButton:focus-visible, .editButton:focus-visible, .tabs button:focus-visible, .statusFilters button:focus-visible, .orderButton:focus-visible, .expandButton:focus-visible, .dialogActions button:focus-visible { outline: 2px solid rgba(47,124,78,.45); outline-offset: 2px; }
+.backButton:focus-visible, .editButton:focus-visible, .tabs button:focus-visible, .statusFilters button:focus-visible, .orderButton:focus-visible, .expandButton:focus-visible, .dialogActions button:focus-visible, .ingredientOptions button:focus-visible, .selectedAllergyTag button:focus-visible, .photoButton:focus-within, .removePhotoButton:focus-visible { outline: 2px solid rgba(47,124,78,.45); outline-offset: 2px; }
 @media (max-width: 1100px) { .summaryGrid { grid-template-columns: repeat(3, minmax(150px, 1fr)); } }
-@media (max-width: 800px) { .content { padding: 14px; } .summaryGrid { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .profileHeader { align-items: flex-start; } .tableToolbar { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 800px) { .content { padding: 14px; } .summaryGrid { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .profileHeader { align-items: flex-start; } .allergyPanel { align-items: flex-start; flex-direction: column; } .allergyList { justify-content: flex-start; } .tableToolbar { align-items: flex-start; flex-direction: column; } .avatarEditor { grid-template-columns: 52px minmax(0, 1fr) auto; } .removePhotoButton { grid-column: 2 / -1; justify-self: start; } }

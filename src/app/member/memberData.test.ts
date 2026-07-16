@@ -14,6 +14,7 @@ const members: MemberRecord[] = [
     points: 120,
     membershipRank: "Regular",
     topItemIds: [],
+    allergies: [],
   },
   {
     id: "m-2",
@@ -26,6 +27,7 @@ const members: MemberRecord[] = [
     points: 980,
     membershipRank: "Silver",
     topItemIds: [],
+    allergies: [],
   },
 ];
 
