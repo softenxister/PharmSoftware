@@ -46,10 +46,16 @@ const distributorSeeds = [
 ];
 
 const counterCustomers = [
-  { id: "c1", name: "Suchada Wong", mobile: "081-234-5566", points: 4280, rank: "Platinum", products: ["p-sara", "p-tiffy", "p-airx", "p-gaviscon", "p-betadine"] },
-  { id: "c2", name: "Kridsada Phan", mobile: "089-771-2201", points: 2150, rank: "Gold", products: ["p-blackmores-c", "p-natc", "p-nivea-sun", "p-dentiste", "p-nexcare"] },
-  { id: "c3", name: "Areeya Somboon", mobile: "086-005-9981", points: 980, rank: "Silver", products: ["p-zyrtec", "p-tylenol", "p-ors", "p-smooth-e"] },
-  { id: "c4", name: "Natthapong Lee", mobile: "090-441-7723", points: 310, rank: "Regular", products: ["p-gaviscon", "p-sara", "p-durex"] },
+  { id: "c1", name: "Suchada Wong", mobile: "081-234-5566", registeredAt: "2023-08-14", points: 4280, rank: "Platinum", products: ["p-sara", "p-tiffy", "p-airx", "p-gaviscon", "p-betadine"] },
+  { id: "c2", name: "Kridsada Phan", mobile: "089-771-2201", registeredAt: "2024-02-21", points: 2150, rank: "Gold", products: ["p-blackmores-c", "p-natc", "p-nivea-sun", "p-dentiste", "p-nexcare"] },
+  { id: "c3", name: "Areeya Somboon", mobile: "086-005-9981", registeredAt: "2025-01-08", points: 980, rank: "Silver", products: ["p-zyrtec", "p-tylenol", "p-ors", "p-smooth-e"] },
+  { id: "c4", name: "Natthapong Lee", mobile: "090-441-7723", registeredAt: "2024-11-19", points: 310, rank: "Regular", products: ["p-gaviscon", "p-sara", "p-durex"] },
+  { id: "c5", name: "Pimchanok Saelim", mobile: "082-636-1044", registeredAt: "2023-05-02", points: 0, rank: "Regular", products: [] },
+  { id: "c6", name: "Chayut Rattanakul", mobile: "095-218-6730", registeredAt: "2025-09-27", points: 0, rank: "Regular", products: [] },
+  { id: "c7", name: "Nicha Kittisak", mobile: "084-903-2258", registeredAt: "2026-01-16", points: 0, rank: "Regular", products: [] },
+  { id: "c8", name: "Warut Charoen", mobile: "088-514-9072", registeredAt: "2024-06-30", points: 0, rank: "Regular", products: [] },
+  { id: "c9", name: "Kanokwan Meechai", mobile: "092-775-4306", registeredAt: "2025-04-11", points: 0, rank: "Regular", products: [] },
+  { id: "c10", name: "Thana Pongsawat", mobile: "063-184-6629", registeredAt: "2023-12-05", points: 0, rank: "Regular", products: [] },
 ];
 
 const owners = [
@@ -216,7 +222,15 @@ async function seedPeople(productIds: Set<string>) {
     await prisma.customer.upsert({
       where: { id: customer.id },
       update: { name: customer.name, mobile: customer.mobile, isMember: true, points: customer.points, membershipRank: customer.rank },
-      create: { id: customer.id, name: customer.name, mobile: customer.mobile, isMember: true, points: customer.points, membershipRank: customer.rank },
+      create: {
+        id: customer.id,
+        name: customer.name,
+        mobile: customer.mobile,
+        isMember: true,
+        points: customer.points,
+        membershipRank: customer.rank,
+        createdAt: new Date(`${customer.registeredAt}T00:00:00+07:00`),
+      },
     });
 
     const favorites = customer.products.filter((productId) => productIds.has(productId));

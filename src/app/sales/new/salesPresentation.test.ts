@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildProductDescription } from "./salesPresentation";
+import { buildProductDescription, shouldUseSellPackDropdown } from "./salesPresentation";
 
 test("stock is appended to product details instead of displayed below price", () => {
   assert.equal(buildProductDescription({
@@ -30,4 +30,10 @@ test("product location appears only when the owner enables it", () => {
     showLocation: true,
     showStock: true,
   }), "Nexcare - 4 pieces - 0 stock");
+});
+
+test("sell-pack selection becomes a dropdown only when multiple packages exist", () => {
+  assert.equal(shouldUseSellPackDropdown(0), false);
+  assert.equal(shouldUseSellPackDropdown(1), false);
+  assert.equal(shouldUseSellPackDropdown(2), true);
 });

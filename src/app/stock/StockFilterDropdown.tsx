@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import styles from "./Stock.module.css";
 
 interface StockFilterDropdownProps {
@@ -14,7 +15,10 @@ interface StockFilterDropdownProps {
   onToggleOption: (option: string) => void;
   searchable?: boolean;
   helperText?: string;
+  getOptionLabel?: (option: string) => string;
 }
+
+const defaultOptionLabel = (option: string) => option;
 
 export function StockFilterDropdown({
   id,
@@ -26,13 +30,18 @@ export function StockFilterDropdown({
   onToggleOption,
   searchable = true,
   helperText,
+  getOptionLabel = defaultOptionLabel,
 }: StockFilterDropdownProps) {
+  const { t } = usePreferences();
   const [query, setQuery] = useState("");
   const visibleOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return options;
-    return options.filter((option) => option.toLowerCase().includes(normalizedQuery));
-  }, [options, query]);
+    return options.filter((option) => (
+      option.toLowerCase().includes(normalizedQuery)
+      || getOptionLabel(option).toLowerCase().includes(normalizedQuery)
+    ));
+  }, [getOptionLabel, options, query]);
 
   const handleToggle = () => {
     setQuery("");
@@ -68,8 +77,8 @@ export function StockFilterDropdown({
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={`Search ${label.toLowerCase()}`}
-                aria-label={`Search ${label.toLowerCase()}`}
+                placeholder={t("stock.searchFilter", { label })}
+                aria-label={t("stock.searchFilter", { label })}
               />
             </label>
           )}
@@ -77,20 +86,23 @@ export function StockFilterDropdown({
           <div
             className={`${styles.categoryOptions} ${!searchable ? styles.categoryOptionsCompact : ""}`}
             role="group"
-            aria-label={`${label} options`}
+            aria-label={t("stock.filterOptions", { label })}
           >
-            {visibleOptions.map((option) => (
-              <label className={styles.categoryOption} key={option}>
-                <input
-                  type="checkbox"
-                  checked={selectedOptions.includes(option)}
-                  onChange={() => onToggleOption(option)}
-                />
-                <span title={option}>{option}</span>
-              </label>
-            ))}
+            {visibleOptions.map((option) => {
+              const optionLabel = getOptionLabel(option);
+              return (
+                <label className={styles.categoryOption} key={option}>
+                  <input
+                    type="checkbox"
+                    checked={selectedOptions.includes(option)}
+                    onChange={() => onToggleOption(option)}
+                  />
+                  <span title={optionLabel}>{optionLabel}</span>
+                </label>
+              );
+            })}
             {visibleOptions.length === 0 && (
-              <span className={styles.categoryEmpty}>No matching options</span>
+              <span className={styles.categoryEmpty}>{t("stock.noOptions")}</span>
             )}
           </div>
           {helperText && <p className={styles.filterHelperText}>{helperText}</p>}
@@ -119,6 +131,7 @@ export function StockRangeFilter({
   onMinimumChange,
   onMaximumChange,
 }: StockRangeFilterProps) {
+  const { t } = usePreferences();
   const hasRange = minimum.trim().length > 0 || maximum.trim().length > 0;
 
   return (
@@ -131,7 +144,7 @@ export function StockRangeFilter({
         onClick={onToggle}
       >
         <span className={styles.filterText}>
-          <span className={styles.filterLabel}>Stock Range</span>
+          <span className={styles.filterLabel}>{t("stock.range")}</span>
         </span>
         <span className={styles.filterButtonEnd}>
           {hasRange && <span className={styles.filterCount}>1</span>}
@@ -142,7 +155,7 @@ export function StockRangeFilter({
       {isOpen && (
         <div className={styles.stockRangePanel} id="stock-range-options">
           <label className={styles.stockRangeField}>
-            <span>Minimum</span>
+            <span>{t("stock.minimum")}</span>
             <input
               type="number"
               min="0"
@@ -154,7 +167,7 @@ export function StockRangeFilter({
             />
           </label>
           <label className={styles.stockRangeField}>
-            <span>Maximum</span>
+            <span>{t("stock.maximum")}</span>
             <input
               type="number"
               min="0"
@@ -162,10 +175,10 @@ export function StockRangeFilter({
               inputMode="numeric"
               value={maximum}
               onChange={(event) => onMaximumChange(event.target.value)}
-              placeholder="Any"
+              placeholder={t("stock.any")}
             />
           </label>
-          {!isValid && <p className={styles.stockRangeError}>Enter valid stock numbers with minimum ≤ maximum.</p>}
+          {!isValid && <p className={styles.stockRangeError}>{t("stock.rangeError")}</p>}
         </div>
       )}
     </div>

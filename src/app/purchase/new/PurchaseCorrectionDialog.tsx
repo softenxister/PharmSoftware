@@ -1,6 +1,7 @@
 "use client";
 
 import { Send, X } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import styles from "./PurchaseEntry.module.css";
 
 type PurchaseCorrectionDialogProps = {
@@ -20,6 +21,7 @@ export function PurchaseCorrectionDialog({
   onClose,
   onSubmit,
 }: PurchaseCorrectionDialogProps) {
+  const { t } = usePreferences();
   return (
     <div className={styles.purchaseConfirmBackdrop} role="presentation" onMouseDown={onClose}>
       <section
@@ -31,28 +33,28 @@ export function PurchaseCorrectionDialog({
       >
         <div className={styles.correctionDialogHeader}>
           <div>
-            <h2 id="purchase-correction-title">Request purchase correction</h2>
-            <p>Stock stays unchanged until an owner or admin reviews this request.</p>
+            <h2 id="purchase-correction-title">{t("purchaseEntry.requestTitle")}</h2>
+            <p>{t("purchaseEntry.requestHint")}</p>
           </div>
-          <button type="button" className={styles.correctionCloseButton} onClick={onClose} aria-label="Close correction request">
+          <button type="button" className={styles.correctionCloseButton} onClick={onClose} aria-label={t("purchaseEntry.closeRequest")}>
             <X size={16} />
           </button>
         </div>
         <label className={styles.correctionReasonField}>
-          <span>Reason for correction</span>
+          <span>{t("purchaseEntry.reason")}</span>
           <textarea
             value={reason}
             maxLength={500}
             autoFocus
-            placeholder="Example: Received 12 boxes, but the bill was completed with 10 boxes."
+            placeholder={t("purchaseEntry.reasonExample")}
             onChange={event => onReasonChange(event.target.value)}
           />
-          <small>{reason.trim().length}/500 · minimum 8 characters</small>
+          <small>{t("purchaseEntry.reasonCount", { count: reason.trim().length })}</small>
         </label>
         {error && <p className={styles.purchaseConfirmError} role="alert">{error}</p>}
         <div className={styles.purchaseConfirmActions}>
           <button type="button" className={styles.secondaryWindowButton} onClick={onClose} disabled={isSubmitting}>
-            Cancel
+            {t("staff.cancel")}
           </button>
           <button
             type="button"
@@ -61,7 +63,7 @@ export function PurchaseCorrectionDialog({
             disabled={reason.trim().length < 8 || isSubmitting}
           >
             <Send size={15} />
-            {isSubmitting ? "Sending..." : "Send to owner/admin"}
+            {isSubmitting ? t("purchaseEntry.sending") : t("purchaseEntry.sendOwner")}
           </button>
         </div>
       </section>

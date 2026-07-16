@@ -54,9 +54,22 @@ model PharmAccount {
   updatedAt                DateTime          @updatedAt
   createdBy                PharmAccount?     @relation("PharmAccountCreator", fields: [createdById], references: [id], onDelete: SetNull)
   createdAccounts          PharmAccount[]    @relation("PharmAccountCreator")
+  preferences              PharmAccountPreference?
   sessions                 AuthSession[]
 
   @@index([role, isActive])
+}
+
+model PharmAccountPreference {
+  accountId            String       @id
+  locale               String       @default("en")
+  colorTheme           String       @default("pharmacy-green")
+  memberDefaultSort    String       @default("lastOrderAt")
+  showArchivedMembers  Boolean      @default(false)
+  analysisDefaultRange String       @default("30d")
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  account              PharmAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 }
 
 model AuthSession {

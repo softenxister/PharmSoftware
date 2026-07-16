@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Search, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Plus, Search, Users, X } from "lucide-react";
+import { useNavigate } from "react-router";
+import { usePreferences } from "@/app/PreferencesProvider";
 import {
-  dummyMembers,
   filterMembers,
   nextMemberSort,
   sortMembers,
+  type MemberRecord,
   type MemberSort,
 } from "./memberData";
 import styles from "./MemberDirectory.module.css";
@@ -22,21 +24,6 @@ function initials(name: string): string {
     .join("");
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatBaht(value: number): string {
-  return `฿${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
 function SortIcon({ active, direction }: { active: boolean; direction: MemberSort["direction"] }) {
   if (!active) return <ChevronsUpDown size={14} aria-hidden="true" />;
   return direction === "asc"
@@ -45,19 +32,95 @@ function SortIcon({ active, direction }: { active: boolean; direction: MemberSor
 }
 
 export function MemberDirectory() {
+  const navigate = useNavigate();
+  const { t, formatDate, formatMoney } = usePreferences();
+  const [members, setMembers] = useState<MemberRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<MemberSort>(initialSort);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const visibleMembers = useMemo(
-    () => sortMembers(filterMembers(dummyMembers, query), sort),
-    [query, sort],
+    () => sortMembers(filterMembers(members, query), sort),
+    [members, query, sort],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMembers() {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const response = await fetch("/api/members", { cache: "no-store" });
+        const data = await response.json() as { members?: MemberRecord[]; error?: string };
+        if (!response.ok) throw new Error(data.error || t("member.loadError"));
+        if (!cancelled) setMembers(Array.isArray(data.members) ? data.members : []);
+      } catch (error) {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : t("member.loadError"));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void loadMembers();
+    return () => { cancelled = true; };
+  }, [t]);
+
+  useEffect(() => {
+    if (createOpen) window.setTimeout(() => nameInputRef.current?.focus(), 0);
+  }, [createOpen]);
+
+  const closeCreate = () => {
+    if (creating) return;
+    setCreateOpen(false);
+    setName("");
+    setMobile("");
+    setCreateError("");
+  };
+
+  const submitCreate = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!name.trim() || !mobile.trim() || creating) return;
+    setCreating(true);
+    setCreateError("");
+    try {
+      const response = await fetch("/api/members", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, mobile }),
+      });
+      const data = await response.json() as { member?: MemberRecord; error?: string };
+      if (!response.ok || !data.member) throw new Error(data.error || t("member.createError"));
+      setMembers((current) => [...current, data.member as MemberRecord]);
+      setCreateOpen(false);
+      setName("");
+      setMobile("");
+      navigate(`/member/${encodeURIComponent(data.member.id)}`);
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : t("member.createError"));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openMember = (memberId: string) => navigate(`/member/${encodeURIComponent(memberId)}`);
+
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, memberId: string) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    openMember(memberId);
+  };
 
   const sortHeader = (key: MemberSort["key"], label: string) => (
     <button
       type="button"
       className={styles.sortButton}
       onClick={() => setSort((current) => nextMemberSort(current, key))}
-      aria-label={`Sort by ${label}`}
+      aria-label={t("member.sortBy", { label })}
     >
       <span>{label}</span>
       <SortIcon active={sort.key === key} direction={sort.direction} />
@@ -68,8 +131,14 @@ export function MemberDirectory() {
     <div className={styles.page}>
       <div className={styles.content}>
         <header className={styles.header}>
-          <p className={styles.eyebrow}>Customer directory</p>
-          <h1 className={styles.title}>Members</h1>
+          <div>
+            <p className={styles.eyebrow}>{t("member.directory")}</p>
+            <h1 className={styles.title}>{t("member.members")}</h1>
+          </div>
+          <button type="button" className={styles.createButton} onClick={() => setCreateOpen(true)}>
+            <Plus size={17} aria-hidden="true" />
+            {t("member.create")}
+          </button>
         </header>
 
         <section className={styles.panel} aria-labelledby="member-table-title">
@@ -77,19 +146,19 @@ export function MemberDirectory() {
             <div className={styles.panelHeading}>
               <div className={styles.panelTitleRow}>
                 <Users size={17} aria-hidden="true" />
-                <h2 id="member-table-title" className={styles.panelTitle}>Member list</h2>
+                <h2 id="member-table-title" className={styles.panelTitle}>{t("member.list")}</h2>
               </div>
-              <p className={styles.panelMeta}>{visibleMembers.length} of {dummyMembers.length} members</p>
+              <p className={styles.panelMeta}>{t("member.count", { visible: visibleMembers.length, total: members.length })}</p>
             </div>
 
             <label className={styles.searchField}>
-              <span className={styles.visuallyHidden}>Search members by name, mobile number, or address</span>
+              <span className={styles.visuallyHidden}>{t("member.searchLabel")}</span>
               <Search size={16} className={styles.searchIcon} aria-hidden="true" />
               <input
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search name, mobile, or address"
+                placeholder={t("member.search")}
               />
             </label>
           </div>
@@ -107,22 +176,30 @@ export function MemberDirectory() {
               <thead>
                 <tr>
                   <th aria-sort={sort.key === "name" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
-                    {sortHeader("name", "Customer name")}
+                    {sortHeader("name", t("member.customerName"))}
                   </th>
-                  <th>Mobile no.</th>
+                  <th>{t("member.mobile")}</th>
                   <th aria-sort={sort.key === "registeredAt" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
-                    {sortHeader("registeredAt", "Registration date")}
+                    {sortHeader("registeredAt", t("member.registered"))}
                   </th>
                   <th aria-sort={sort.key === "lastOrderAt" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
-                    {sortHeader("lastOrderAt", "Last order date")}
+                    {sortHeader("lastOrderAt", t("member.lastOrder"))}
                   </th>
-                  <th>Total purchase</th>
-                  <th aria-label="Member actions" />
+                  <th>{t("member.totalPurchase")}</th>
+                  <th aria-label={t("member.actions")} />
                 </tr>
               </thead>
               <tbody>
                 {visibleMembers.map((member) => (
-                  <tr key={member.id}>
+                  <tr
+                    key={member.id}
+                    className={styles.memberRow}
+                    tabIndex={0}
+                    role="link"
+                    aria-label={t("member.open", { name: member.name })}
+                    onClick={() => openMember(member.id)}
+                    onKeyDown={(event) => handleRowKeyDown(event, member.id)}
+                  >
                     <td>
                       <div className={styles.customerCell}>
                         <span className={`${styles.avatar} ${styles[`avatar${Number(member.id.slice(-1)) % 4}`]}`} aria-hidden="true">
@@ -133,23 +210,71 @@ export function MemberDirectory() {
                     </td>
                     <td><span className={styles.mobileValue}>{member.mobile}</span></td>
                     <td><time dateTime={member.registeredAt}>{formatDate(member.registeredAt)}</time></td>
-                    <td><time dateTime={member.lastOrderAt}>{formatDate(member.lastOrderAt)}</time></td>
-                    <td><span className={styles.purchaseValue}>{formatBaht(member.totalPurchase)}</span></td>
-                    <td aria-hidden="true" />
+                    <td>{member.lastOrderAt
+                      ? <time dateTime={member.lastOrderAt}>{formatDate(member.lastOrderAt)}</time>
+                      : <span className={styles.noPurchase}>{t("member.noPurchases")}</span>}</td>
+                    <td><span className={styles.purchaseValue}>฿{formatMoney(member.totalPurchase)}</span></td>
+                    <td className={styles.rowAction} aria-hidden="true"><ChevronRight size={17} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {visibleMembers.length === 0 && (
+            {loading && <div className={styles.emptyState} role="status">{t("common.loading")}</div>}
+            {!loading && loadError && (
+              <div className={styles.emptyState} role="alert">
+                <strong>{t("member.loadError")}</strong>
+                <span>{loadError}</span>
+              </div>
+            )}
+            {!loading && !loadError && visibleMembers.length === 0 && (
               <div className={styles.emptyState} role="status">
-                <strong>No members found</strong>
-                <span>Try a different name, mobile number, or address.</span>
+                <strong>{t("member.none")}</strong>
+                <span>{t("member.noneHint")}</span>
               </div>
             )}
           </div>
         </section>
       </div>
+
+      {createOpen && (
+        <div
+          className={styles.dialogBackdrop}
+          role="presentation"
+          onKeyDown={(event) => { if (event.key === "Escape") closeCreate(); }}
+          onMouseDown={(event) => { if (event.target === event.currentTarget) closeCreate(); }}
+        >
+          <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="create-member-title">
+            <div className={styles.dialogHeader}>
+              <div>
+                <p className={styles.dialogEyebrow}>{t("member.directory")}</p>
+                <h2 id="create-member-title">{t("member.create")}</h2>
+              </div>
+              <button type="button" className={styles.iconButton} onClick={closeCreate} aria-label={t("member.closeCreate")}>
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <form onSubmit={submitCreate} className={styles.memberForm}>
+              <label>
+                <span>{t("member.customerName")}</span>
+                <input ref={nameInputRef} value={name} onChange={(event) => setName(event.target.value)} maxLength={100} required />
+              </label>
+              <label>
+                <span>{t("member.mobile")}</span>
+                <input value={mobile} onChange={(event) => setMobile(event.target.value)} inputMode="tel" maxLength={20} required />
+              </label>
+              <p className={styles.formHint}>{t("member.createHint")}</p>
+              {createError && <p className={styles.formError} role="alert">{createError}</p>}
+              <div className={styles.dialogActions}>
+                <button type="button" className={styles.cancelButton} onClick={closeCreate}>{t("member.cancel")}</button>
+                <button type="submit" className={styles.saveButton} disabled={!name.trim() || !mobile.trim() || creating}>
+                  {creating ? t("common.saving") : t("member.create")}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

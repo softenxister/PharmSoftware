@@ -47,3 +47,7 @@ Use these project rules for all future edits in this pharmacy retail software.
 - For frontend changes, use the project `chrome-devtools` MCP server with its isolated browser profile when it is available.
 - Visually verify changed screens at desktop and tablet widths, exercise the affected interactions, inspect the accessibility tree, and confirm the browser console has no errors or warnings.
 - If browser verification is unavailable, say so explicitly and do not claim that the UI was visually verified.
+
+## Symbol
+
+- Do not over use symbol & icon vector in header too much just use it properly

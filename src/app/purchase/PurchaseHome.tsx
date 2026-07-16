@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { PackagePlus, Search } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import styles from "./PurchaseHome.module.css";
-import { purchaseStatusLabel } from "@/lib/purchaseWorkflow";
 
 type PurchaseBillStatus = "received" | "draft" | "partial";
 
@@ -20,20 +20,12 @@ type PurchaseBill = {
   status: PurchaseBillStatus;
 };
 
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  return `${date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} · ${date.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}`;
-}
-
-function formatBaht(value: number): string {
-  return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 export function PurchaseHome() {
   const navigate = useNavigate();
+  const { t, formatDate, formatMoney, formatNumber } = usePreferences();
+  const statusLabel = (status: PurchaseBillStatus) => t(status === "received"
+    ? "purchase.received"
+    : status === "draft" ? "purchase.draft" : "purchase.partial");
   const [query, setQuery] = useState("");
   const [savedPurchaseBills, setSavedPurchaseBills] = useState<PurchaseBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,11 +61,11 @@ export function PurchaseHome() {
     if (!q) return purchaseBills;
 
     return purchaseBills.filter((bill) =>
-      [bill.billNo, bill.invoiceNo, bill.distributor, purchaseStatusLabel[bill.status]].some((value) =>
+      [bill.billNo, bill.invoiceNo, bill.distributor, statusLabel(bill.status)].some((value) =>
         value.toLowerCase().includes(q),
       ),
     );
-  }, [purchaseBills, query]);
+  }, [purchaseBills, query, t]);
 
   const receivedTotal = purchaseBills
     .filter((bill) => bill.status === "received")
@@ -89,25 +81,25 @@ export function PurchaseHome() {
             onClick={() => navigate("/purchase/new")}
           >
             <PackagePlus size={18} />
-            <span>New Purchase</span>
+            <span>{t("purchase.new")}</span>
           </button>
           <div>
-            <p className={styles.eyebrow}>Purchase counter</p>
-            <h1 className={styles.title}>Purchase bills</h1>
+            <p className={styles.eyebrow}>{t("purchase.counter")}</p>
+            <h1 className={styles.title}>{t("purchase.bills")}</h1>
           </div>
         </header>
 
-        <section className={styles.summaryGrid} aria-label="Purchase summary">
+        <section className={styles.summaryGrid} aria-label={t("purchase.summary")}>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Received value</span>
-            <strong className={styles.metricValue}>฿{formatBaht(receivedTotal)}</strong>
+            <span className={styles.metricLabel}>{t("purchase.receivedValue")}</span>
+            <strong className={styles.metricValue}>฿{formatMoney(receivedTotal)}</strong>
           </div>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Bills</span>
+            <span className={styles.metricLabel}>{t("purchase.billCount")}</span>
             <strong className={styles.metricValue}>{purchaseBills.length}</strong>
           </div>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Draft / Ready</span>
+            <span className={styles.metricLabel}>{t("purchase.draftReady")}</span>
             <strong className={styles.metricValue}>
               {purchaseBills.filter((bill) => bill.status !== "received").length}
             </strong>
@@ -117,8 +109,8 @@ export function PurchaseHome() {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <h2 className={styles.panelTitle}>Purchase bill table</h2>
-              <p className={styles.panelMeta}>Saved purchases appear here immediately.</p>
+              <h2 className={styles.panelTitle}>{t("purchase.table")}</h2>
+              <p className={styles.panelMeta}>{t("purchase.savedImmediately")}</p>
             </div>
             <label className={styles.searchField}>
               <Search size={16} className={styles.searchIcon} />
@@ -126,7 +118,7 @@ export function PurchaseHome() {
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search bill, invoice, distributor, or status"
+                placeholder={t("purchase.search")}
               />
             </label>
           </div>
@@ -135,13 +127,13 @@ export function PurchaseHome() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Bill</th>
-                  <th>Invoice</th>
-                  <th>Distributor</th>
-                  <th>Items</th>
-                  <th>Qty</th>
-                  <th className={styles.alignRight}>Net total</th>
-                  <th>Status</th>
+                  <th>{t("purchase.bill")}</th>
+                  <th>{t("purchase.invoice")}</th>
+                  <th>{t("purchase.distributor")}</th>
+                  <th>{t("purchase.items")}</th>
+                  <th>{t("purchase.qty")}</th>
+                  <th className={styles.alignRight}>{t("purchase.netTotal")}</th>
+                  <th>{t("purchase.status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,24 +144,24 @@ export function PurchaseHome() {
                         <button
                           type="button"
                           className={styles.billLink}
-                          aria-label={bill.status === "received" ? `View completed bill ${bill.billNo}` : `Open ${bill.billNo}`}
+                          aria-label={t(bill.status === "received" ? "purchase.viewCompleted" : "purchase.open", { bill: bill.billNo })}
                           onClick={() => navigate(`/purchase/new?id=${encodeURIComponent(bill.id)}`)}
                         >
                           <span className={styles.billNo}>{bill.billNo}</span>
-                          <span className={styles.billDate}>{formatDate(bill.date)}</span>
+                          <span className={styles.billDate}>{formatDate(bill.date, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                         </button>
                       </div>
                     </td>
                     <td>{bill.invoiceNo}</td>
                     <td>{bill.distributor}</td>
                     <td>{bill.itemCount}</td>
-                    <td>{bill.totalQty.toLocaleString("en-US")}</td>
+                    <td>{formatNumber(bill.totalQty)}</td>
                     <td className={styles.alignRight}>
-                      <span className={styles.amount}>฿{formatBaht(bill.netTotal)}</span>
+                      <span className={styles.amount}>฿{formatMoney(bill.netTotal)}</span>
                     </td>
                     <td>
                       <span className={`${styles.status} ${styles[`status_${bill.status}`]}`}>
-                        {purchaseStatusLabel[bill.status]}
+                        {statusLabel(bill.status)}
                       </span>
                     </td>
                   </tr>
@@ -179,13 +171,13 @@ export function PurchaseHome() {
 
             {!isLoading && visibleBills.length === 0 && (
               <div className={styles.emptyState}>
-                <p className={styles.emptyTitle}>{loadError || "No purchase bills match this search"}</p>
+                <p className={styles.emptyTitle}>{loadError ? t("purchase.loadError") : t("purchase.noBills")}</p>
                 <p className={styles.emptyBody}>
-                  {loadError ? "Check the database connection and try again." : "Try a different bill number, invoice, or distributor."}
+                  {loadError ? t("purchase.loadErrorHint") : t("purchase.noBillsHint")}
                 </p>
               </div>
             )}
-            {isLoading && <div className={styles.emptyState} role="status">Loading purchase bills...</div>}
+            {isLoading && <div className={styles.emptyState} role="status">{t("purchase.loading")}</div>}
           </div>
         </section>
       </div>

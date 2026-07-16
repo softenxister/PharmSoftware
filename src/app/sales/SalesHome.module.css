@@ -199,6 +199,8 @@
   font-weight: 760;
   text-align: left;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
 }
 
 .table td {

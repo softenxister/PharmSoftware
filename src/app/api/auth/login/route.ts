@@ -10,12 +10,17 @@ import {
   readAccountByUsername,
   readLoginThrottle,
   recordFailedLogin,
+  type PrivatePharmAccount,
 } from "@/server/db/authRepository";
 
 const invalidResponse = () => Response.json(
   { error: "Username or password is incorrect." },
   { status: 401 },
 );
+
+export const isAccountLoginEnabled = (
+  account: Pick<PrivatePharmAccount, "role" | "isActive" | "setupCompletedAt">,
+): boolean => account.isActive && (account.role !== "owner" || account.setupCompletedAt !== null);
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -45,7 +50,7 @@ export async function POST(request: Request) {
       await hashPassword(input.password);
     }
 
-    if (!account || !passwordValid || !account.isActive || !account.setupCompletedAt) {
+    if (!account || !passwordValid || !isAccountLoginEnabled(account)) {
       await recordFailedLogin(input.username);
       return invalidResponse();
     }

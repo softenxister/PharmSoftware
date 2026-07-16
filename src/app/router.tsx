@@ -18,6 +18,7 @@ export const router = createBrowserRouter([
       { path: "integrations", lazy: () => lazyPage(import("./integrations/page")) },
       { path: "login", lazy: () => lazyPage(import("./login/page")) },
       { path: "member", lazy: () => lazyPage(import("./member/page")) },
+      { path: "member/:memberId", lazy: () => lazyPage(import("./member/detail/page")) },
       { path: "more", lazy: () => lazyPage(import("./more/page")) },
       { path: "purchase", lazy: () => lazyPage(import("./purchase/page")) },
       { path: "purchase/new", lazy: () => lazyPage(import("./purchase/new/page")) },

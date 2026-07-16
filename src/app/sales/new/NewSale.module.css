@@ -495,6 +495,8 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
   color: var(--ink-muted);
 }
 
@@ -704,6 +706,8 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
   color: var(--ink-muted);
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
@@ -726,12 +730,8 @@
   padding-left: 6px;
 }
 
-.cartTable thead th:nth-child(7),
-.cartTable thead th:nth-child(8),
-.cartTable thead th:nth-child(9),
-.cartTable tbody td:nth-child(7),
-.cartTable tbody td:nth-child(8),
-.cartTable tbody td:nth-child(9) {
+.cartTable thead th.alignRight,
+.cartTable tbody td.alignRight {
   text-align: right;
 }
 
@@ -1010,7 +1010,9 @@
 /* ── Editor row (staged item) ───────────────────────────────────── */
 
 .editorBlock {
-  width: 100%;
+  width: min(100%, 760px);
+  max-width: 100%;
+  align-self: stretch;
   flex-shrink: 0;
   overflow: visible;
   border: 1.5px solid var(--primary);
@@ -1019,100 +1021,141 @@
   padding: 10px 14px;
 }
 
-.editorRow {
-  display: grid;
-  grid-template-columns:
-    32px
-    minmax(220px, 2.4fr)
-    minmax(145px, 1fr)
-    minmax(80px, 0.7fr)
-    minmax(130px, 1fr)
-    minmax(80px, 0.7fr)
-    minmax(90px, 0.7fr)
-    minmax(68px, 0.45fr)
-    minmax(112px, 0.75fr);
-  align-items: center;
-  gap: 10px;
+.editorRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
-  font-size: 13px;
-}
-
-.editorRow > * {
+  max-width: 100%;
   min-width: 0;
 }
 
-.editorRow > :nth-child(7),
-.editorRow > :nth-child(8),
-.editorRow > :nth-child(9) {
-  justify-self: end;
+.editorPrimaryRow {
+  display: grid;
+  grid-template-columns: 32px minmax(180px, 1fr) 124px 112px;
+  align-items: end;
+  gap: 12px;
+  min-width: 0;
+  justify-content: start;
 }
 
-.editorRow > :nth-child(7) {
-  padding-right: 14px;
+.editorPrimaryRow > * {
+  min-width: 0;
 }
 
-.editorRowWithoutLocation {
-  grid-template-columns:
-    32px
-    minmax(220px, 2.4fr)
-    minmax(145px, 1fr)
-    minmax(130px, 1fr)
-    minmax(80px, 0.7fr)
-    minmax(90px, 0.7fr)
-    minmax(68px, 0.45fr)
-    minmax(112px, 0.75fr);
+.editorPrimaryRow > .binButton {
+  align-self: center;
 }
 
-.editorRowWithoutLocation > :nth-child(6),
-.editorRowWithoutLocation > :nth-child(7),
-.editorRowWithoutLocation > :nth-child(8) {
-  justify-self: end;
+.editorField,
+.editorPriceField,
+.editorQuantityField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-.editorRowWithoutLocation > :nth-child(6) {
-  padding-right: 14px;
+.editorFieldLabel {
+  color: var(--ink-muted);
+  font-family: var(--app-font);
+  font-size: 10.5px;
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
-.editorRowWithoutLocation > :nth-child(7) {
-  padding-right: 0;
+.editorItemName {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 34px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.packChoice {
+.editorFieldMeta {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 11.5px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sellPackSelect {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.singlePackValue {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  max-width: none;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editorBatchControl {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
-.packButton {
-  border: 1px solid var(--border);
-  background: var(--surface);
+.editorDivider {
+  width: calc(100% - 44px);
+  height: 1px;
+  margin-left: 44px;
+  background: rgba(15, 110, 93, 0.24);
+}
+
+.editorSecondaryRow {
+  display: grid;
+  grid-template-columns: 32px minmax(180px, 1fr) 124px 112px;
+  align-items: end;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.editorPriceField {
+  grid-column: 2;
+}
+
+.editorPriceField strong {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 34px;
   color: var(--primary-dark);
-  border-radius: 999px;
-  min-height: 29px;
-  padding: 5px 10px;
-  font-family: inherit;
-  font-size: 12px;
+  font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+  font-size: 14px;
   font-weight: 800;
-  cursor: pointer;
+  white-space: nowrap;
 }
 
-.packButton:hover {
-  border-color: var(--primary);
-  background: #F7FBF9;
+.editorQuantityField .qtyInputSmall {
+  width: 56px;
+  height: 34px;
+  padding: 6px 10px;
 }
 
-.packButtonActive {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: #fff;
-}
-
-.packButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-  background: #EEF2F0;
-  color: var(--ink-muted);
+.editorQuantityField {
+  align-items: flex-end;
 }
 
 .batchToggle {
@@ -1127,7 +1170,16 @@
   font-family: inherit;
   color: var(--ink);
   cursor: pointer;
-  width: fit-content;
+  width: 112px;
+  min-width: 0;
+  max-width: none;
+  justify-content: space-between;
+}
+
+.batchToggle > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .batchToggle:hover {
@@ -1196,6 +1248,8 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
   color: var(--amber);
   background: var(--amber-soft);
   padding: 1px 6px;
@@ -1225,6 +1279,8 @@
   border-radius: 9px;
   cursor: pointer;
   white-space: nowrap;
+  width: 100px;
+  justify-self: end;
 }
 
 .addButtonIcon {
@@ -1479,6 +1535,8 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
   color: rgba(234, 243, 239, 0.65);
   display: flex;
   align-items: center;
@@ -2275,22 +2333,19 @@
     width: 100%;
   }
 
-  .editorRow {
-    grid-template-columns: 24px 1fr;
-    row-gap: 6px;
+  .editorPrimaryRow {
+    grid-template-columns: 32px minmax(160px, 1fr) 116px 112px;
+    gap: 10px;
   }
 
-  .editorRow > * {
-    margin-right: 0;
+  .editorSecondaryRow {
+    grid-template-columns: 32px minmax(160px, 1fr) 116px 112px;
+    gap: 10px;
   }
 
-  .packChoice {
-    flex-wrap: wrap;
-  }
-
-  .addButton {
-    grid-column: 1 / -1;
-    justify-self: end;
+  .editorDivider {
+    width: calc(100% - 42px);
+    margin-left: 42px;
   }
 
   .reminderRow {

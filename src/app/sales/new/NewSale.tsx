@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Settings } from 'lucide-react';
+import { usePreferences } from '@/app/PreferencesProvider';
 import styles from './NewSale.module.css';
 import type { ParentPack, ProductPack, SalesProduct } from '@/server/db/types';
 import type { PharmUser } from '@/server/auth/pharmUser';
@@ -17,7 +18,7 @@ import {
 import { usePosPreferences } from '@/app/settings/usePosPreferences';
 import { useStorePosSettings } from '@/app/settings/useStorePosSettings';
 import { PosConfirmationDialog } from './PosConfirmationDialog';
-import { buildProductDescription } from './salesPresentation';
+import { buildProductDescription, shouldUseSellPackDropdown } from './salesPresentation';
 import { resolveSaleShortcut, subscribeSaleShortcuts } from './salesShortcuts';
 import morningReminderIcon from '@/styles/vector/morning.png';
 import noonReminderIcon from '@/styles/vector/noon.png';
@@ -52,7 +53,7 @@ interface Customer {
   mobile: string;
   isMember: boolean;
   points: number;
-  membershipRank: 'Platinum' | 'Gold' | 'Silver' | 'Regular';
+  membershipRank: string;
   topItemIds?: string[]; // this customer's personal top-10 purchased items
 }
 
@@ -185,13 +186,6 @@ const PHARMACISTS: Pharmacist[] = [
   { id: 'p3', name: 'Ph. Kanokwan R.' },
 ];
 
-const CUSTOMERS: Customer[] = [
-  { id: 'c1', name: 'Suchada Wong', mobile: '081-234-5566', isMember: true, points: 4280, membershipRank: 'Platinum', topItemIds: ['p-sara', 'p-tiffy', 'p-airx', 'p-gaviscon', 'p-betadine'] },
-  { id: 'c2', name: 'Kridsada Phan', mobile: '089-771-2201', isMember: true, points: 2150, membershipRank: 'Gold', topItemIds: ['p-blackmores-c', 'p-natc', 'p-nivea-sun', 'p-dentiste', 'p-nexcare'] },
-  { id: 'c3', name: 'Areeya Somboon', mobile: '086-005-9981', isMember: true, points: 980, membershipRank: 'Silver', topItemIds: ['p-zyrtec', 'p-tylenol', 'p-ors', 'p-smooth-e'] },
-  { id: 'c4', name: 'Natthapong Lee', mobile: '090-441-7723', isMember: true, points: 310, membershipRank: 'Regular', topItemIds: ['p-gaviscon', 'p-sara', 'p-durex'] },
-];
-
 function pluralChildUnit(unit: string, qty: number): string {
   if (unit === 'tab') return qty === 1 ? 'tab' : 'tabs';
   if (unit === 'caplet') return qty === 1 ? 'caplet' : 'caplets';
@@ -269,12 +263,6 @@ function parseExpiryDate(value: string): Date {
   }
 
   return new Date(value);
-}
-
-function formatExp(value: string): string {
-  const date = parseExpiryDate(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
 }
 
 function nearestExpiryBatch(batches: Batch[]): Batch | null {
@@ -566,6 +554,14 @@ const IconPrint = ({ className }: { className?: string }) => (
 
 export default function NewSale({ user }: { user: PharmUser }): React.ReactElement {
   const navigate = useNavigate();
+  const { t, formatDate, formatNumber } = usePreferences();
+  const paymentMethodLabel = (method: StorePaymentMethod) => t(method === 'Cash'
+    ? 'pos.cash'
+    : method === 'Bank transfer' ? 'pos.bankTransfer' : 'pos.creditCard');
+  const formatExpiry = (value: string) => {
+    const date = parseExpiryDate(value);
+    return Number.isNaN(date.getTime()) ? value : formatDate(date, { month: 'short', year: '2-digit' });
+  };
   const [searchParams] = useSearchParams();
   const pendingBillId = searchParams.get('billId');
   const { preferences } = usePosPreferences(user);
@@ -584,6 +580,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   // Row 2 — bill meta
   const [billDate, setBillDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [pharmacistId, setPharmacistId] = useState(PHARMACISTS[0].id);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customersLoaded, setCustomersLoaded] = useState(false);
+  const [customerLoadError, setCustomerLoadError] = useState('');
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerQuery, setCustomerQuery] = useState('');
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
@@ -643,9 +642,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   const customerMatches = useMemo(() => {
     const q = customerQuery.trim().toLowerCase();
-    if (!q) return CUSTOMERS;
-    return CUSTOMERS.filter((c) => c.name.toLowerCase().includes(q) || c.mobile.replace(/-/g, '').includes(q.replace(/-/g, '')));
-  }, [customerQuery]);
+    if (!q) return customers;
+    return customers.filter((c) => c.name.toLowerCase().includes(q) || c.mobile.replace(/-/g, '').includes(q.replace(/-/g, '')));
+  }, [customerQuery, customers]);
 
   useEffect(() => {
     setHighlightedCustomerIndex(0);
@@ -732,7 +731,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         .slice(0, 10);
   }, [catalog, topItemIds, weeklyTopItemIds]);
 
-  const topItemsLabel = customer && customer.isMember ? `Top picks for ${customer.name.split(' ')[0]}` : 'Top 10 Thai products this week';
+  const topItemsLabel = customer && customer.isMember
+    ? t('newSale.topFor', { name: customer.name.split(' ')[0] })
+    : t('newSale.topWeekly');
 
   const recommendedBatchId = useMemo(
     () => (editor ? nearestExpiryBatch(editor.item.batches)?.batchId ?? null : null),
@@ -756,6 +757,25 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCustomers() {
+      setCustomerLoadError('');
+      try {
+        const response = await fetch('/api/members', { cache: 'no-store' });
+        const data = await response.json() as { members?: Customer[]; error?: string };
+        if (!response.ok) throw new Error(data.error || t('member.loadError'));
+        if (!cancelled) setCustomers(Array.isArray(data.members) ? data.members : []);
+      } catch (error) {
+        if (!cancelled) setCustomerLoadError(error instanceof Error ? error.message : t('member.loadError'));
+      } finally {
+        if (!cancelled) setCustomersLoaded(true);
+      }
+    }
+    void loadCustomers();
+    return () => { cancelled = true; };
+  }, [t]);
 
   useEffect(() => {
     const focusTimer = window.setTimeout(() => itemSearchInputRef.current?.focus(), 0);
@@ -791,7 +811,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   useEffect(() => {
     let cancelled = false;
-    if (!pendingBillId) return;
+    if (!pendingBillId || !customersLoaded) return;
 
     async function loadPendingBill() {
       try {
@@ -808,7 +828,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         setPurchaseMethod(savedBill.purchaseMethod ?? 'pickup');
         setBillDate(savedBill.billDate ?? savedBill.date.slice(0, 10));
         setPharmacistId(savedBill.pharmacistId ?? PHARMACISTS[0].id);
-        setCustomer(CUSTOMERS.find((c) => c.id === savedBill.customerId) ?? null);
+        setCustomer(customers.find((c) => c.id === savedBill.customerId) ?? null);
         setCustomerQuery('');
         setCartLines(savedBill.lines);
         setCartQtyDrafts({});
@@ -828,7 +848,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     return () => {
       cancelled = true;
     };
-  }, [pendingBillId]);
+  }, [customers, customersLoaded, pendingBillId, storeSettings.paymentMethods]);
 
   /* ── Handlers ───────────────────────────────────────────────────── */
 
@@ -1408,21 +1428,21 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       {/* Row 1 — toolbar */}
       <div className={styles.toolbarRow}>
         <div className={styles.breadcrumb}>
-          <button type="button" className={styles.breadcrumbLink} onClick={leaveUnsavedSale}>Sales</button>
+          <button type="button" className={styles.breadcrumbLink} onClick={leaveUnsavedSale}>{t('nav.sales')}</button>
           <span className={styles.breadcrumbSep}>&gt;</span>
-          <span className={styles.breadcrumbCurrent}>New sale</span>
+          <span className={styles.breadcrumbCurrent}>{t('nav.newSale')}</span>
         </div>
 
         <div className={styles.toolbarControls}>
           <CustomSelect
-            ariaLabel="Owner"
+            ariaLabel={t('common.owner')}
             value={ownerId}
             options={OWNERS.map((owner) => ({ value: owner.id, label: owner.name }))}
             onChange={setOwnerId}
           />
 
           {shouldUsePaymentToggle(storeSettings.paymentMethods) ? (
-            <div className={styles.paymentMethodToggle} role="group" aria-label="Payment method">
+            <div className={styles.paymentMethodToggle} role="group" aria-label={t('sales.payment')}>
               {storeSettings.paymentMethods.map((method) => (
                 <button
                   key={method}
@@ -1432,17 +1452,17 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                   onClick={() => setPaymentMethod(method)}
                 >
                   {preferences.showKeyboardHints && <kbd>{getPaymentMethodShortcut(method)}</kbd>}
-                  <span>{method}</span>
+                  <span>{paymentMethodLabel(method)}</span>
                 </button>
               ))}
             </div>
           ) : (
             <CustomSelect
-              ariaLabel="Payment method"
+              ariaLabel={t('sales.payment')}
               value={paymentMethod}
               options={storeSettings.paymentMethods.map((method) => ({
                 value: method,
-                label: method,
+                label: paymentMethodLabel(method),
                 shortcut: preferences.showKeyboardHints ? getPaymentMethodShortcut(method) : undefined,
               }))}
               onChange={(method) => setPaymentMethod(method as StorePaymentMethod)}
@@ -1456,17 +1476,17 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             aria-haspopup="dialog"
           >
             <IconPill />
-            <span>Reminder</span>
+            <span>{t('newSale.reminder')}</span>
           </button>
 
           <button
             type="button"
             className={`${styles.fulfilmentToggle} ${purchaseMethod === 'delivery' ? styles.fulfilmentToggleDelivery : ''}`}
             onClick={() => setPurchaseMethod((current) => (current === 'pickup' ? 'delivery' : 'pickup'))}
-            aria-label="Toggle fulfilment method"
+            aria-label={t('newSale.toggleFulfilment')}
             aria-pressed={purchaseMethod === 'delivery'}
           >
-            <span className={styles.fulfilmentLabel}>{purchaseMethod === 'pickup' ? 'Pickup' : 'Delivery'}</span>
+            <span className={styles.fulfilmentLabel}>{t(purchaseMethod === 'pickup' ? 'sales.pickup' : 'sales.delivery')}</span>
             <span className={styles.fulfilmentSwitch} aria-hidden="true">
               <span className={styles.fulfilmentSwitchThumb} />
             </span>
@@ -1474,7 +1494,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
           <div className={styles.saveSplit} ref={saveMenuRef}>
             <button type="button" className={styles.saveMain} onClick={() => handleSave('save')} disabled={!canSaveSale}>
-              <span>Save</span>
+              <span>{t('newSale.save')}</span>
               {preferences.showKeyboardHints && <kbd className={styles.actionShortcut}>Ctrl + S</kbd>}
             </button>
             <button
@@ -1484,14 +1504,14 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
               disabled={!canSaveSale}
               aria-haspopup="menu"
               aria-expanded={saveMenuOpen}
-              aria-label="More save options"
+              aria-label={t('newSale.moreSave')}
             >
               <IconChevronDown />
             </button>
             {saveMenuOpen && (
               <div className={styles.saveMenu} role="menu">
-                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save')} disabled={!canSaveSale}>Save as pending</button>
-                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save-new')} disabled={!canSaveSale}>Save pending &amp; new</button>
+                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save')} disabled={!canSaveSale}>{t('newSale.savePending')}</button>
+                <button type="button" role="menuitem" className={styles.saveMenuItem} onClick={() => handleSave('save-new')} disabled={!canSaveSale}>{t('newSale.savePendingNew')}</button>
               </div>
             )}
           </div>
@@ -1499,8 +1519,8 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
           <button
             type="button"
             className={styles.gearButton}
-            title="Sale settings"
-            aria-label="Sale settings"
+            title={t('newSale.settings')}
+            aria-label={t('newSale.settings')}
             onClick={() => setSettingsOpen(true)}
           >
             <Settings size={18} strokeWidth={2} />
@@ -1511,26 +1531,26 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       {/* Row 2 — bill meta */}
       <div className={styles.metaRow}>
         <label className={`${styles.metaField} ${styles.dateField}`}>
-          <span className={styles.metaLabel}>Bill date</span>
+          <span className={styles.metaLabel}>{t('newSale.billDate')}</span>
           <input type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} className={styles.dateInput} />
         </label>
 
         <div className={`${styles.metaField} ${styles.customerField}`} ref={customerFieldRef}>
-          <span className={styles.metaLabel}>Customer</span>
+          <span className={styles.metaLabel}>{t('sales.customer')}</span>
           {customer ? (
             <div className={styles.customerChip}>
               <span className={styles.avatar}>{initials(customer.name)}</span>
               <div className={styles.customerChipMeta}>
                 <span className={styles.customerChipName}>{customer.name}</span>
                 <span className={styles.customerChipMobile}>
-                  {customer.mobile} · {customer.membershipRank} · {customer.points.toLocaleString('en-US')} pts
+                  {customer.mobile} · {customer.membershipRank} · {formatNumber(customer.points)} {t('newSale.pointsShort')}
                 </span>
               </div>
               <button
                 type="button"
                 className={styles.clearChip}
                 onClick={() => { setCustomer(null); setCustomerQuery(''); }}
-                aria-label="Clear customer"
+                aria-label={t('newSale.clearCustomer')}
               >
                 <IconClose />
               </button>
@@ -1546,13 +1566,13 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                   setHighlightedCustomerIndex(0);
                 }}
                 onKeyDown={handleCustomerSearchKeyDown}
-                placeholder="Search name or mobile number"
+                placeholder={t('newSale.searchCustomer')}
                 className={styles.textInput}
               />
               {customerDropdownOpen && (
                 <div className={styles.dropdownPanel}>
                   {customerMatches.length === 0 && (
-                    <div className={styles.dropdownEmpty}>No customer found — sale will be walk-in.</div>
+                    <div className={styles.dropdownEmpty}>{customerLoadError || t('newSale.noCustomer')}</div>
                   )}
                   {customerMatches.map((c, index) => {
                     const isHighlighted = index === highlightedCustomerIndex;
@@ -1570,7 +1590,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                         <div className={styles.customerChipMeta}>
                           <span className={styles.customerChipName}>{c.name}</span>
                           <span className={styles.customerChipMobile}>
-                            {c.mobile} · {c.membershipRank} · {c.points.toLocaleString('en-US')} pts
+                            {c.mobile} · {c.membershipRank} · {formatNumber(c.points)} {t('newSale.pointsShort')}
                           </span>
                         </div>
                       </button>
@@ -1583,9 +1603,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         </div>
 
         <div className={`${styles.metaField} ${styles.pharmacistField}`}>
-          <span className={styles.metaLabel}>Pharmacist</span>
+          <span className={styles.metaLabel}>{t('common.pharmacist')}</span>
           <CustomSelect
-            ariaLabel="Pharmacist"
+            ariaLabel={t('common.pharmacist')}
             value={pharmacistId}
             options={PHARMACISTS.map((pharmacist) => ({ value: pharmacist.id, label: pharmacist.name }))}
             onChange={setPharmacistId}
@@ -1610,18 +1630,18 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                 setHighlightedItemIndex(0);
               }}
               onKeyDown={handleItemSearchKeyDown}
-              placeholder="Search item — barcode, product name, etc."
+              placeholder={t('newSale.searchItem')}
               className={`${styles.itemSearchInput} ${preferences.showKeyboardHints ? styles.itemSearchInputWithHints : ''}`}
             />
             {preferences.showKeyboardHints && (
               <span className={styles.keyboardHint} aria-hidden="true">
-                <kbd>↑↓</kbd> Browse <kbd>Enter</kbd> Add <kbd>Esc</kbd> Close
+                <kbd>↑↓</kbd> {t('newSale.browse')} <kbd>Enter</kbd> {t('newSale.add')} <kbd>Esc</kbd> {t('newSale.close')}
               </span>
             )}
           </div>
           {itemDropdownOpen && itemQuery.trim() && (
             <div className={styles.itemDropdownPanel}>
-              {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>No matching item.</div>}
+              {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>{t('newSale.noItem')}</div>}
               {itemMatches.map((it, index) => {
                 const nearest = nearestExpiryBatch(it.batches);
                 const totalStock = it.batches.reduce((sum, batch) => sum + batch.stock, 0);
@@ -1649,7 +1669,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       })}</span>
                     </div>
                     <span className={styles.itemOptionPrice}>
-                      <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
+                      <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : t('newSale.outOfStock')}</span>
                     </span>
                   </button>
                 );
@@ -1661,92 +1681,123 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         {/* Editor row — staged item awaiting batch confirmation + qty */}
         {editor && (
           <div className={styles.editorBlock} ref={batchPickerRef}>
-            <div className={`${styles.editorRow} ${storeSettings.showProductLocation ? '' : styles.editorRowWithoutLocation}`}>
-              <button type="button" className={styles.binButton} onClick={() => setEditor(null)} aria-label="Cancel adding item">
-                <IconBin />
-              </button>
-              <span className={styles.itemNameCell}>{editor.item.name}</span>
-              <span className={styles.packChoice} aria-label="Sell unit">
-                {editor.item.sellPacks.map((pack) => {
-                  const hasStockForPack = editor.item.batches.some((batch) => availableStockForPack(batch, pack) > 0);
-                  return (
-                    <button
-                      key={pack.key}
-                      type="button"
-                      className={`${styles.packButton} ${pack.key === editor.sellPack.key ? styles.packButtonActive : ''}`}
-                      onClick={() => handleSelectSellPack(pack)}
-                      title={pack.relationLabel}
-                      disabled={!hasStockForPack}
-                    >
-                      {pack.label}
-                    </button>
-                  );
-                })}
-              </span>
-              {storeSettings.showProductLocation && <span className={styles.muted}>{editor.item.loc}</span>}
-              <button
-                type="button"
-                className={styles.batchToggle}
-                onClick={() => setEditor({ ...editor, batchCardOpen: !editor.batchCardOpen })}
-              >
-                {editor.batch.batchNo}
-                <IconChevronDown className={editor.batchCardOpen ? styles.chevronOpen : ''} />
-              </button>
-              <span className={styles.muted}>{formatExp(editor.batch.exp)}</span>
-              <span className={styles.alignRight}>฿{formatBaht(sellPriceForPack(editor.batch, editor.sellPack))}</span>
-              <input
-                ref={qtyInputRef}
-                type="text"
-                inputMode="numeric"
-                value={editor.qty}
-                onFocus={(e) => e.currentTarget.select()}
-                onKeyDown={(e) => {
-                  if (e.key === ' ') {
-                    e.preventDefault();
-                    setEditor({ ...editor, qty: '' });
-                    return;
-                  }
+            <div className={styles.editorRows}>
+              <div className={styles.editorPrimaryRow}>
+                <button type="button" className={styles.binButton} onClick={() => setEditor(null)} aria-label={t('newSale.cancelItem')}>
+                  <IconBin />
+                </button>
+                <div className={styles.editorField}>
+                  <span className={styles.editorFieldLabel}>{t('newSale.item')}</span>
+                  <span className={styles.editorItemName} title={editor.item.name}>{editor.item.name}</span>
+                  {storeSettings.showProductLocation && (
+                    <span className={styles.editorFieldMeta}>{editor.item.loc}</span>
+                  )}
+                </div>
 
-                  if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
-                    e.preventDefault();
-                    commitEditorToCart();
-                  }
-                }}
-                onChange={(e) => {
-                  const digitsOnly = e.target.value.replace(/\D/g, '');
-                  const maxQty = availableStockForPack(editor.batch, editor.sellPack);
-                  const clampedQty = digitsOnly
-                    ? String(Math.min(maxQty || 1, Math.max(1, parseInt(digitsOnly, 10))))
-                    : '';
-                  setEditor({ ...editor, qty: clampedQty });
-                }}
-                className={styles.qtyInputSmall}
-              />
-              <button type="button" className={styles.addButton} onClick={commitEditorToCart}>
-                <span className={styles.addButtonIcon} aria-hidden="true">+</span>
-                <span>Add</span>
-              </button>
+                <div className={styles.editorField}>
+                  <span className={styles.editorFieldLabel}>{t('newSale.pack')}</span>
+                  {shouldUseSellPackDropdown(editor.item.sellPacks.length) ? (
+                    <CustomSelect
+                      ariaLabel={t('newSale.sellUnit')}
+                      value={editor.sellPack.key}
+                      options={editor.item.sellPacks
+                        .filter((pack) => editor.item.batches.some((batch) => availableStockForPack(batch, pack) > 0))
+                        .map((pack) => ({ value: pack.key, label: pack.label }))}
+                      onChange={(packKey) => {
+                        const pack = editor.item.sellPacks.find((candidate) => candidate.key === packKey);
+                        if (pack) handleSelectSellPack(pack);
+                      }}
+                      className={styles.sellPackSelect}
+                    />
+                  ) : (
+                    <span className={styles.singlePackValue} aria-label={t('newSale.sellUnit')} title={editor.sellPack.relationLabel}>
+                      {editor.sellPack.label}
+                    </span>
+                  )}
+                </div>
+
+                <div className={styles.editorField}>
+                  <span className={styles.editorFieldLabel}>{t('newSale.batch')}</span>
+                  <div className={styles.editorBatchControl}>
+                    <button
+                      type="button"
+                      className={styles.batchToggle}
+                      onClick={() => setEditor({ ...editor, batchCardOpen: !editor.batchCardOpen })}
+                      aria-haspopup="listbox"
+                      aria-expanded={editor.batchCardOpen}
+                    >
+                      <span>{editor.batch.batchNo}</span>
+                      <IconChevronDown className={editor.batchCardOpen ? styles.chevronOpen : ''} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.editorDivider} aria-hidden="true" />
+
+              <div className={styles.editorSecondaryRow}>
+                <div className={styles.editorPriceField}>
+                  <strong>฿{formatBaht(sellPriceForPack(editor.batch, editor.sellPack))}</strong>
+                </div>
+                <label className={styles.editorQuantityField}>
+                  <input
+                    ref={qtyInputRef}
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={t('newSale.quantityShort')}
+                    value={editor.qty}
+                    onFocus={(e) => e.currentTarget.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ') {
+                        e.preventDefault();
+                        setEditor({ ...editor, qty: '' });
+                        return;
+                      }
+
+                      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                        commitEditorToCart();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, '');
+                      const maxQty = availableStockForPack(editor.batch, editor.sellPack);
+                      const clampedQty = digitsOnly
+                        ? String(Math.min(maxQty || 1, Math.max(1, parseInt(digitsOnly, 10))))
+                        : '';
+                      setEditor({ ...editor, qty: clampedQty });
+                    }}
+                    className={styles.qtyInputSmall}
+                  />
+                </label>
+                <button type="button" className={styles.addButton} onClick={commitEditorToCart}>
+                  <span className={styles.addButtonIcon} aria-hidden="true">+</span>
+                  <span>{t('newSale.add')}</span>
+                </button>
+              </div>
             </div>
 
             {editor.batchCardOpen && (
               <div className={styles.batchCard}>
-                <p className={styles.batchCardLabel}>Choose a batch — nearest expiry is pre-selected</p>
-                <div className={styles.batchOptions}>
+                <p className={styles.batchCardLabel}>{t('newSale.chooseBatch')}</p>
+                <div className={styles.batchOptions} role="listbox" aria-label={t('newSale.batch')}>
                   {editor.item.batches.filter((b) => availableStockForPack(b, editor.sellPack) > 0).map((b) => (
                     <button
                       key={b.batchId}
                       type="button"
+                      role="option"
+                      aria-selected={b.batchId === editor.batch.batchId}
                       className={`${styles.batchOption} ${b.batchId === editor.batch.batchId ? styles.batchOptionActive : ''}`}
                       onClick={() => handleSelectBatch(b)}
                     >
                       <span className={styles.batchOptionNo}>
                         {b.batchNo}
-                        {b.batchId === recommendedBatchId && <span className={styles.recommendedTag}>Nearest exp.</span>}
+                        {b.batchId === recommendedBatchId && <span className={styles.recommendedTag}>{t('newSale.nearestExpiry')}</span>}
                       </span>
-                      <span className={styles.batchOptionRow}><span className={styles.muted}>Exp.</span> {formatExp(b.exp)}</span>
-                      <span className={styles.batchOptionRow}><span className={styles.muted}>Sell</span> ฿{formatBaht(sellPriceForPack(b, editor.sellPack))}</span>
+                      <span className={styles.batchOptionRow}><span className={styles.muted}>{t('newSale.expiryShort')}</span> {formatExpiry(b.exp)}</span>
+                      <span className={styles.batchOptionRow}><span className={styles.muted}>{t('newSale.sell')}</span> ฿{formatBaht(sellPriceForPack(b, editor.sellPack))}</span>
                       {preferences.showAvailableStock && (
-                        <span className={styles.batchOptionRow}><span className={styles.muted}>Stock</span> {availableStockForPack(b, editor.sellPack)} {displayPackUnit(editor.sellPack.unit)}</span>
+                        <span className={styles.batchOptionRow}><span className={styles.muted}>{t('nav.stock')}</span> {availableStockForPack(b, editor.sellPack)} {displayPackUnit(editor.sellPack.unit)}</span>
                       )}
                     </button>
                   ))}
@@ -1763,14 +1814,14 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
               <thead>
                 <tr>
                   <th aria-hidden="true" />
-                  <th>Item</th>
-                  <th>Pack</th>
-                  {storeSettings.showProductLocation && <th>Loc.</th>}
-                  <th>Batch</th>
-                  <th>Exp.</th>
-                  <th className={styles.alignRight}>Price</th>
-                  <th className={styles.alignRight}>Qty.</th>
-                  <th className={styles.alignRight}>Line total</th>
+                  <th>{t('newSale.item')}</th>
+                  <th>{t('newSale.pack')}</th>
+                  {storeSettings.showProductLocation && <th>{t('newSale.locationShort')}</th>}
+                  <th>{t('newSale.batch')}</th>
+                  <th>{t('newSale.expiryShort')}</th>
+                  <th className={styles.alignRight}>{t('newSale.price')}</th>
+                  <th className={styles.alignRight}>{t('newSale.quantityShort')}</th>
+                  <th className={styles.alignRight}>{t('newSale.lineTotal')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1787,7 +1838,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                     </td>
                     {storeSettings.showProductLocation && <td className={styles.muted}>{line.loc}</td>}
                     <td className={styles.muted}>{line.batch.batchNo}</td>
-                    <td className={styles.muted}>{formatExp(line.batch.exp)}</td>
+                    <td className={styles.muted}>{formatExpiry(line.batch.exp)}</td>
                     <td className={styles.alignRight}>฿{formatBaht(line.batch.sellPrice * line.packMultiplier)}</td>
                     <td className={styles.alignRight}>
                       <div className={styles.qtyStepper}>
@@ -1874,7 +1925,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       <span className={styles.topItemDetailName}>{it.name}</span>
                       <span className={styles.topItemDetailSub}>{productDescription}</span>
                       <span className={styles.topItemDetailBottom}>
-                        <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
+                        <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : t('newSale.outOfStock')}</span>
                       </span>
                     </span>
                     {heldItemId === it.id && (
@@ -1882,7 +1933,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                         <span className={styles.topItemDetailName}>{it.name}</span>
                         <span className={styles.topItemDetailSub}>{productDescription}</span>
                         <span className={styles.topItemDetailBottom}>
-                          <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : 'Out of stock'}</span>
+                          <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : t('newSale.outOfStock')}</span>
                         </span>
                       </div>
                     )}
@@ -1898,12 +1949,12 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       {/* Bottom summary bar */}
       <div className={styles.summaryBar}>
         <div className={styles.summaryStat}>
-          <span className={styles.summaryStatLabel}>Total qty.</span>
+          <span className={styles.summaryStatLabel}>{t('newSale.totalQuantity')}</span>
           <span className={styles.summaryStatValue}>{totalQty}</span>
         </div>
         <div className={styles.summaryDivider} />
         <div className={styles.summaryStat}>
-          <span className={styles.summaryStatLabel}>Unique items</span>
+          <span className={styles.summaryStatLabel}>{t('newSale.uniqueItems')}</span>
           <span className={styles.summaryStatValue}>{uniqueItemCount}</span>
         </div>
         <div className={styles.summaryDivider} />
@@ -1915,7 +1966,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
           aria-disabled={!canOpenInvoiceBreakdown}
         >
           <span className={styles.summaryStatLabel}>
-            Net payable {appliedDiscount && <span className={styles.discountBadge}>discount applied</span>}
+            {t('sales.netTotal')} {appliedDiscount && <span className={styles.discountBadge}>{t('newSale.discountApplied')}</span>}
             {preferences.showKeyboardHints && <kbd className={styles.netPayableShortcut}>Ctrl + Enter</kbd>}
           </span>
           <span className={styles.netPayableValue}>฿{formatBaht(netPayable)}</span>
@@ -1927,20 +1978,20 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         <div className={styles.reminderBackdrop} onClick={() => setReminderOpen(false)}>
           <div className={styles.reminderCard} role="dialog" aria-modal="true" aria-labelledby="pill-reminder-title" onClick={(e) => e.stopPropagation()}>
             <div className={styles.drawerHeader}>
-              <h2 id="pill-reminder-title" className={styles.drawerTitle}>Pill Reminder</h2>
-              <button type="button" className={styles.drawerClose} onClick={() => setReminderOpen(false)} aria-label="Close pill reminder">
+              <h2 id="pill-reminder-title" className={styles.drawerTitle}>{t('newSale.pillReminder')}</h2>
+              <button type="button" className={styles.drawerClose} onClick={() => setReminderOpen(false)} aria-label={t('newSale.closeReminder')}>
                 <IconClose />
               </button>
             </div>
 
             {reminderEligibleLines.length === 0 ? (
-              <div className={styles.reminderEmpty}>No tablet or caplet items in this bill.</div>
+              <div className={styles.reminderEmpty}>{t('newSale.noReminderItems')}</div>
             ) : (
               <div className={styles.reminderTableWrap}>
                 <table className={styles.reminderTable}>
                   <thead>
                     <tr>
-                      <th>Drug Item</th>
+                      <th>{t('newSale.drugItem')}</th>
                       {REMINDER_TIMES.map((time) => (
                         <th key={time.label}>
                           <span className={styles.reminderTimeHead}>
@@ -1967,7 +2018,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                               <span className={styles.reminderDrugText}>
                                 <span className={styles.reminderDrugName}>{line.itemName}</span>
                                 <span className={styles.reminderDrugSub}>
-                                  {totalTabs.toLocaleString('en-US')} tabs total | {catalogItem?.packLabel ?? line.packLabel} | {line.packLabel}
+                                  {t('newSale.tabsTotal', { count: formatNumber(totalTabs) })} | {catalogItem?.packLabel ?? line.packLabel} | {line.packLabel}
                                   {storeSettings.showProductLocation ? ` | ${line.loc}` : ''}
                                 </span>
                               </span>
@@ -2025,17 +2076,17 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         <div className={styles.settingsBackdrop} onClick={() => setSettingsOpen(false)}>
           <div className={styles.settingsPanel} onClick={(e) => e.stopPropagation()}>
             <div className={styles.drawerHeader}>
-              <h2 className={styles.drawerTitle}>Sale settings</h2>
-              <button type="button" className={styles.drawerClose} onClick={() => setSettingsOpen(false)} aria-label="Close">
+              <h2 className={styles.drawerTitle}>{t('newSale.settings')}</h2>
+              <button type="button" className={styles.drawerClose} onClick={() => setSettingsOpen(false)} aria-label={t('newSale.close')}>
                 <IconClose />
               </button>
             </div>
 
-            <p className={styles.drawerSectionLabel}>Billing device</p>
+            <p className={styles.drawerSectionLabel}>{t('newSale.billingDevice')}</p>
             <div className={styles.settingsField}>
-              <span className={styles.settingsLabel}>Receipt printer</span>
+              <span className={styles.settingsLabel}>{t('newSale.receiptPrinter')}</span>
               <CustomSelect
-                ariaLabel="Receipt printer"
+                ariaLabel={t('newSale.receiptPrinter')}
                 value={billingDevice}
                 options={[
                   { value: 'Front Counter Thermal Printer', label: 'Front Counter Thermal Printer' },
@@ -2049,9 +2100,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             </div>
 
             <div className={styles.settingsField}>
-              <span className={styles.settingsLabel}>Paper size</span>
+              <span className={styles.settingsLabel}>{t('newSale.paperSize')}</span>
               <CustomSelect
-                ariaLabel="Paper size"
+                ariaLabel={t('newSale.paperSize')}
                 value={paperSize}
                 options={[
                   { value: '80mm thermal', label: '80mm thermal' },
@@ -2065,9 +2116,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             </div>
 
             <div className={styles.settingsField}>
-              <span className={styles.settingsLabel}>Cash drawer</span>
+              <span className={styles.settingsLabel}>{t('newSale.cashDrawer')}</span>
               <CustomSelect
-                ariaLabel="Cash drawer"
+                ariaLabel={t('newSale.cashDrawer')}
                 value={cashDrawerDevice}
                 options={[
                   { value: 'Front Counter Cash Drawer', label: 'Front Counter Cash Drawer' },
@@ -2082,8 +2133,8 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
             <label className={styles.settingsToggle}>
               <span>
-                <span className={styles.settingsLabel}>Auto print after Save & Print</span>
-                <span className={styles.settingsHelp}>Uses the selected billing device when the sale is saved.</span>
+                <span className={styles.settingsLabel}>{t('newSale.autoPrint')}</span>
+                <span className={styles.settingsHelp}>{t('newSale.autoPrintHint')}</span>
               </span>
               <input
                 type="checkbox"
@@ -2094,8 +2145,8 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
             <label className={styles.settingsToggle}>
               <span>
-                <span className={styles.settingsLabel}>Auto open cash drawer after payment</span>
-                <span className={styles.settingsHelp}>Uses the selected cash drawer when Customer pay is enough.</span>
+                <span className={styles.settingsLabel}>{t('newSale.autoDrawer')}</span>
+                <span className={styles.settingsHelp}>{t('newSale.autoDrawerHint')}</span>
               </span>
               <input
                 type="checkbox"
@@ -2105,14 +2156,14 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             </label>
 
             <div className={styles.devicePreview}>
-              <span className={styles.muted}>Current setup</span>
+              <span className={styles.muted}>{t('newSale.currentSetup')}</span>
               <strong>{billingDevice}</strong>
-              <span>{paperSize} {autoPrint ? '| auto print on' : '| auto print off'}</span>
-              <span>{cashDrawerDevice} {autoOpenCashDrawer ? '| drawer auto open on' : '| drawer auto open off'}</span>
+              <span>{paperSize} | {autoPrint ? t('pos.on') : t('pos.off')}</span>
+              <span>{cashDrawerDevice} | {autoOpenCashDrawer ? t('pos.on') : t('pos.off')}</span>
             </div>
 
             <div className={styles.drawerActions}>
-              <button type="button" className={styles.drawerPrimaryBtn} onClick={() => setSettingsOpen(false)}>Done</button>
+              <button type="button" className={styles.drawerPrimaryBtn} onClick={() => setSettingsOpen(false)}>{t('newSale.done')}</button>
             </div>
           </div>
         </div>
@@ -2123,22 +2174,22 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         <div className={styles.drawerBackdrop} onClick={() => setDiscountOpen(false)}>
           <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
             <div className={styles.drawerHeader}>
-              <h2 className={styles.drawerTitle}>Invoice breakdown</h2>
-              <button type="button" className={styles.drawerClose} onClick={() => setDiscountOpen(false)} aria-label="Close">
+              <h2 className={styles.drawerTitle}>{t('newSale.invoiceBreakdown')}</h2>
+              <button type="button" className={styles.drawerClose} onClick={() => setDiscountOpen(false)} aria-label={t('newSale.close')}>
                 <IconClose />
               </button>
             </div>
 
             <div className={styles.drawerRow}>
-              <span className={styles.muted}>Subtotal</span>
+              <span className={styles.muted}>{t('newSale.subtotal')}</span>
               <span>฿{formatBaht(subtotal)}</span>
             </div>
             <div className={styles.drawerRow}>
-              <span className={styles.muted}>Current discount</span>
+              <span className={styles.muted}>{t('newSale.currentDiscount')}</span>
               <span>฿{formatBaht(discountAmount)}</span>
             </div>
 
-            <p className={styles.drawerSectionLabel}>Bill discount</p>
+            <p className={styles.drawerSectionLabel}>{t('newSale.billDiscount')}</p>
             <div className={styles.discountTypeToggle}>
               <button
                 type="button"
@@ -2165,13 +2216,13 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             />
 
             <div className={styles.drawerRow}>
-              <span className={styles.muted}>Net payable</span>
+              <span className={styles.muted}>{t('sales.netTotal')}</span>
               <span className={styles.drawerNetPayable}>
                 ฿{formatBaht(draftNetPayable)}
               </span>
             </div>
 
-            <p className={styles.drawerSectionLabel}>Customer pay</p>
+            <p className={styles.drawerSectionLabel}>{t('newSale.customerPay')}</p>
             <input
               ref={customerPayInputRef}
               type="number"
@@ -2188,12 +2239,12 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                   handleCustomerPayEnter();
                 }
               }}
-              placeholder="Key amount paid"
+              placeholder={t('newSale.keyPaid')}
               className={styles.customerPayInput}
             />
 
             {paymentMethod === 'Cash' && (
-              <div className={styles.cashNoteRow} aria-label="Quick cash amount">
+              <div className={styles.cashNoteRow} aria-label={t('newSale.quickCash')}>
                 {[
                   { amount: 100, className: styles.cashNote100 },
                   { amount: 500, className: styles.cashNote500 },
@@ -2204,7 +2255,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                     type="button"
                     className={`${styles.cashNoteButton} ${className}`}
                     onClick={() => addCustomerCash(amount)}
-                    aria-label={`Add ${amount} Thai baht`}
+                    aria-label={t('newSale.addBaht', { amount })}
                   >
                     <span className={styles.cashNoteGraphic} aria-hidden="true">
                       <span className={styles.cashNoteSeal}>฿</span>
@@ -2221,7 +2272,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             )}
 
             <div className={styles.changePanel}>
-              <span className={styles.muted}>Change</span>
+              <span className={styles.muted}>{t('newSale.change')}</span>
               <strong>฿{formatBaht(liveChangeDue)}</strong>
             </div>
 
@@ -2242,10 +2293,10 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
             <div className={styles.drawerActions}>
               {appliedDiscount && (
-                <button type="button" className={styles.drawerSecondaryBtn} onClick={clearDiscount}>Remove discount</button>
+                <button type="button" className={styles.drawerSecondaryBtn} onClick={clearDiscount}>{t('newSale.removeDiscount')}</button>
               )}
               <button type="button" className={styles.drawerPrimaryBtn} onClick={() => void submitInvoicePayment()} disabled={saleSubmitting}>
-                {saleSubmitting ? 'Submitting...' : 'Submit'}
+                {saleSubmitting ? t('newSale.submitting') : t('newSale.submit')}
               </button>
             </div>
           </div>
@@ -2258,30 +2309,30 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             <div className={styles.invoiceCreatedIcon}>
               <IconTick />
             </div>
-            <h2 className={styles.invoiceCreatedTitle}>Invoice created!</h2>
-            <p className={styles.invoiceCreatedSub}>Payment received successfully</p>
+            <h2 className={styles.invoiceCreatedTitle}>{t('newSale.invoiceCreated')}</h2>
+            <p className={styles.invoiceCreatedSub}>{t('newSale.paymentReceived')}</p>
 
             <div className={styles.invoiceCreatedDetails}>
               <div className={styles.invoiceCreatedRow}>
-                <span>Invoice no.</span>
+                <span>{t('newSale.invoiceNo')}</span>
                 <strong className={styles.invoiceCreatedNo}>{invoiceCreated.invoiceNo}</strong>
               </div>
               <div className={styles.invoiceCreatedRow}>
-                <span>Amount paid</span>
+                <span>{t('newSale.amountPaid')}</span>
                 <strong>฿{formatBaht(invoiceCreated.amountPaid)}</strong>
               </div>
               <div className={styles.invoiceCreatedRow}>
-                <span>Change</span>
+                <span>{t('newSale.change')}</span>
                 <strong>฿{formatBaht(invoiceCreated.changeDue)}</strong>
               </div>
               <div className={styles.invoiceCreatedRow}>
-                <span>Method</span>
-                <strong>{invoiceCreated.paymentMode}</strong>
+                <span>{t('newSale.method')}</span>
+                <strong>{paymentMethodLabel(invoiceCreated.paymentMode as StorePaymentMethod)}</strong>
               </div>
               <div className={styles.invoiceCreatedRow}>
-                <span>Time</span>
+                <span>{t('newSale.time')}</span>
                 <strong className={styles.invoiceCreatedTime}>
-                  {new Date(invoiceCreated.createdAt).toLocaleString('en-GB', {
+                  {formatDate(invoiceCreated.createdAt, {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
@@ -2298,11 +2349,11 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
               onClick={() => console.log('Print receipt', invoiceCreated)}
             >
               <IconPrint />
-              Print Receipt
+              {t('newSale.printReceipt')}
             </button>
             <button ref={newSaleButtonRef} type="button" className={styles.newSaleBtn} onClick={resetForNewWalkIn}>
               <span className={styles.newSaleBtnIcon} aria-hidden="true">+</span>
-              <span>New</span>
+              <span>{t('newSale.new')}</span>
             </button>
           </div>
         </div>
@@ -2310,11 +2361,11 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
       <PosConfirmationDialog
         open={pendingConfirmation !== null}
-        title={pendingConfirmation?.kind === 'remove-item' ? 'Remove this item?' : 'Cancel this sale?'}
+        title={pendingConfirmation?.kind === 'remove-item' ? t('newSale.removeQuestion') : t('newSale.cancelQuestion')}
         description={pendingConfirmation?.kind === 'remove-item'
-          ? `${pendingConfirmation.itemName} will be removed from the current sale.`
-          : 'The unsaved items in this sale will be discarded when you return to Sales.'}
-        confirmLabel={pendingConfirmation?.kind === 'remove-item' ? 'Remove item' : 'Cancel sale'}
+          ? t('newSale.removeDescription', { name: pendingConfirmation.itemName })
+          : t('newSale.cancelDescription')}
+        confirmLabel={pendingConfirmation?.kind === 'remove-item' ? t('newSale.removeItem') : t('newSale.cancelSale')}
         onCancel={() => setPendingConfirmation(null)}
         onConfirm={confirmPendingAction}
       />

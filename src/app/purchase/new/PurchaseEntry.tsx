@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router";
+import { usePreferences } from "@/app/PreferencesProvider";
 import {
   ChevronRight,
   PackagePlus,
@@ -101,6 +102,7 @@ function matchesItemQuery(product: SalesProduct, rawQuery: string) {
 
 export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   const navigate = useNavigate();
+  const { t } = usePreferences();
   const [activePurchaseId, setActivePurchaseId] = useState(purchaseId);
   const [distributor, setDistributor] = useState("");
   const [distributorOptions, setDistributorOptions] = useState<string[]>([]);
@@ -593,9 +595,9 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
     <div className={styles.page}>
       <div className={styles.toolbarRow}>
         <div className={styles.breadcrumb}>
-          <span>Purchase</span>
+          <span>{t("nav.purchase")}</span>
           <ChevronRight size={14} />
-          <span className={styles.breadcrumbCurrent}>{activePurchaseId ? "Edit purchase" : "New purchase"}</span>
+          <span className={styles.breadcrumbCurrent}>{activePurchaseId ? t("purchaseEntry.edit") : t("purchaseEntry.new")}</span>
         </div>
         <div className={styles.toolbarActions}>
           {(purchaseSaveError || purchaseLoadError) && (
@@ -609,20 +611,20 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
               onClick={() => void savePurchase("draft")}
             >
               <PackagePlus size={16} />
-              {isSavingPurchase ? "Saving..." : activePurchaseId ? "Save changes" : "Save draft"}
+              {isSavingPurchase ? t("common.saving") : activePurchaseId ? t("purchaseEntry.saveChanges") : t("purchaseEntry.saveDraft")}
             </button>
           ) : (
             <span className={`${styles.workflowStatusBadge} ${editingBillStatus === "received" ? styles.workflowStatusCompleted : ""}`}>
-              {editingBillStatus === "partial" ? "Ready to review" : "Completed"}
+              {editingBillStatus === "partial" ? t("purchaseEntry.readyReview") : t("purchaseEntry.completed")}
             </span>
           )}
         </div>
       </div>
 
       <div className={styles.content}>
-        <section className={styles.detailsPanel} aria-label="Purchase bill details">
-          <div className={styles.workflowSteps} aria-label="Purchase progress">
-            {["Draft", "Review", "Completed"].map((label, index) => (
+        <section className={styles.detailsPanel} aria-label={t("purchaseEntry.details")}>
+          <div className={styles.workflowSteps} aria-label={t("purchaseEntry.progress")}>
+            {[t("purchase.draft"), t("purchaseEntry.review"), t("purchaseEntry.completed")].map((label, index) => (
               <div
                 key={label}
                 className={`${styles.workflowStep} ${index <= workflowStep ? styles.workflowStepActive : ""} ${index < workflowStep ? styles.workflowStepDone : ""}`}
@@ -663,11 +665,11 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                 />
                 <span>
                   <strong>VAT 7%</strong>
-                  <small>{vatIncluded ? "Included in bill" : "Plus 7% final bill"}</small>
+                  <small>{vatIncluded ? t("purchaseEntry.vatIncluded") : t("purchaseEntry.vatPlus")}</small>
                 </span>
               </label>
               <div className={styles.salesAdjustBox}>
-                <label className={styles.fieldLabel} htmlFor="purchase-sales-adjustment">Sales</label>
+                <label className={styles.fieldLabel} htmlFor="purchase-sales-adjustment">{t("nav.sales")}</label>
                 <div className={styles.salesAdjustControl}>
                   <input
                     id="purchase-sales-adjustment"
@@ -679,9 +681,9 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                       setSalesAdjustment(salesAdjustmentType === "percent" ? nextValue.slice(0, 2) : nextValue);
                     }}
                     maxLength={salesAdjustmentType === "percent" ? 2 : undefined}
-                    aria-label="Sales adjustment"
+                    aria-label={t("purchaseEntry.salesAdjustment")}
                   />
-                  <div className={styles.salesTypeToggle} aria-label="Sales adjustment type">
+                  <div className={styles.salesTypeToggle} aria-label={t("purchaseEntry.adjustmentType")}>
                     <button
                       type="button"
                       className={salesAdjustmentType === "percent" ? styles.salesTypeActive : styles.salesTypeButton}
@@ -705,26 +707,26 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
             </div>
 
             <div>
-              <label className={styles.fieldLabel}>Bill No.</label>
+              <label className={styles.fieldLabel}>{t("purchaseEntry.billNo")}</label>
               <input
                 className={styles.inputField}
-                placeholder="Optional"
+                placeholder={t("purchaseEntry.optional")}
                 value={billNo}
                 onChange={event => setBillNo(event.target.value)}
               />
             </div>
 
-            <DateField label="Bill Date" />
-            <DateField label="Due Date" />
+            <DateField label={t("purchaseEntry.billDate")} />
+            <DateField label={t("purchaseEntry.dueDate")} />
           </div>
           </fieldset>
 
-          {isEditable && <div className={styles.scanSearchLayer} aria-label="Scan barcode or search item">
+          {isEditable && <div className={styles.scanSearchLayer} aria-label={t("purchaseEntry.scanSearch")}>
             <div className={styles.manualSearch} ref={purchaseItemSearchRef}>
               <ScanBarcode size={17} className={styles.manualSearchIcon} />
               <input
                 type="text"
-                aria-label="Scan barcode or search item"
+                aria-label={t("purchaseEntry.scanSearch")}
                 value={manualItem}
                 onChange={(event) => {
                   setManualItem(event.target.value);
@@ -736,11 +738,11 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                   setHighlightedItemIndex(0);
                 }}
                 onKeyDown={handleItemSearchKeyDown}
-                placeholder="Scan barcode or search item"
+                placeholder={t("purchaseEntry.scanSearch")}
               />
               {itemDropdownOpen && manualItem.trim().length > 0 && !selectedItem && (
                 <div className={styles.itemDropdownPanel}>
-                  {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>No matching item.</div>}
+                  {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>{t("newSale.noItem")}</div>}
                   {itemMatches.map((product, index) => {
                     const nearestBatch = product.batches[0];
                     const stockCount = product.batches.reduce((sum, batch) => sum + batch.availableStock, 0);
@@ -763,12 +765,12 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                         <span className={styles.itemOptionMeta}>
                           <span className={styles.itemOptionName}>{product.itemName}</span>
                           <span className={styles.itemOptionSub}>
-                            {product.brandName} - {product.pack.label} - {product.location || "No location"}
+                            {product.brandName} - {product.pack.label} - {product.location || t("purchaseEntry.noLocation")}
                           </span>
                         </span>
                         <span className={styles.itemOptionPrice}>
-                          {nearestBatch ? `฿${nearestBatch.sellPriceThb}` : "No batch"}
-                          <small>Stock {stockCount}</small>
+                          {nearestBatch ? `฿${nearestBatch.sellPriceThb}` : t("purchaseEntry.noBatch")}
+                          <small>{t("nav.stock")} {stockCount}</small>
                         </span>
                       </button>
                     );
@@ -785,22 +787,22 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
               }}
             >
               <Search size={16} />
-              Find item
+              {t("purchaseEntry.findItem")}
             </button>
           </div>}
 
           {purchaseLines.length > 0 && (
             <div className={styles.purchaseLineTableWrap}>
-              <table className={styles.purchaseLineTable} aria-label="Purchase item lines">
+              <table className={styles.purchaseLineTable} aria-label={t("purchaseEntry.lines")}>
                 <thead>
                   <tr>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Cost</th>
-                    <th>Free qty</th>
-                    <th>Lot No.</th>
-                    <th>Exp. Date</th>
-                    <th aria-label="Actions" />
+                    <th>{t("newSale.item")}</th>
+                    <th>{t("purchase.qty")}</th>
+                    <th>{t("purchaseEntry.cost")}</th>
+                    <th>{t("purchaseEntry.freeQty")}</th>
+                    <th>{t("purchaseEntry.lotNo")}</th>
+                    <th>{t("purchaseEntry.expDate")}</th>
+                    <th aria-label={t("purchaseEntry.actions")} />
                   </tr>
                 </thead>
                 <tbody>
@@ -836,7 +838,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
           )}
 
           {isEditable && showScanCarousel && (
-            <div className={styles.scanVisualLayer} aria-label="Purchase import options">
+            <div className={styles.scanVisualLayer} aria-label={t("purchaseEntry.importOptions")}>
               <input
                 ref={fileRef}
                 type="file"
@@ -852,7 +854,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                       const firstBarcodeItem = catalog.find(product => /^\d{13}$/.test(product.barcode));
                       if (firstBarcodeItem) openPurchaseLine(firstBarcodeItem);
                     }}
-                    aria-label="Scan barcode"
+                    aria-label={t("purchaseEntry.scanBarcode")}
                   >
                     <span className={styles.applePhone}>
                       <span className={styles.phoneSpeaker} />
@@ -877,8 +879,8 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                       </span>
                     </span>
                     <span className={styles.swapCopy}>
-                      <strong>Scan barcode</strong>
-                      <span>Phone scan adds purchase item lines quickly.</span>
+                      <strong>{t("purchaseEntry.scanBarcode")}</strong>
+                      <span>{t("purchaseEntry.scanHint")}</span>
                     </span>
                   </button>
 
@@ -886,7 +888,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                     type="button"
                     className={`${styles.swapPage} ${styles.csvPage}`}
                     onClick={() => fileRef.current?.click()}
-                    aria-label="Upload CSV file"
+                    aria-label={t("purchaseEntry.uploadCsvFile")}
                   >
                     <span className={styles.photoIconFrame}>
                       <span className={styles.csvFileArt}>
@@ -898,8 +900,8 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                       </span>
                     </span>
                     <span className={styles.swapCopy}>
-                      <strong>Upload CSV</strong>
-                      <span>Import distributor bill rows from file.</span>
+                      <strong>{t("purchaseEntry.uploadCsv")}</strong>
+                      <span>{t("purchaseEntry.uploadHint")}</span>
                     </span>
                   </button>
                 </div>
@@ -920,19 +922,19 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                 aria-labelledby="purchase-line-title"
                 onMouseDown={(event) => event.stopPropagation()}
               >
-                <button type="button" className={styles.windowCloseButton} onClick={closePurchaseLine} aria-label="Close purchase line">
+                <button type="button" className={styles.windowCloseButton} onClick={closePurchaseLine} aria-label={t("purchaseEntry.closeLine")}>
                   <X size={16} />
                 </button>
 
                 <div className={styles.purchaseWindowHeader}>
                   <div>
-                    <h2 id="purchase-line-title">Purchase Item</h2>
-                    <p>Confirm quantity, cost, unit, lot, and expiry before adding to this bill.</p>
+                    <h2 id="purchase-line-title">{t("purchaseEntry.purchaseItem")}</h2>
+                    <p>{t("purchaseEntry.confirmLine")}</p>
                   </div>
                 </div>
 
                 <div className={styles.purchaseWindowBody}>
-                  <section className={styles.purchaseProductPanel} aria-label="Selected item">
+                  <section className={styles.purchaseProductPanel} aria-label={t("purchaseEntry.selectedItem")}>
                     <div className={styles.purchaseProductImage}>
                       <img src={selectedItem.imageUrl} alt="" />
                     </div>
@@ -943,11 +945,11 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                     </div>
                   </section>
 
-                  <section className={styles.purchaseFormPanel} aria-label="Purchase line details">
+                  <section className={styles.purchaseFormPanel} aria-label={t("purchaseEntry.lineDetails")}>
                     <div className={styles.purchaseFormGrid}>
                       <div className={styles.purchasePrimaryRow}>
                         <label className={styles.compactField}>
-                          <span>Quantity</span>
+                          <span>{t("purchaseEntry.quantity")}</span>
                           <input
                             ref={qtyInputRef}
                             type="text"
@@ -960,11 +962,11 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                           />
                         </label>
                         <label className={styles.compactField}>
-                          <span>Cost</span>
+                          <span>{t("purchaseEntry.cost")}</span>
                           <input
                             type="text"
                             inputMode="decimal"
-                            placeholder="Cost"
+                            placeholder={t("purchaseEntry.cost")}
                             value={lineCost}
                             onChange={event => setLineCost(event.target.value)}
                             data-purchase-flow="cost"
@@ -973,7 +975,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                         </label>
 
                         <PurchaseUnitDropdown
-                          label="Purchase unit"
+                          label={t("purchaseEntry.purchaseUnit")}
                           value={unit}
                           options={selectedUnitOptions}
                           onChange={setUnit}
@@ -988,21 +990,21 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                               checked={includeFreeQty}
                               onChange={event => setIncludeFreeQty(event.target.checked)}
                             />
-                            <span>Free quantity</span>
+                            <span>{t("purchaseEntry.freeQty")}</span>
                           </label>
                         </legend>
                         <div className={styles.freeQtyControls}>
                           <input
                             type="text"
                             inputMode="numeric"
-                            placeholder="Free qty"
+                            placeholder={t("purchaseEntry.freeQty")}
                             disabled={!includeFreeQty}
                             className={styles.freeQtyInput}
                             value={freeQty}
                             onChange={event => setFreeQty(event.target.value)}
                           />
                           <PurchaseUnitDropdown
-                            label="Free quantity unit"
+                            label={t("purchaseEntry.freeUnit")}
                             value={freeUnit}
                             options={selectedUnitOptions}
                             disabled={!includeFreeQty}
@@ -1014,10 +1016,10 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
 
                       <div className={styles.purchaseLotRow}>
                         <label className={styles.compactField}>
-                          <span>Lot No.</span>
+                          <span>{t("purchaseEntry.lotNo")}</span>
                           <input
                             type="text"
-                            placeholder="Lot"
+                            placeholder={t("purchaseEntry.lotNo")}
                             value={lotNo}
                             onChange={event => setLotNo(event.target.value)}
                             data-purchase-flow="lot"
@@ -1025,7 +1027,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                           />
                         </label>
                         <label className={styles.compactField}>
-                          <span>Exp. Date</span>
+                          <span>{t("purchaseEntry.expDate")}</span>
                           <input
                             type="text"
                             inputMode="numeric"
@@ -1046,7 +1048,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
 
                 <div className={styles.purchaseWindowFooter}>
                   <button type="button" className={styles.secondaryWindowButton} onClick={closePurchaseLine}>
-                    Cancel
+                    {t("staff.cancel")}
                   </button>
                   <button
                     type="button"
@@ -1057,7 +1059,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                     onKeyDown={handlePurchaseFlowEnter}
                   >
                     <PackagePlus size={16} />
-                    Add
+                    {t("newSale.add")}
                   </button>
                 </div>
               </section>

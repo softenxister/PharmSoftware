@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import styles from "./PurchaseEntry.module.css";
 
 type PurchaseUnitDropdownProps = {
@@ -21,6 +22,7 @@ export function PurchaseUnitDropdown({
   showLabel = true,
   onChange,
 }: PurchaseUnitDropdownProps) {
+  const { t } = usePreferences();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -65,7 +67,7 @@ export function PurchaseUnitDropdown({
           if (event.key === "Escape") setOpen(false);
         }}
       >
-        <span>{value || "Select unit"}</span>
+        <span>{value || t("purchaseEntry.selectUnit")}</span>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
 
@@ -89,12 +91,12 @@ export function PurchaseUnitDropdown({
                   setOpen(false);
                 }
               }}
-              placeholder="Search unit"
-              aria-label={`Search ${label.toLowerCase()}`}
+              placeholder={t("purchaseEntry.searchUnit")}
+              aria-label={t("stock.searchFilter", { label })}
             />
           </label>
           <div className={styles.unitDropdownOptions} role="listbox" aria-label={`${label} options`}>
-            {matches.length === 0 && <span className={styles.unitDropdownEmpty}>No unit found</span>}
+            {matches.length === 0 && <span className={styles.unitDropdownEmpty}>{t("purchaseEntry.noUnit")}</span>}
             {matches.map(option => (
               <button
                 key={option}

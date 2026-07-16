@@ -10,6 +10,8 @@ import {
   Wand2,
 } from "lucide-react";
 import type { StockItemInput } from "@/server/db/types";
+import { usePreferences } from "@/app/PreferencesProvider";
+import { canonicalizeStockCategory, getStockCategoryOptions } from "./stockCategoryFilter";
 import styles from "./Stock.module.css";
 
 type PackagingRow = {
@@ -23,7 +25,6 @@ type PackagingRow = {
 type StockEntryFormProps = {
   onSave?: (item: StockItemInput) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
-  categoryOptions?: string[];
   initialItem?: StockItemInput;
   mode?: "create" | "edit";
 };
@@ -32,17 +33,6 @@ type SelectOption = {
   value: string;
   label: string;
 };
-
-const itemCategories = [
-  "Pain Relief",
-  "Allergy & Cold",
-  "Gastrointestinal",
-  "Vitamins & Supplements",
-  "First Aid",
-  "Skincare",
-  "Personal Care",
-  "Oral Care",
-];
 
 const unitOptions = ["tablet", "caplet", "blister", "box", "bottle", "sachet", "tube", "piece", "ml", "g"];
 const packageOptions = ["box", "bottle", "tube", "strip", "carton", "blister", "sachet", "piece"];
@@ -100,11 +90,16 @@ function SearchableSelect({
   customOptionLabel?: (value: string) => string;
   onCommit?: () => void;
 }) {
+  const { t } = usePreferences();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const filteredOptions = options.filter((option) => option.label.toLowerCase().includes(search.trim().toLowerCase()));
+  const filteredOptions = options.filter((option) => {
+    const query = search.trim().toLowerCase();
+    return option.label.toLowerCase().includes(query) || option.value.toLowerCase().includes(query);
+  });
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? value;
   const customValue = search.trim();
 
   useEffect(() => {
@@ -125,8 +120,8 @@ function SearchableSelect({
         <input
           ref={inputRef}
           type="text"
-          value={open ? search : value}
-          placeholder={value || "Select"}
+          value={open ? search : selectedLabel}
+          placeholder={selectedLabel || t("stockForm.select")}
           readOnly={!open}
           aria-label={ariaLabel}
           aria-haspopup="listbox"
@@ -171,7 +166,7 @@ function SearchableSelect({
         />
         <button
           type="button"
-          aria-label={`Open ${ariaLabel}`}
+          aria-label={t("stockForm.open", { label: ariaLabel })}
           onClick={() => {
             setSearch("");
             setOpen((current) => !current);
@@ -206,11 +201,11 @@ function SearchableSelect({
             ))}
             {allowCustom && customValue && filteredOptions.every((option) => option.value.toLowerCase() !== customValue.toLowerCase()) && (
               <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => choose(customValue)}>
-                {customOptionLabel ? customOptionLabel(customValue) : `Use "${customValue}"`}
+                {customOptionLabel ? customOptionLabel(customValue) : t("stockForm.useValue", { value: customValue })}
               </button>
             )}
             {filteredOptions.length === 0 && (!allowCustom || !customValue) && (
-              <span className={styles.searchSelectEmpty}>No match</span>
+              <span className={styles.searchSelectEmpty}>{t("stockForm.noMatch")}</span>
             )}
           </div>
         </div>
@@ -244,31 +239,16 @@ function handleNumberText(value: string): string {
   return value.replace(/[^\d.]/g, "");
 }
 
-function mergeUniqueOptions(...optionGroups: string[][]): string[] {
-  const seen = new Set<string>();
-  const merged: string[] = [];
-
-  optionGroups.flat().forEach((option) => {
-    const cleanOption = option.trim();
-    const key = cleanOption.toLowerCase();
-    if (!cleanOption || seen.has(key)) return;
-    seen.add(key);
-    merged.push(cleanOption);
-  });
-
-  return merged;
-}
-
 export function StockEntryForm({
   onSave,
   onDelete,
-  categoryOptions = [],
   initialItem,
   mode = "create",
 }: StockEntryFormProps) {
+  const { t, preferences } = usePreferences();
   const resolvedCategoryOptions = useMemo(
-    () => mergeUniqueOptions(itemCategories, categoryOptions),
-    [categoryOptions],
+    () => getStockCategoryOptions(preferences.locale),
+    [preferences.locale],
   );
   const [photoUrl, setPhotoUrl] = useState(initialItem?.photoUrl ?? "");
   const [barcode, setBarcode] = useState(initialItem?.barcode ?? "");
@@ -276,7 +256,9 @@ export function StockEntryForm({
   const [location, setLocation] = useState(initialItem?.location ?? "");
   const [manufacturer, setManufacturer] = useState(initialItem?.manufacturer ?? "");
   const [sellPrice, setSellPrice] = useState(initialItem?.sellPrice ?? "");
-  const [itemCategory, setItemCategory] = useState(initialItem?.itemCategory ?? resolvedCategoryOptions[0] ?? "");
+  const [itemCategory, setItemCategory] = useState(
+    canonicalizeStockCategory(initialItem?.itemCategory ?? resolvedCategoryOptions[0]?.value ?? ""),
+  );
   const [weightage, setWeightage] = useState(initialItem?.weightage ?? "");
   const [subUnit, setSubUnit] = useState(initialItem?.subUnit ?? unitOptions[0]);
   const [unit, setUnit] = useState(initialItem?.unit ?? unitOptions[0]);
@@ -389,7 +371,7 @@ export function StockEntryForm({
     try {
       await onDelete();
     } catch {
-      setDeleteError("Unable to delete this item. Please try again.");
+      setDeleteError(t("stockForm.deleteError"));
     } finally {
       setIsDeleting(false);
     }
@@ -404,7 +386,7 @@ export function StockEntryForm({
     <form className={`${styles.stockForm} ${styles.stockFormPortrait}`} onSubmit={handleSubmit} noValidate>
       <div className={styles.formHeader}>
         <div>
-          <h1>{isEditing ? "Edit Item" : "Create New Item"}</h1>
+          <h1>{isEditing ? t("stockForm.edit") : t("stock.createItem")}</h1>
         </div>
         <div className={styles.formHeaderActions}>
           {isEditing && (
@@ -417,7 +399,7 @@ export function StockEntryForm({
               }}
             >
               <Trash2 size={16} />
-              <span>Delete Item</span>
+              <span>{t("stockForm.delete")}</span>
             </button>
           )}
         </div>
@@ -436,9 +418,9 @@ export function StockEntryForm({
             <span className={styles.deleteConfirmIcon} aria-hidden="true">
               <Trash2 size={22} />
             </span>
-            <h2 id="delete-stock-item-title">Delete this item?</h2>
+            <h2 id="delete-stock-item-title">{t("stockForm.deleteQuestion")}</h2>
             <p id="delete-stock-item-description">
-              <strong>{itemName.trim() || "This item"}</strong> will be removed from Inventory Stock.
+              {t("stockForm.deleteDescription", { name: itemName.trim() || t("stockForm.thisItem") })}
             </p>
             {deleteError && <div className={styles.deleteErrorMessage} role="alert">{deleteError}</div>}
             <div className={styles.deleteConfirmActions}>
@@ -449,7 +431,7 @@ export function StockEntryForm({
                 onClick={closeDeleteConfirmation}
                 disabled={isDeleting}
               >
-                Cancel
+                {t("staff.cancel")}
               </button>
               <button
                 type="button"
@@ -458,7 +440,7 @@ export function StockEntryForm({
                 disabled={isDeleting}
               >
                 <Trash2 size={16} />
-                <span>{isDeleting ? "Deleting…" : "Delete Item"}</span>
+                <span>{isDeleting ? t("stockForm.deleting") : t("stockForm.delete")}</span>
               </button>
             </div>
           </section>
@@ -466,10 +448,10 @@ export function StockEntryForm({
       )}
 
       <div className={styles.formBody}>
-        <section className={styles.photoPanel} aria-label="Product photo">
+        <section className={styles.photoPanel} aria-label={t("stockForm.productPhoto")}>
           <div className={styles.photoPreview}>
             {photoUrl.trim() ? (
-              <img src={photoUrl} alt="Product preview" />
+              <img src={photoUrl} alt={t("stockForm.preview")} />
             ) : (
               <span>
                 <ImagePlus size={30} />
@@ -477,7 +459,7 @@ export function StockEntryForm({
             )}
           </div>
           <label className={styles.field}>
-            <span>Photo</span>
+            <span>{t("stockForm.photo")}</span>
             <input
               type="text"
               value={photoUrl}
@@ -487,7 +469,7 @@ export function StockEntryForm({
           </label>
 
           <label className={styles.field} data-stock-flow="barcode" onKeyDown={handleFlowEnter}>
-            <span>Barcode</span>
+            <span>{t("stockForm.barcode")}</span>
             <span className={styles.inlineField}>
               <input
                 type="text"
@@ -496,7 +478,7 @@ export function StockEntryForm({
                 onChange={(event) => setBarcode(event.target.value)}
               />
               {!isEditing && (
-                <button type="button" onClick={() => setBarcode(generateBarcode())} title="Generate barcode">
+                <button type="button" onClick={() => setBarcode(generateBarcode())} title={t("stockForm.generateBarcode")}>
                   <Wand2 size={15} />
                 </button>
               )}
@@ -504,10 +486,10 @@ export function StockEntryForm({
           </label>
         </section>
 
-        <section className={styles.formPanel} aria-label="Item detail">
+        <section className={styles.formPanel} aria-label={t("stockForm.itemDetail")}>
           <div className={styles.formGrid}>
             <label className={styles.field} data-stock-flow="itemName" onKeyDown={handleFlowEnter}>
-              <span>Item name</span>
+              <span>{t("stock.itemName")}</span>
               <input
                 value={itemName}
                 placeholder="Paracetamol 500 mg"
@@ -516,17 +498,17 @@ export function StockEntryForm({
             </label>
 
             <label className={styles.field} data-stock-flow="location" onKeyDown={handleFlowEnter}>
-              <span>Location</span>
+              <span>{t("stockForm.location")}</span>
               <input value={location} onChange={(event) => setLocation(event.target.value)} />
             </label>
 
             <label className={styles.field} data-stock-flow="manufacturer" onKeyDown={handleFlowEnter}>
-              <span>Manufacturer</span>
+              <span>{t("stock.manufacturer")}</span>
               <input value={manufacturer} onChange={(event) => setManufacturer(event.target.value)} />
             </label>
 
             <label className={styles.field} data-stock-flow="sellPrice" onKeyDown={handleFlowEnter}>
-              <span>Sell price</span>
+              <span>{t("stock.sellPrice")}</span>
               <input
                 type="text"
                 inputMode="decimal"
@@ -536,20 +518,18 @@ export function StockEntryForm({
             </label>
 
             <label className={styles.field} data-stock-flow="itemCategory">
-              <span>Item category</span>
+              <span>{t("stock.category")}</span>
               <SearchableSelect
-                ariaLabel="Item category"
+                ariaLabel={t("stock.category")}
                 value={itemCategory}
-                options={optionList(resolvedCategoryOptions)}
+                options={resolvedCategoryOptions}
                 onChange={setItemCategory}
-                allowCustom
-                customOptionLabel={(value) => `Add category "${value}"`}
                 onCommit={() => focusNextField("itemCategory")}
               />
             </label>
 
             <label className={styles.field} data-stock-flow="weightage" onKeyDown={handleFlowEnter}>
-              <span>Amount</span>
+              <span>{t("stockForm.amount")}</span>
               <input
                 value={weightage}
                 placeholder="500"
@@ -558,9 +538,9 @@ export function StockEntryForm({
             </label>
 
             <label className={styles.field} data-stock-flow="subUnit">
-              <span>Sub unit</span>
+              <span>{t("stockForm.subUnit")}</span>
               <SearchableSelect
-                ariaLabel="Sub unit"
+                ariaLabel={t("stockForm.subUnit")}
                 value={subUnit}
                 options={optionList(unitOptions)}
                 onChange={setSubUnit}
@@ -570,9 +550,9 @@ export function StockEntryForm({
             </label>
 
             <label className={styles.field} data-stock-flow="unit">
-              <span>Unit</span>
+              <span>{t("stockForm.unit")}</span>
               <SearchableSelect
-                ariaLabel="Unit"
+                ariaLabel={t("stockForm.unit")}
                 value={unit}
                 options={optionList(unitOptions)}
                 onChange={setUnit}
@@ -582,21 +562,21 @@ export function StockEntryForm({
             </label>
 
             <label className={styles.field} data-stock-flow="brandName" onKeyDown={handleFlowEnter}>
-              <span>Brand name</span>
+              <span>{t("stockForm.brand")}</span>
               <input value={brandName} onChange={(event) => setBrandName(event.target.value)} />
             </label>
           </div>
         </section>
       </div>
 
-      <section className={styles.packagingPanel} aria-label="Packaging conversion">
+      <section className={styles.packagingPanel} aria-label={t("stockForm.packaging")}>
         <div className={styles.packagingHeader}>
           <div>
-            <h2>Packaging in</h2>
+            <h2>{t("stockForm.packagingIn")}</h2>
           </div>
           <button type="button" className={styles.moreButton} onClick={() => addPackagingRow(true)}>
             <Plus size={16} />
-            <span>Add Row</span>
+            <span>{t("stockForm.addRow")}</span>
           </button>
         </div>
 
@@ -611,9 +591,9 @@ export function StockEntryForm({
               }}
             >
               <label className={styles.field}>
-                <span>Package</span>
+                <span>{t("stockForm.package")}</span>
                 <SearchableSelect
-                  ariaLabel="Package"
+                  ariaLabel={t("stockForm.package")}
                   value={row.parentUnit}
                   options={optionList(packageOptions)}
                   onChange={(value) => updatePackagingRow(row.id, { parentUnit: value })}
@@ -622,7 +602,7 @@ export function StockEntryForm({
               </label>
 
               <label className={styles.field}>
-                <span>Sub value</span>
+                <span>{t("stockForm.subValue")}</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -632,9 +612,9 @@ export function StockEntryForm({
               </label>
 
               <label className={styles.field}>
-                <span>Sub unit</span>
+                <span>{t("stockForm.subUnit")}</span>
                 <SearchableSelect
-                  ariaLabel="Sub unit"
+                  ariaLabel={t("stockForm.subUnit")}
                   value={row.childUnit}
                   options={optionList(unitOptions)}
                   onChange={(value) => updatePackagingRow(row.id, { childUnit: value })}
@@ -643,13 +623,13 @@ export function StockEntryForm({
               </label>
 
               <label className={styles.field}>
-                <span>Barcode</span>
+                <span>{t("stockForm.barcode")}</span>
                 <span className={styles.inlineField}>
                   <input
                     value={row.barcode}
                     onChange={(event) => updatePackagingRow(row.id, { barcode: event.target.value })}
                   />
-                  <button type="button" onClick={() => updatePackagingRow(row.id, { barcode: generateBarcode() })} title="Generate barcode">
+                  <button type="button" onClick={() => updatePackagingRow(row.id, { barcode: generateBarcode() })} title={t("stockForm.generateBarcode")}>
                     <Wand2 size={15} />
                   </button>
                 </span>
@@ -659,8 +639,8 @@ export function StockEntryForm({
                 type="button"
                 className={styles.removeRowButton}
                 onClick={() => removePackagingRow(row.id)}
-                aria-label="Remove packaging row"
-                title="Remove row"
+                aria-label={t("stockForm.removePackaging")}
+                title={t("stockForm.removeRow")}
                 disabled={packagingRows.length === 1}
               >
                 <Trash2 size={16} />
@@ -670,9 +650,9 @@ export function StockEntryForm({
         </div>
       </section>
 
-      <section className={styles.regulatoryFormsPanel} aria-label="Pharmacy drug purchase and sales records">
+      <section className={styles.regulatoryFormsPanel} aria-label={t("stockForm.records")}>
         <div className={styles.regulatoryFormsHeader}>
-          <h2>Pharmacy Drug Purchase &amp; Sales Records</h2>
+          <h2>{t("stockForm.records")}</h2>
         </div>
         <div className={styles.packagingRegulatoryOptions}>
           {regulatoryFormOptions.map((form) => (
@@ -692,7 +672,7 @@ export function StockEntryForm({
       <div className={styles.formFooter}>
         <button type="submit" className={styles.toolbarAddButton} disabled={!canSave || isDeleting}>
           <PackagePlus size={17} />
-          <span>{isEditing ? "Save Changes" : "Create Item"}</span>
+          <span>{isEditing ? t("stockForm.saveChanges") : t("stockForm.create")}</span>
         </button>
       </div>
     </form>

@@ -160,6 +160,8 @@
   font-weight: 760;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
 }
 
 .navList {
@@ -422,6 +424,76 @@
 
 .preferenceCopy {
   min-width: 0;
+}
+
+.languageSelector {
+  display: grid;
+  width: 250px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  justify-self: end;
+}
+
+.languageOption,
+.themeSummary {
+  display: flex;
+  min-width: 0;
+  height: 40px;
+  align-items: center;
+  border: 1px solid #cdd8d1;
+  border-radius: 6px;
+  background: #fff;
+  color: #4f5e55;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 680;
+}
+
+.languageOption {
+  cursor: pointer;
+  gap: 6px;
+  padding: 0 9px;
+}
+
+.languageOption svg {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.languageOptionActive {
+  border-color: #75a386;
+  background: var(--settings-green-soft);
+  color: var(--settings-green-dark);
+}
+
+.languageOption:focus-visible {
+  outline: 2px solid rgba(43, 101, 66, 0.35);
+  outline-offset: 1px;
+}
+
+.languageOption:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.languageCode {
+  color: #758178;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.themeSummary {
+  width: 250px;
+  justify-self: end;
+  gap: 8px;
+  padding: 0 11px;
+  text-align: left;
+}
+
+.themeSummary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .preferenceTitle,
@@ -957,6 +1029,8 @@
   letter-spacing: .04em;
   padding: 9px 11px;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
 }
 
 .staffRow {
@@ -1282,6 +1356,8 @@
   letter-spacing: 0.04em;
   padding: 9px 11px;
   text-transform: uppercase;
+  font-family: var(--app-font);
+  font-size-adjust: var(--app-uppercase-font-size-adjust);
 }
 
 .emptyTable {
@@ -1421,6 +1497,11 @@
   }
 
   .paymentMethodList {
+    width: 220px;
+  }
+
+  .languageSelector,
+  .themeSummary {
     width: 220px;
   }
 

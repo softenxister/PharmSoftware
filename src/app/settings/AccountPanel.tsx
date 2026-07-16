@@ -2,10 +2,12 @@
 
 import { ChangeEvent, FormEvent, useState } from "react";
 import { Camera, Check, KeyRound, Save } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import type { PharmUser } from "@/server/auth/pharmUser";
 import styles from "./Settings.module.css";
 
 export function AccountPanel({ user, onUpdated }: { user: PharmUser; onUpdated: (user: PharmUser) => void }) {
+  const { t } = usePreferences();
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -19,7 +21,7 @@ export function AccountPanel({ user, onUpdated }: { user: PharmUser; onUpdated: 
     setError("");
     if (!file) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 512 * 1024) {
-      setError("Choose a PNG, JPEG, or WebP image no larger than 512 KB.");
+      setError(t("account.imageError"));
       event.target.value = "";
       return;
     }
@@ -47,11 +49,11 @@ export function AccountPanel({ user, onUpdated }: { user: PharmUser; onUpdated: 
         }),
       });
       const data = await response.json() as { error?: string; user?: PharmUser };
-      if (!response.ok || !data.user) throw new Error(data.error || "Unable to save your account.");
+      if (!response.ok || !data.user) throw new Error(data.error || t("account.saveError"));
       onUpdated(data.user);
-      setMessage("Account saved");
+      setMessage(t("account.saved"));
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "Unable to save your account.");
+      setError(submissionError instanceof Error ? submissionError.message : t("account.saveError"));
     } finally {
       setSaving(false);
     }
@@ -65,7 +67,7 @@ export function AccountPanel({ user, onUpdated }: { user: PharmUser; onUpdated: 
     const form = new FormData(formElement);
     const newPassword = String(form.get("newPassword") || "");
     if (newPassword !== String(form.get("confirmPassword") || "")) {
-      setPasswordError("New passwords do not match.");
+      setPasswordError(t("account.passwordMismatch"));
       return;
     }
     setPasswordSaving(true);
@@ -76,11 +78,11 @@ export function AccountPanel({ user, onUpdated }: { user: PharmUser; onUpdated: 
         body: JSON.stringify({ currentPassword: String(form.get("currentPassword") || ""), newPassword }),
       });
       const data = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Unable to change your password.");
+      if (!response.ok) throw new Error(data.error || t("account.passwordError"));
       formElement.reset();
       setPasswordSaved(true);
     } catch (submissionError) {
-      setPasswordError(submissionError instanceof Error ? submissionError.message : "Unable to change your password.");
+      setPasswordError(submissionError instanceof Error ? submissionError.message : t("account.passwordError"));
     } finally {
       setPasswordSaving(false);
     }
@@ -91,38 +93,38 @@ export function AccountPanel({ user, onUpdated }: { user: PharmUser; onUpdated: 
   return (
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
-        <div><h2 className={styles.panelTitle}>Account</h2><p className={styles.panelDescription}>Your personal profile and sign-in details.</p></div>
+        <div><h2 className={styles.panelTitle}>{t("settings.account")}</h2><p className={styles.panelDescription}>{t("account.description")}</p></div>
         {message && <span className={styles.savedBadge}><Check size={13} />{message}</span>}
       </div>
       <div className={styles.accountPanelBody}>
         <form onSubmit={saveProfile} className={styles.accountForm}>
           <div className={styles.avatarEditor}>
-            <div className={styles.largeAvatar}>{avatarUrl ? <img src={avatarUrl} alt="Current profile" /> : initials}</div>
-            <div><strong>Profile photo</strong><small>PNG, JPEG, or WebP · up to 512 KB</small></div>
-            <label className={styles.secondaryButton}><Camera size={14} />Choose image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={selectAvatar} /></label>
-            {avatarUrl && <button type="button" className={styles.textButton} onClick={() => setAvatarUrl(null)}>Remove</button>}
+            <div className={styles.largeAvatar}>{avatarUrl ? <img src={avatarUrl} alt={t("account.currentProfile")} /> : initials}</div>
+            <div><strong>{t("account.profilePhoto")}</strong><small>{t("account.photoHint")}</small></div>
+            <label className={styles.secondaryButton}><Camera size={14} />{t("account.chooseImage")}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={selectAvatar} /></label>
+            {avatarUrl && <button type="button" className={styles.textButton} onClick={() => setAvatarUrl(null)}>{t("account.remove")}</button>}
           </div>
           <div className={styles.liveFormGrid}>
-            <label className={styles.liveField}><span>Full name</span><input name="name" defaultValue={user.name} minLength={2} maxLength={100} required /></label>
-            <label className={styles.liveField}><span>Username</span><input name="username" defaultValue={user.username} minLength={3} maxLength={32} required spellCheck={false} /></label>
-            <label className={styles.liveField}><span>Phone number <small>Optional</small></span><input name="phone" defaultValue={user.phone} maxLength={30} /></label>
-            <label className={styles.liveField}><span>Role</span><input value={user.role === "owner" ? "Owner" : "Pharmacist"} readOnly aria-readonly="true" /></label>
-            {user.role === "pharmacist" && <label className={styles.liveField}><span>Pharmacist license <small>Optional</small></span><input name="pharmacistLicenseNumber" defaultValue={user.pharmacistLicenseNumber || ""} maxLength={80} /></label>}
+            <label className={styles.liveField}><span>{t("account.fullName")}</span><input name="name" defaultValue={user.name} minLength={2} maxLength={100} required /></label>
+            <label className={styles.liveField}><span>{t("account.username")}</span><input name="username" defaultValue={user.username} minLength={3} maxLength={32} required spellCheck={false} /></label>
+            <label className={styles.liveField}><span>{t("account.phone")} <small>{t("account.optional")}</small></span><input name="phone" defaultValue={user.phone} maxLength={30} /></label>
+            <label className={styles.liveField}><span>{t("account.role")}</span><input value={user.role === "owner" ? t("common.owner") : t("common.pharmacist")} readOnly aria-readonly="true" /></label>
+            {user.role === "pharmacist" && <label className={styles.liveField}><span>{t("account.license")} <small>{t("account.optional")}</small></span><input name="pharmacistLicenseNumber" defaultValue={user.pharmacistLicenseNumber || ""} maxLength={80} /></label>}
           </div>
           {error && <div className={styles.formError} role="alert">{error}</div>}
-          <div className={styles.formActions}><button className={styles.primaryButton} type="submit" disabled={saving}><Save size={14} />{saving ? "Saving…" : "Save account"}</button></div>
+          <div className={styles.formActions}><button className={styles.primaryButton} type="submit" disabled={saving}><Save size={14} />{saving ? t("common.saving") : t("account.save")}</button></div>
         </form>
 
         <form onSubmit={changePassword} className={styles.passwordCard}>
-          <div className={styles.subsectionHeading}><span><KeyRound size={17} /></span><div><h3>Change password</h3><p>Changing it signs your account out on other devices.</p></div></div>
+          <div className={styles.subsectionHeading}><span><KeyRound size={17} /></span><div><h3>{t("account.changePassword")}</h3><p>{t("account.changePasswordHint")}</p></div></div>
           <div className={styles.passwordFields}>
-            <label className={styles.liveField}><span>Current password</span><input name="currentPassword" type="password" autoComplete="current-password" maxLength={128} required /></label>
-            <label className={styles.liveField}><span>New password</span><input name="newPassword" type="password" autoComplete="new-password" minLength={10} maxLength={128} required /></label>
-            <label className={styles.liveField}><span>Confirm new password</span><input name="confirmPassword" type="password" autoComplete="new-password" minLength={10} maxLength={128} required /></label>
+            <label className={styles.liveField}><span>{t("account.currentPassword")}</span><input name="currentPassword" type="password" autoComplete="current-password" maxLength={128} required /></label>
+            <label className={styles.liveField}><span>{t("password.new")}</span><input name="newPassword" type="password" autoComplete="new-password" minLength={10} maxLength={128} required /></label>
+            <label className={styles.liveField}><span>{t("password.confirm")}</span><input name="confirmPassword" type="password" autoComplete="new-password" minLength={10} maxLength={128} required /></label>
           </div>
           {passwordError && <div className={styles.formError} role="alert">{passwordError}</div>}
-          {passwordSaved && <div className={styles.formSuccess} role="status"><Check size={14} />Password changed</div>}
-          <div className={styles.formActions}><button className={styles.secondaryActionButton} type="submit" disabled={passwordSaving}>{passwordSaving ? "Updating…" : "Update password"}</button></div>
+          {passwordSaved && <div className={styles.formSuccess} role="status"><Check size={14} />{t("account.passwordChanged")}</div>}
+          <div className={styles.formActions}><button className={styles.secondaryActionButton} type="submit" disabled={passwordSaving}>{passwordSaving ? t("account.updating") : t("account.updatePassword")}</button></div>
         </form>
       </div>
     </section>

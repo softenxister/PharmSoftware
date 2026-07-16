@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/app/AuthProvider";
+import { usePreferences } from "@/app/PreferencesProvider";
+import type { TranslationKey } from "@/app/i18n/i18n";
 import type { PharmUser } from "@/server/auth/pharmUser";
 import { getSalesLandingHref } from "@/app/settings/posPreferences";
 import { usePosPreferences } from "@/app/settings/usePosPreferences";
@@ -15,22 +17,22 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Sales", href: "/sales", icon: ShoppingCart },
-  { label: "Purchase", href: "/purchase", icon: Package },
-  { label: "Stock", href: "/stock", icon: Archive },
-  { label: "Member", href: "/member", icon: Users },
-  { label: "Analysis", href: "/analysis", icon: BarChart2 },
-  { label: "Integrations", href: "/integrations", icon: Plug },
-  { label: "More", href: "/more", icon: MoreHorizontal },
-];
+  { labelKey: "nav.home", href: "/", icon: Home },
+  { labelKey: "nav.sales", href: "/sales", icon: ShoppingCart },
+  { labelKey: "nav.purchase", href: "/purchase", icon: Package },
+  { labelKey: "nav.stock", href: "/stock", icon: Archive },
+  { labelKey: "nav.member", href: "/member", icon: Users },
+  { labelKey: "nav.analysis", href: "/analysis", icon: BarChart2 },
+  { labelKey: "nav.integrations", href: "/integrations", icon: Plug },
+  { labelKey: "nav.more", href: "/more", icon: MoreHorizontal },
+] satisfies Array<{ labelKey: TranslationKey; href: string; icon: typeof Home }>;
 
 const stockMenuItems = [
-  { label: "Migration", href: "/stock/migration", icon: RefreshCw },
-  { label: "Discounts", href: "/stock/discounts", icon: Tag },
-  { label: "Stock Adjustment", href: "/stock/adjustment", icon: SlidersHorizontal },
-  { label: "Set Min/Max", href: "/stock/min-max", icon: Gauge },
-];
+  { labelKey: "stock.migration", href: "/stock/migration", icon: RefreshCw },
+  { labelKey: "stock.discounts", href: "/stock/discounts", icon: Tag },
+  { labelKey: "stock.adjustment", href: "/stock/adjustment", icon: SlidersHorizontal },
+  { labelKey: "stock.minMax", href: "/stock/min-max", icon: Gauge },
+] satisfies Array<{ labelKey: TranslationKey; href: string; icon: typeof Home }>;
 
 const getTopLevelPath = (href: string) => (href === "/" ? "/" : `/${href.split("/")[1]}`);
 
@@ -46,14 +48,15 @@ export function TopBar({ user }: { user: PharmUser }) {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [langOpen, setLangOpen] = useState(false);
-  const [lang, setLang] = useState("EN");
   const [stockMenuOpen, setStockMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const languageRef = useRef<HTMLDivElement>(null);
+  const { preferences: appPreferences, isSaving: isSavingPreferences, updatePreferences, t } = usePreferences();
   const { preferences } = usePosPreferences(user);
   const salesHref = getSalesLandingHref(preferences.defaultSalesLanding);
-  const roleLabel = user.role === "owner" ? "Owner" : "Pharmacist";
+  const roleLabel = user.role === "owner" ? t("common.owner") : t("common.pharmacist");
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -70,6 +73,22 @@ export function TopBar({ user }: { user: PharmUser }) {
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [profileOpen]);
+
+  useEffect(() => {
+    if (!langOpen) return;
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (!languageRef.current?.contains(event.target as Node)) setLangOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLangOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [langOpen]);
 
   const logout = async () => {
     if (loggingOut) return;
@@ -104,15 +123,16 @@ export function TopBar({ user }: { user: PharmUser }) {
         </div>
 
         {/* Nav Items */}
-        {navItems.map(({ label, href, icon: Icon }) => {
-          const resolvedHref = label === "Sales" ? salesHref : href;
+        {navItems.map(({ labelKey, href, icon: Icon }) => {
+          const label = t(labelKey);
+          const resolvedHref = labelKey === "nav.sales" ? salesHref : href;
           const topLevelPath = getTopLevelPath(href);
           const isActive = topLevelPath === "/" ? pathname === "/" : pathname.startsWith(topLevelPath);
-          const isHome = label === "Home";
-          const isStock = label === "Stock";
+          const isHome = labelKey === "nav.home";
+          const isStock = labelKey === "nav.stock";
           const navLink = (
             <Link
-              key={label}
+              key={labelKey}
               to={resolvedHref}
               className={`flex h-full items-center transition-colors ${isHome ? "w-11 justify-center" : "gap-2 px-4"}`}
               style={{
@@ -148,7 +168,7 @@ export function TopBar({ user }: { user: PharmUser }) {
 
           return (
             <div
-              key={label}
+              key={labelKey}
               className="relative h-full"
               onMouseEnter={() => setStockMenuOpen(true)}
               onMouseLeave={() => setStockMenuOpen(false)}
@@ -165,9 +185,9 @@ export function TopBar({ user }: { user: PharmUser }) {
                   className="absolute left-0 top-full z-50 w-56 border py-1 shadow-lg"
                   style={{ background: "#ffffff", borderColor: "#b9d8c4" }}
                   role="menu"
-                  aria-label="Stock actions"
+                  aria-label={t("nav.stockActions")}
                 >
-                  {stockMenuItems.map(({ label: menuLabel, href: menuHref, icon: MenuIcon }, index) => (
+                  {stockMenuItems.map(({ labelKey: menuLabelKey, href: menuHref, icon: MenuIcon }, index) => (
                     <Link
                       key={menuHref}
                       to={menuHref}
@@ -183,7 +203,7 @@ export function TopBar({ user }: { user: PharmUser }) {
                       onClick={() => setStockMenuOpen(false)}
                     >
                       <MenuIcon size={16} strokeWidth={1.9} aria-hidden="true" />
-                      <span>{menuLabel}</span>
+                      <span>{t(menuLabelKey)}</span>
                     </Link>
                   ))}
                 </div>
@@ -196,32 +216,37 @@ export function TopBar({ user }: { user: PharmUser }) {
       {/* Right: Language, Bell, Gear, Profile */}
       <div className="flex items-center gap-0.5">
         {/* Language */}
-        <div className="relative" ref={profileRef}>
+        <div className="relative" ref={languageRef}>
           <button
+            type="button"
             onClick={() => setLangOpen(v => !v)}
+            aria-haspopup="menu"
+            aria-expanded={langOpen}
+            aria-label={t("appearance.language")}
             className="flex items-center gap-1.5 px-3 h-9 transition-colors"
             style={{ color: "#b8d4c4", background: "transparent" }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#243d2e"; (e.currentTarget as HTMLElement).style.color = "#e0f0e8"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#b8d4c4"; }}
           >
             <Globe size={16.8} />
-            <span style={{ fontSize: "14.4px" }}>{lang}</span>
+            <span style={{ fontSize: "14.4px" }}>{appPreferences.locale.toUpperCase()}</span>
             <ChevronDown size={12} />
           </button>
           {langOpen && (
             <div className="absolute right-0 top-10 w-32 shadow-xl border z-50"
               style={{ background: "#1e3828", borderColor: "#2e5040", borderRadius: 0 }}>
-              {["EN", "TH", "ZH", "JP"].map(l => (
-                <button key={l} onClick={() => { setLang(l); setLangOpen(false); }}
+              {(["en", "th"] as const).map(locale => (
+                <button key={locale} type="button" disabled={isSavingPreferences}
+                  onClick={() => { void updatePreferences({ locale }); setLangOpen(false); }}
                   className="w-full text-left px-4 py-2 transition-colors"
                   style={{
                     fontSize: "12px",
-                    color: l === lang ? "#f0f7f3" : "#b8d4c4",
-                    background: l === lang ? "#275c3a" : "transparent",
+                    color: locale === appPreferences.locale ? "#f0f7f3" : "#b8d4c4",
+                    background: locale === appPreferences.locale ? "#275c3a" : "transparent",
                   }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#243d2e"}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = l === lang ? "#275c3a" : "transparent"}>
-                  {l === "EN" ? "🇺🇸 English" : l === "TH" ? "🇹🇭 Thai" : l === "ZH" ? "🇨🇳 Chinese" : "🇯🇵 Japanese"}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = locale === appPreferences.locale ? "#275c3a" : "transparent"}>
+                  {locale === "en" ? `EN · ${t("common.english")}` : `TH · ${t("common.thai")}`}
                 </button>
               ))}
             </div>
@@ -229,7 +254,7 @@ export function TopBar({ user }: { user: PharmUser }) {
         </div>
 
         {/* Bell */}
-        <button className="relative flex items-center justify-center w-9 h-9 transition-colors"
+        <button type="button" aria-label={t("common.notifications")} className="relative flex items-center justify-center w-9 h-9 transition-colors"
           style={{ color: "#b8d4c4", background: "transparent" }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#243d2e"; (e.currentTarget as HTMLElement).style.color = "#e0f0e8"; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#b8d4c4"; }}>
@@ -238,7 +263,7 @@ export function TopBar({ user }: { user: PharmUser }) {
         </button>
 
         {/* Settings */}
-        <Link to="/settings" aria-label="Open settings" title="Settings"
+        <Link to="/settings" aria-label={t("common.openSettings")} title={t("nav.settings")}
           className="flex items-center justify-center w-9 h-9 transition-colors"
           style={{ color: "#b8d4c4", background: "transparent" }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#243d2e"; (e.currentTarget as HTMLElement).style.color = "#e0f0e8"; }}
@@ -282,7 +307,7 @@ export function TopBar({ user }: { user: PharmUser }) {
                 style={{ color: "#74453e", background: "transparent", fontSize: "12px", fontWeight: 650 }}
                 onMouseEnter={event => { event.currentTarget.style.background = "#f8efed"; }}
                 onMouseLeave={event => { event.currentTarget.style.background = "transparent"; }}>
-                <LogOut size={15} aria-hidden="true" />{loggingOut ? "Logging out…" : "Log out"}
+                <LogOut size={15} aria-hidden="true" />{loggingOut ? t("common.loggingOut") : t("common.logOut")}
               </button>
             </div>
           )}

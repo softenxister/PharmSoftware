@@ -17,3 +17,7 @@ export function buildProductDescription(input: ProductDescriptionInput): string 
   if (input.showStock) parts.push(`${formatStock(input.totalStock)} stock`);
   return parts.filter(Boolean).join(" - ");
 }
+
+export function shouldUseSellPackDropdown(sellPackCount: number): boolean {
+  return Number.isFinite(sellPackCount) && sellPackCount > 1;
+}

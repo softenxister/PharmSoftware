@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
   ChevronDown,
   ChevronsUpDown,
@@ -12,7 +12,9 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import type { SalesProduct, StockItemInput } from "@/server/db/types";
-import { buildStockCategoryOptions } from "./stockCategoryFilter";
+import { usePreferences } from "@/app/PreferencesProvider";
+import { buildStockCategoryOptions, getStockCategoryLabel } from "./stockCategoryFilter";
+import { getStockFilterOptionLabel } from "./stockFilterLabels";
 import { loadStockCatalog, updateStockCatalog } from "./stockCatalogClient";
 import { StockFilterDropdown, StockRangeFilter } from "./StockFilterDropdown";
 import {
@@ -109,18 +111,8 @@ const SIDEBAR_MIN_WIDTH = 230;
 const SIDEBAR_MAX_WIDTH = 360;
 const SIDEBAR_DEFAULT_WIDTH = 270;
 
-function formatMoney(value: number): string {
-  return `฿${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-}
-
 function formatPercent(value: number): string {
   return `${value.toFixed(2)}%`;
-}
-
-function stockStateLabel(state: StockState): string {
-  if (state === "low") return "Below minimum";
-  if (state === "overstock") return "Above maximum";
-  return "Within range";
 }
 
 type StockFilterPanel =
@@ -180,6 +172,20 @@ function toggleSelectedOption<T extends string>(options: T[], option: string): T
 }
 
 export default function StockPage() {
+  const { t, formatNumber, preferences } = usePreferences();
+  const localizeFilterOption = useCallback(
+    (option: string) => getStockFilterOptionLabel(preferences.locale, option),
+    [preferences.locale],
+  );
+  const localizeCategoryOption = useCallback(
+    (option: string) => getStockCategoryLabel(preferences.locale, option),
+    [preferences.locale],
+  );
+  const stockStateLabel = (state: StockState) => {
+    if (state === "low") return t("stock.belowMinimum");
+    if (state === "overstock") return t("stock.aboveMaximum");
+    return t("stock.withinRange");
+  };
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [query, setQuery] = useState("");
   const [openFilterPanel, setOpenFilterPanel] = useState<StockFilterPanel | null>(null);
@@ -223,8 +229,8 @@ export default function StockPage() {
   }, [appliedFilters, query, stockItems]);
 
   const stockCategoryFilterOptions = useMemo(
-    () => buildStockCategoryOptions(products.map((product) => product.category)),
-    [products],
+    () => buildStockCategoryOptions(),
+    [],
   );
 
   const dosageTypeFilterOptions = useMemo(
@@ -241,19 +247,6 @@ export default function StockPage() {
     () => parseStockRange(draftFilters.minimumStock, draftFilters.maximumStock),
     [draftFilters.maximumStock, draftFilters.minimumStock],
   );
-
-  const categoryOptions = useMemo(() => {
-    const seen = new Set<string>();
-
-    return products.reduce<string[]>((options, product) => {
-      const category = product.category.trim();
-      const key = category.toLowerCase();
-      if (!category || seen.has(key)) return options;
-      seen.add(key);
-      options.push(category);
-      return options;
-    }, []);
-  }, [products]);
 
   const openAddStock = () => {
     setEditingProduct(null);
@@ -381,21 +374,21 @@ export default function StockPage() {
     <div className={styles.page}>
       <aside
         className={`${styles.sidebar} ${!isFilterOpen ? styles.sidebarClosed : ""}`}
-        aria-label="Stock filters"
+        aria-label={t("stock.filters")}
         style={isFilterOpen ? { width: sidebarWidth, minWidth: sidebarWidth } : undefined}
       >
         <div className={styles.sidebarHeader}>
           {isFilterOpen ? (
             <>
               <div className={styles.sidebarHeading}>
-                <h1 className={styles.sidebarTitle}>Inventory Stock</h1>
+                <h1 className={styles.sidebarTitle}>{t("stock.inventory")}</h1>
               </div>
               <button
                 type="button"
                 className={styles.sidebarIconButton}
                 onClick={() => setIsFilterOpen(false)}
-                title="Close filter bar"
-                aria-label="Close filter bar"
+                title={t("stock.closeFilters")}
+                aria-label={t("stock.closeFilters")}
               >
                 <span className={`${styles.sidebarToggleGlyph} ${styles.sidebarToggleGlyphOpen}`} aria-hidden="true" />
               </button>
@@ -405,8 +398,8 @@ export default function StockPage() {
               type="button"
               className={styles.sidebarIconButton}
               onClick={() => setIsFilterOpen(true)}
-              title="Open filter bar"
-              aria-label="Open filter bar"
+              title={t("stock.openFilters")}
+              aria-label={t("stock.openFilters")}
             >
               <span className={styles.sidebarToggleGlyph} aria-hidden="true" />
             </button>
@@ -417,64 +410,68 @@ export default function StockPage() {
           <>
             <button type="button" className={styles.addStockButton} onClick={openAddStock}>
               <Plus size={17} />
-              <span>Create New Item</span>
+              <span>{t("stock.createItem")}</span>
             </button>
 
             <div className={styles.filterList}>
               <button type="button" className={styles.filterButton}>
                 <span className={styles.filterText}>
-                  <span className={styles.filterLabel}>Items</span>
+                  <span className={styles.filterLabel}>{t("stock.items")}</span>
                 </span>
                 <ChevronDown size={16} />
               </button>
 
               <StockFilterDropdown
                 id="stock-category-options"
-                label="Category"
+                label={t("stock.category")}
                 options={stockCategoryFilterOptions}
                 selectedOptions={draftFilters.categories}
                 isOpen={openFilterPanel === "category"}
                 onToggle={() => toggleFilterPanel("category")}
                 onToggleOption={(option) => toggleDraftFilterOption("categories", option)}
+                getOptionLabel={localizeCategoryOption}
               />
 
               <StockFilterDropdown
                 id="stock-dosage-type-options"
-                label="Dosage Type"
+                label={t("stock.dosageType")}
                 options={dosageTypeFilterOptions}
                 selectedOptions={draftFilters.dosageTypes}
                 isOpen={openFilterPanel === "dosageType"}
                 onToggle={() => toggleFilterPanel("dosageType")}
                 onToggleOption={(option) => toggleDraftFilterOption("dosageTypes", option)}
+                getOptionLabel={localizeFilterOption}
               />
 
               <button type="button" className={styles.filterButton}>
                 <span className={styles.filterText}>
-                  <span className={styles.filterLabel}>Schedule Type</span>
+                  <span className={styles.filterLabel}>{t("stock.scheduleType")}</span>
                 </span>
                 <ChevronDown size={16} />
               </button>
 
               <StockFilterDropdown
                 id="stock-expiry-options"
-                label="Expiry"
+                label={t("stock.expiry")}
                 options={EXPIRY_WINDOWS}
                 selectedOptions={draftFilters.expiryWindows}
                 isOpen={openFilterPanel === "expiry"}
                 onToggle={() => toggleFilterPanel("expiry")}
                 onToggleOption={(option) => toggleDraftFilterOption("expiryWindows", option)}
                 searchable={false}
+                getOptionLabel={localizeFilterOption}
               />
 
               <StockFilterDropdown
                 id="stock-level-options"
-                label="Stock"
+                label={t("nav.stock")}
                 options={STOCK_LEVELS}
                 selectedOptions={draftFilters.stockLevels}
                 isOpen={openFilterPanel === "stock"}
                 onToggle={() => toggleFilterPanel("stock")}
                 onToggleOption={(option) => toggleDraftFilterOption("stockLevels", option)}
                 searchable={false}
+                getOptionLabel={localizeFilterOption}
               />
 
               <StockRangeFilter
@@ -489,7 +486,7 @@ export default function StockPage() {
 
               <StockFilterDropdown
                 id="stock-manufacturer-options"
-                label="Manufacturer"
+                label={t("stock.manufacturer")}
                 options={manufacturerFilterOptions}
                 selectedOptions={draftFilters.manufacturers}
                 isOpen={openFilterPanel === "manufacturer"}
@@ -499,20 +496,21 @@ export default function StockPage() {
 
               <StockFilterDropdown
                 id="stock-adjustment-options"
-                label="Stock Adjustment"
+                label={t("stock.adjustment")}
                 options={STOCK_ADJUSTMENT_STATES}
                 selectedOptions={draftFilters.adjustmentStatuses}
                 isOpen={openFilterPanel === "stockAdjustment"}
                 onToggle={() => toggleFilterPanel("stockAdjustment")}
                 onToggleOption={(option) => toggleDraftFilterOption("adjustmentStatuses", option)}
                 searchable={false}
-                helperText="Stock items do not currently include adjustment status, so these selections do not filter the item table."
+                helperText={t("stock.adjustmentFilterNote")}
+                getOptionLabel={localizeFilterOption}
               />
             </div>
 
             <div className={styles.sidebarActions}>
               <button type="button" className={styles.resetButton} onClick={resetStockFilters}>
-                Reset
+                {t("stock.reset")}
               </button>
               <button
                 type="button"
@@ -520,7 +518,7 @@ export default function StockPage() {
                 onClick={applyStockFilters}
                 disabled={!stockRangeResult.isValid}
               >
-                Apply Filter
+                {t("stock.applyFilter")}
               </button>
             </div>
           </>
@@ -530,7 +528,7 @@ export default function StockPage() {
             className={styles.sidebarResizeHandle}
             role="separator"
             aria-orientation="vertical"
-            aria-label="Resize inventory stock bar"
+            aria-label={t("stock.resizeFilters")}
             onMouseDown={handleSidebarResizeStart}
           />
         )}
@@ -544,7 +542,7 @@ export default function StockPage() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search item, location, brand, manufacturer, category, or barcode"
+              placeholder={t("stock.search")}
             />
           </label>
 
@@ -552,25 +550,25 @@ export default function StockPage() {
 
           <button type="button" className={styles.moreButton}>
             <SlidersHorizontal size={17} />
-            <span>More</span>
+            <span>{t("nav.more")}</span>
             <ChevronDown size={15} />
           </button>
 
           <button type="button" className={styles.toolbarAddButton} onClick={openAddStock}>
             <PackagePlus size={17} />
-            <span>Create New Item</span>
+            <span>{t("stock.createItem")}</span>
           </button>
         </div>
 
         <div className={styles.tablePanel}>
           <div className={styles.tableHeader}>
             <div>
-              <h2>Items</h2>
-              <p>{visibleItems.length} stocked items found</p>
+              <h2>{t("stock.items")}</h2>
+              <p>{t("stock.found", { count: visibleItems.length })}</p>
             </div>
             <div className={styles.tableSummary}>
-              <span>{stockItems.filter((item) => item.state === "low").length} low stock</span>
-              <span>{stockItems.filter((item) => item.state === "overstock").length} over max</span>
+              <span>{t("stock.lowCount", { count: stockItems.filter((item) => item.state === "low").length })}</span>
+              <span>{t("stock.overCount", { count: stockItems.filter((item) => item.state === "overstock").length })}</span>
             </div>
           </div>
 
@@ -580,16 +578,16 @@ export default function StockPage() {
                 <tr>
                   <th className={styles.itemCol}>
                     <span className={styles.headerCell}>
-                      Item name <ChevronsUpDown size={14} />
+                      {t("stock.itemName")} <ChevronsUpDown size={14} />
                     </span>
                   </th>
-                  <th>Min</th>
-                  <th>Max</th>
-                  <th>Stock</th>
-                  <th>Loc.</th>
-                  <th>Disc.</th>
-                  <th>Sell price</th>
-                  <th className={styles.actionCol} aria-label="Item actions" />
+                  <th>{t("stock.minimumShort")}</th>
+                  <th>{t("stock.maximumShort")}</th>
+                  <th>{t("nav.stock")}</th>
+                  <th>{t("stock.locationShort")}</th>
+                  <th>{t("stock.discountShort")}</th>
+                  <th>{t("stock.sellPrice")}</th>
+                  <th className={styles.actionCol} aria-label={t("stock.itemActions")} />
                 </tr>
               </thead>
               <tbody>
@@ -597,7 +595,7 @@ export default function StockPage() {
                   <tr
                     key={item.id}
                     tabIndex={0}
-                    aria-label={`Edit item detail for ${item.name}`}
+                    aria-label={t("stock.editItemFor", { name: item.name })}
                     onClick={() => openEditStockByBarcode(item.id)}
                     onKeyDown={(event) => {
                       if (event.target !== event.currentTarget || !isStockRowActivationKey(event.key)) return;
@@ -608,7 +606,7 @@ export default function StockPage() {
                     <td>
                       <span className={styles.itemCell}>
                         <span className={styles.productImageFrame}>
-                          <img src={item.imageUrl} alt={`${item.name} product`} className={styles.productImage} />
+                          <img src={item.imageUrl} alt={t("stock.productImage", { name: item.name })} className={styles.productImage} />
                         </span>
                         <span className={styles.itemInfo}>
                           <span className={styles.itemName}>{item.name}</span>
@@ -632,7 +630,7 @@ export default function StockPage() {
                               : styles.stockValueNormal
                         }`}
                         title={stockStateLabel(item.state)}
-                        aria-label={`${item.stock} units, ${stockStateLabel(item.state).toLowerCase()}`}
+                        aria-label={t("stock.unitsState", { count: item.stock, state: stockStateLabel(item.state) })}
                       >
                         {item.stock}
                       </span>
@@ -645,15 +643,15 @@ export default function StockPage() {
                     </td>
                     <td>{formatPercent(item.discount)}</td>
                     <td>
-                      <span className={styles.priceValue}>{formatMoney(item.sellPrice)}</span>
+                      <span className={styles.priceValue}>฿{formatNumber(item.sellPrice, { maximumFractionDigits: 0 })}</span>
                     </td>
                     <td>
                       <span className={styles.actionCell}>
                         <button
                           type="button"
                           className={styles.actionButton}
-                          title="Adjust stock"
-                          aria-label={`Adjust stock for ${item.name}`}
+                          title={t("stock.adjust")}
+                          aria-label={t("stock.adjustFor", { name: item.name })}
                           onClick={(event) => event.stopPropagation()}
                         >
                           <PackagePlus size={17} />
@@ -661,8 +659,8 @@ export default function StockPage() {
                         <button
                           type="button"
                           className={styles.actionButton}
-                          title="Edit item detail"
-                          aria-label={`Edit item detail for ${item.name}`}
+                          title={t("stock.editItem")}
+                          aria-label={t("stock.editItemFor", { name: item.name })}
                           onClick={(event) => {
                             event.stopPropagation();
                             openEditStockByBarcode(item.id);
@@ -679,8 +677,8 @@ export default function StockPage() {
 
             {visibleItems.length === 0 && (
               <div className={styles.emptyState}>
-                <strong>No stock items found</strong>
-                <span>Try a different item name, location, brand, manufacturer, category, or barcode.</span>
+                <strong>{t("stock.none")}</strong>
+                <span>{t("stock.noneHint")}</span>
               </div>
             )}
           </div>
@@ -693,12 +691,11 @@ export default function StockPage() {
             className={styles.stockEntryWindow}
             role="dialog"
             aria-modal="true"
-            aria-label={editingProduct ? `Edit ${editingProduct.itemName}` : "Create new item"}
+            aria-label={editingProduct ? t("stock.editDialog", { name: editingProduct.itemName }) : t("stock.createDialog")}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <StockEntryForm
               key={editingProduct?.id ?? "new-item"}
-              categoryOptions={categoryOptions}
               initialItem={editingProduct ? productToStockItemInput(editingProduct) : undefined}
               mode={editingProduct ? "edit" : "create"}
               onSave={handleSaveStock}

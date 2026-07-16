@@ -1,0 +1,52 @@
+import type { AppLocale } from "@/app/settings/appPreferences";
+
+const THAI_STOCK_FILTER_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  tablet: "ยาเม็ด",
+  tab: "เม็ด",
+  caplet: "ยาเม็ดรี",
+  capsule: "แคปซูล",
+  syrup: "ยาน้ำเชื่อม",
+  suspension: "ยาน้ำแขวนตะกอน",
+  "oral solution": "ยาน้ำรับประทาน",
+  drops: "ยาหยอด",
+  cream: "ครีม",
+  ointment: "ขี้ผึ้ง",
+  gel: "เจล",
+  lotion: "โลชั่น",
+  powder: "ผง",
+  spray: "สเปรย์",
+  inhaler: "ยาสูด",
+  injection: "ยาฉีด",
+  suppository: "ยาเหน็บ",
+  patch: "แผ่นแปะ",
+  blister: "แผง",
+  blisterpack: "แผง",
+  box: "กล่อง",
+  bottle: "ขวด",
+  sachet: "ซอง",
+  tube: "หลอด",
+  strip: "แถบ",
+  carton: "ลัง",
+  piece: "ชิ้น",
+  ml: "มล.",
+  g: "กรัม",
+  expired: "หมดอายุ",
+  "within 30 days": "ภายใน 30 วัน",
+  "31–90 days": "31–90 วัน",
+  "91–180 days": "91–180 วัน",
+  "181–365 days": "181–365 วัน",
+  "over 1 year": "มากกว่า 1 ปี",
+  "no expiry date": "ไม่มีวันหมดอายุ",
+  "out of stock": "สินค้าหมด",
+  "low stock": "สต็อกต่ำ",
+  "normal stock": "สต็อกปกติ",
+  overstock: "สต็อกเกิน",
+  pending: "รอดำเนินการ",
+  completed: "เสร็จแล้ว",
+  blocked: "ถูกระงับ",
+});
+
+export function getStockFilterOptionLabel(locale: AppLocale, value: string): string {
+  if (locale !== "th") return value;
+  return THAI_STOCK_FILTER_LABELS[value.trim().toLocaleLowerCase("en-US")] ?? value;
+}

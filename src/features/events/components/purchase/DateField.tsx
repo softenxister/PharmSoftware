@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import styles from "@/app/purchase/new/PurchaseEntry.module.css";
 import { formatDateDisplay } from "@/app/purchase/purchaseUtils";
 
 export function DateField({ label }: { label: string }) {
+  const { t } = usePreferences();
   const [displayDate, setDisplayDate] = useState("");
   const pickerRef = useRef<HTMLInputElement>(null);
 
@@ -26,7 +28,7 @@ export function DateField({ label }: { label: string }) {
           type="button"
           onClick={openPicker}
           className={styles.dateButton}
-          aria-label={`Open ${label.toLowerCase()} calendar`}
+          aria-label={t("purchaseEntry.openCalendar", { label })}
         >
           <CalendarDays size={15} color="#47745a" />
         </button>

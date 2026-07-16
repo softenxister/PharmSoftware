@@ -11,6 +11,8 @@ import {
   UsersRound,
   Volume2,
 } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
+import type { TranslationKey } from "@/app/i18n/i18n";
 import styles from "./Settings.module.css";
 
 export type SettingsSection =
@@ -25,24 +27,24 @@ export type SettingsSection =
 
 type SidebarItem = {
   id: SettingsSection;
-  label: string;
+  labelKey: TranslationKey;
   icon: LucideIcon;
   ownerOnly?: boolean;
   available?: boolean;
 };
 
 const accountItems: SidebarItem[] = [
-  { id: "account", label: "Account", icon: UserRound, available: true },
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "store-profile", label: "Store Profile", icon: Building2 },
-  { id: "pos-preferences", label: "POS Preferences", icon: SlidersHorizontal, available: true },
-  { id: "staff-management", label: "Staff", icon: UsersRound, ownerOnly: true, available: true },
-  { id: "accessibility", label: "Accessibility", icon: Accessibility, ownerOnly: true },
+  { id: "account", labelKey: "settings.account", icon: UserRound, available: true },
+  { id: "appearance", labelKey: "settings.appearance", icon: Palette, available: true },
+  { id: "store-profile", labelKey: "settings.storeProfile", icon: Building2 },
+  { id: "pos-preferences", labelKey: "settings.posPreferences", icon: SlidersHorizontal, available: true },
+  { id: "staff-management", labelKey: "settings.staff", icon: UsersRound, ownerOnly: true, available: true },
+  { id: "accessibility", labelKey: "settings.accessibility", icon: Accessibility, ownerOnly: true },
 ];
 
 const deviceItems: SidebarItem[] = [
-  { id: "printers-drawer", label: "Printers & Cash Drawer", icon: Printer },
-  { id: "scan-feedback", label: "Scan Feedback", icon: Volume2 },
+  { id: "printers-drawer", labelKey: "settings.printersDrawer", icon: Printer },
+  { id: "scan-feedback", labelKey: "settings.scanFeedback", icon: Volume2 },
 ];
 
 function SettingsNavGroup({
@@ -58,6 +60,7 @@ function SettingsNavGroup({
   isOwner: boolean;
   onSelect: (section: SettingsSection) => void;
 }) {
+  const { t } = usePreferences();
   return (
     <div className={styles.navGroup}>
       <p className={styles.navGroupLabel}>{label}</p>
@@ -74,8 +77,8 @@ function SettingsNavGroup({
               onClick={() => onSelect(item.id)}
             >
               <Icon size={17} strokeWidth={1.9} aria-hidden="true" />
-              <span className={styles.navItemTitle}>{item.label}</span>
-              {!item.available && <span className={styles.plannedDot} aria-label="Planned feature" />}
+              <span className={styles.navItemTitle}>{t(item.labelKey)}</span>
+              {!item.available && <span className={styles.plannedDot} aria-label={t("settings.planned")} />}
             </button>
           );
         })}
@@ -93,17 +96,18 @@ export function SettingsSidebar({
   isOwner: boolean;
   onSelect: (section: SettingsSection) => void;
 }) {
+  const { t } = usePreferences();
   return (
-    <aside className={styles.sidebar} aria-label="Settings sections">
+    <aside className={styles.sidebar} aria-label={t("settings.sections")}>
       <SettingsNavGroup
-        label="Account & Store"
+        label={t("settings.accountStore")}
         items={accountItems}
         activeSection={activeSection}
         isOwner={isOwner}
         onSelect={onSelect}
       />
       <SettingsNavGroup
-        label="Devices"
+        label={t("settings.devices")}
         items={deviceItems}
         activeSection={activeSection}
         isOwner={isOwner}
@@ -111,7 +115,7 @@ export function SettingsSidebar({
       />
       <div className={styles.sidebarNote}>
         <span className={styles.sidebarNoteDot} aria-hidden="true" />
-        POS preferences save automatically for this account.
+        {t("settings.autoSaveNote")}
       </div>
     </aside>
   );

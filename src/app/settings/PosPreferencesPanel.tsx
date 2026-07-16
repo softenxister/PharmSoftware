@@ -1,6 +1,8 @@
 "use client";
 
 import { Check, ShieldCheck } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
+import type { TranslationKey } from "@/app/i18n/i18n";
 import { Switch } from "@/features/events/components/ui/switch";
 import {
   Select,
@@ -24,27 +26,28 @@ type BooleanPreferenceKey = Exclude<keyof PosPreferences, "defaultSalesLanding">
 
 const preferenceRows: Array<{
   key: BooleanPreferenceKey;
-  title: string;
-  description: string;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
 }> = [
   {
     key: "showAvailableStock",
-    title: "Show available stock",
-    description: "Show on-hand quantities while choosing products and batches.",
+    titleKey: "pos.showStock",
+    descriptionKey: "pos.showStockHint",
   },
   {
     key: "showKeyboardHints",
-    title: "Show keyboard shortcut hints",
-    description: "Display compact key hints beside supported POS actions.",
+    titleKey: "pos.keyboardHints",
+    descriptionKey: "pos.keyboardHintsHint",
   },
   {
     key: "confirmDestructiveActions",
-    title: "Confirm item removal and sale cancellation",
-    description: "Ask before removing a cart line or leaving an unsaved sale.",
+    titleKey: "pos.confirmActions",
+    descriptionKey: "pos.confirmActionsHint",
   },
 ];
 
 export function PosPreferencesPanel({ user }: { user: PharmUser }) {
+  const { t } = usePreferences();
   const { preferences, updatePreferences, isReady } = usePosPreferences(user);
   const {
     settings: storeSettings,
@@ -55,10 +58,13 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
   } = useStorePosSettings();
   const isOwner = user.role === "owner";
   const preferenceStatus = storeSettingsError
-    ? "Store setup unavailable"
+    ? t("pos.storeUnavailable")
     : isReady && storeSettingsReady && !storeSettingsSaving
-      ? "Saved automatically"
-      : "Saving preferences";
+      ? t("pos.savedAuto")
+      : t("pos.saving");
+  const paymentMethodLabel = (method: StorePaymentMethod) => t(method === "Cash"
+    ? "pos.cash"
+    : method === "Bank transfer" ? "pos.bankTransfer" : "pos.creditCard");
 
   const setBooleanPreference = (key: BooleanPreferenceKey, checked: boolean) => {
     updatePreferences((current) => ({ ...current, [key]: checked }));
@@ -87,8 +93,8 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
       <div className={styles.panelHeader}>
         <div className={styles.panelTitleGroup}>
           <div>
-            <h2 id="pos-preferences-title" className={styles.panelTitle}>POS Preferences</h2>
-            <p className={styles.panelDescription}>Choose what you see and how the sales workspace behaves.</p>
+            <h2 id="pos-preferences-title" className={styles.panelTitle}>{t("settings.posPreferences")}</h2>
+            <p className={styles.panelDescription}>{t("pos.description")}</p>
           </div>
         </div>
         <span className={styles.savedBadge} role="status">
@@ -99,13 +105,13 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
 
       <div className={styles.accountNotice}>
         <ShieldCheck size={17} aria-hidden="true" />
-        <span><strong>{user.name}&apos;s workspace.</strong> Personal choices apply only to this account; store setup is owner-controlled.</span>
+        <span><strong>{t("pos.workspace", { name: user.name })}</strong> {t("pos.workspaceDetail")}</span>
       </div>
 
       <div className={styles.preferenceList}>
         <div className={styles.preferenceGroupHeader}>
-          <h3>My sales workspace</h3>
-          <p>These choices apply only to this account.</p>
+          <h3>{t("pos.myWorkspace")}</h3>
+          <p>{t("pos.myWorkspaceHint")}</p>
         </div>
         {preferenceRows.map((row) => {
           const labelId = `preference-${row.key}`;
@@ -113,11 +119,11 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
           return (
             <div className={styles.preferenceRow} key={row.key}>
               <div className={styles.preferenceCopy}>
-                <h3 id={labelId} className={styles.preferenceTitle}>{row.title}</h3>
-                <p className={styles.preferenceDescription}>{row.description}</p>
+                <h3 id={labelId} className={styles.preferenceTitle}>{t(row.titleKey)}</h3>
+                <p className={styles.preferenceDescription}>{t(row.descriptionKey)}</p>
               </div>
               <div className={styles.switchControl}>
-                <span className={styles.switchState}>{checked ? "On" : "Off"}</span>
+                <span className={styles.switchState}>{checked ? t("pos.on") : t("pos.off")}</span>
                 <Switch
                   className={styles.preferenceSwitch}
                   checked={checked}
@@ -132,8 +138,8 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
 
         <div className={styles.preferenceRow}>
           <div className={styles.preferenceCopy}>
-            <h3 id="default-sales-landing" className={styles.preferenceTitle}>Default sales landing view</h3>
-            <p className={styles.preferenceDescription}>Choose which page opens when you select Sales in the main navigation.</p>
+            <h3 id="default-sales-landing" className={styles.preferenceTitle}>{t("pos.defaultLanding")}</h3>
+            <p className={styles.preferenceDescription}>{t("pos.defaultLandingHint")}</p>
           </div>
           <Select
             value={preferences.defaultSalesLanding}
@@ -144,25 +150,25 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className={styles.selectContent} position="popper">
-              <SelectItem className={styles.selectItem} value="new-sale">New Sale</SelectItem>
-              <SelectItem className={styles.selectItem} value="sales-history">Sales History</SelectItem>
-              <SelectItem className={styles.selectItem} value="pending-payments">Pending Payments</SelectItem>
+              <SelectItem className={styles.selectItem} value="new-sale">{t("nav.newSale")}</SelectItem>
+              <SelectItem className={styles.selectItem} value="sales-history">{t("pos.salesHistory")}</SelectItem>
+              <SelectItem className={styles.selectItem} value="pending-payments">{t("pos.pendingPayments")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className={styles.preferenceGroupHeader}>
-          <h3>Store sales setup</h3>
-          <p>{isOwner ? "Owner-controlled choices shared by every counter and account." : "Shared store choices managed by the owner."}</p>
+          <h3>{t("pos.storeSetup")}</h3>
+          <p>{isOwner ? t("pos.storeSetupOwner") : t("pos.storeSetupStaff")}</p>
         </div>
 
         <div className={styles.preferenceRow}>
           <div className={styles.preferenceCopy}>
-            <h3 id="show-product-location" className={styles.preferenceTitle}>Show product location</h3>
-            <p className={styles.preferenceDescription}>Display shelf or storage locations throughout New Sale.</p>
+            <h3 id="show-product-location" className={styles.preferenceTitle}>{t("pos.showLocation")}</h3>
+            <p className={styles.preferenceDescription}>{t("pos.showLocationHint")}</p>
           </div>
           <div className={styles.switchControl}>
-            <span className={styles.switchState}>{storeSettings.showProductLocation ? "On" : "Off"}</span>
+            <span className={styles.switchState}>{storeSettings.showProductLocation ? t("pos.on") : t("pos.off")}</span>
             <Switch
               className={styles.preferenceSwitch}
               checked={storeSettings.showProductLocation}
@@ -175,8 +181,8 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
 
         <div className={`${styles.preferenceRow} ${styles.paymentMethodsRow}`}>
           <div className={styles.preferenceCopy}>
-            <h3 className={styles.preferenceTitle}>Accepted payment methods</h3>
-            <p className={styles.preferenceDescription}>Choose the methods available at every counter. At least one is required.</p>
+            <h3 className={styles.preferenceTitle}>{t("pos.paymentMethods")}</h3>
+            <p className={styles.preferenceDescription}>{t("pos.paymentMethodsHint")}</p>
           </div>
           <div className={styles.paymentMethodList}>
             {STORE_PAYMENT_METHODS.map((method) => {
@@ -184,13 +190,13 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
               const isOnlyMethod = checked && storeSettings.paymentMethods.length === 1;
               return (
                 <label className={styles.paymentMethodOption} key={method}>
-                  <span><kbd>{getPaymentMethodShortcut(method)}</kbd>{method}</span>
+                  <span><kbd>{getPaymentMethodShortcut(method)}</kbd>{paymentMethodLabel(method)}</span>
                   <Switch
                     className={styles.preferenceSwitch}
                     checked={checked}
                     disabled={!isOwner || !storeSettingsReady || storeSettingsSaving || isOnlyMethod}
                     onCheckedChange={(next) => togglePaymentMethod(method, next)}
-                    aria-label={`${checked ? "Disable" : "Enable"} ${method}`}
+                    aria-label={t(checked ? "pos.disableMethod" : "pos.enableMethod", { method: paymentMethodLabel(method) })}
                   />
                 </label>
               );
@@ -199,8 +205,8 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
         </div>
       </div>
 
-      {storeSettingsError && <p className={styles.settingsError} role="alert">{storeSettingsError}</p>}
-      <p className={styles.defaultNote}>New accounts start with personal switches off and New Sale selected.</p>
+      {storeSettingsError && <p className={styles.settingsError} role="alert">{t("pos.storeUnavailable")}</p>}
+      <p className={styles.defaultNote}>{t("pos.defaultNote")}</p>
     </section>
   );
 }

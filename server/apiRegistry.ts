@@ -4,6 +4,8 @@ import * as login from "@/app/api/auth/login/route";
 import * as logout from "@/app/api/auth/logout/route";
 import * as setupOwner from "@/app/api/auth/setup-owner/route";
 import * as currentUser from "@/app/api/current-user/route";
+import * as members from "@/app/api/members/route";
+import * as preferences from "@/app/api/preferences/route";
 import * as distributors from "@/app/api/distributors/route";
 import * as purchaseCorrections from "@/app/api/purchase-corrections/route";
 import * as purchase from "@/app/api/purchase/route";
@@ -35,6 +37,11 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "GET", path: "/api/auth/setup-owner", handler: handler(setupOwner.GET) },
   { method: "POST", path: "/api/auth/setup-owner", handler: handler(setupOwner.POST) },
   { method: "GET", path: "/api/current-user", handler: handler(currentUser.GET) },
+  { method: "GET", path: "/api/members", handler: handler(members.GET) },
+  { method: "POST", path: "/api/members", handler: handler(members.POST) },
+  { method: "PATCH", path: "/api/members", handler: handler(members.PATCH) },
+  { method: "GET", path: "/api/preferences", handler: handler(preferences.GET) },
+  { method: "PATCH", path: "/api/preferences", handler: handler(preferences.PATCH) },
   { method: "GET", path: "/api/distributors", handler: handler(distributors.GET) },
   { method: "GET", path: "/api/purchase-corrections", handler: handler(purchaseCorrections.GET) },
   { method: "POST", path: "/api/purchase-corrections", handler: handler(purchaseCorrections.POST) },

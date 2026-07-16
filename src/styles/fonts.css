@@ -1,0 +1,16 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap");
+
+:root {
+  --app-font: "Inter", "Segoe UI", system-ui, sans-serif;
+  --app-font-thai: "Noto Sans Thai", Tahoma, "Leelawadee UI", sans-serif;
+  --app-uppercase-font-size-adjust: none;
+}
+
+html[data-locale="th"] {
+  --app-uppercase-font-size-adjust: 0.56;
+}
+
+html[data-locale="th"] body,
+html[data-locale="th"] body * {
+  font-family: var(--app-font-thai) !important;
+}

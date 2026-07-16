@@ -6,7 +6,7 @@
   flex-direction: column;
   overflow: hidden;
   background: #f6f8f6;
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--app-font);
 }
 
 .app-main {

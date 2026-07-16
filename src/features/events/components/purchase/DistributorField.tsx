@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import styles from "@/app/purchase/new/PurchaseEntry.module.css";
 
 interface DistributorFieldProps {
@@ -27,9 +28,10 @@ export function DistributorField({
   onHighlight,
   onSelect,
 }: DistributorFieldProps) {
+  const { t } = usePreferences();
   return (
     <div className={styles.fieldGroup}>
-      <label className={styles.fieldLabel}>Distributor</label>
+      <label className={styles.fieldLabel}>{t("purchaseEntry.distributor")}</label>
       <div className={styles.field}>
         <div className={styles.searchIconBox}>
           <Search size={16} color="#47745a" />
@@ -39,7 +41,7 @@ export function DistributorField({
           onChange={event => onChange(event.target.value)}
           onFocus={onFocus}
           onKeyDown={onKeyDown}
-          placeholder="Enter distributor"
+          placeholder={t("purchaseEntry.enterDistributor")}
           className={styles.fieldInput}
         />
       </div>
@@ -58,7 +60,7 @@ export function DistributorField({
                 onMouseDown={() => onSelect(name)}
               >
                 <span>{name}</span>
-                <span className={styles.matchMeta}>match</span>
+                <span className={styles.matchMeta}>{t("purchaseEntry.match")}</span>
               </button>
             );
           })}

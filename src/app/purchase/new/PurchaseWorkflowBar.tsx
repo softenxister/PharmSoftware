@@ -7,6 +7,7 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
 import styles from "./PurchaseEntry.module.css";
 
 type WorkflowStatus = "draft" | "partial" | "received" | null;
@@ -29,11 +30,6 @@ type PurchaseWorkflowBarProps = {
   onAdjustStock: () => void;
 };
 
-const money = (value: number) => value.toLocaleString("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 export function PurchaseWorkflowBar({
   status,
   itemCount,
@@ -51,26 +47,27 @@ export function PurchaseWorkflowBar({
   onRequestCorrection,
   onAdjustStock,
 }: PurchaseWorkflowBarProps) {
+  const { t, formatMoney } = usePreferences();
   return (
-    <div className={styles.purchaseSummaryBar} aria-label="Purchase workflow and summary">
+    <div className={styles.purchaseSummaryBar} aria-label={t("purchaseEntry.summary")}>
       <div className={styles.purchaseSummaryStat}>
-        <span className={styles.purchaseSummaryLabel}>Items</span>
+        <span className={styles.purchaseSummaryLabel}>{t("purchase.items")}</span>
         <span className={styles.purchaseSummaryValue}>{itemCount}</span>
       </div>
       <div className={styles.purchaseSummaryDivider} />
       <div className={styles.purchaseSummaryStat}>
-        <span className={styles.purchaseSummaryLabel}>Quantity</span>
+        <span className={styles.purchaseSummaryLabel}>{t("purchaseEntry.quantity")}</span>
         <span className={styles.purchaseSummaryValue}>{totalQty}</span>
       </div>
       <div className={styles.purchaseSummaryDivider} />
       <div className={styles.purchaseTotalStat}>
-        <span className={styles.purchaseSummaryLabel}>Net total</span>
-        <span className={styles.purchaseNetValue}>฿{money(netTotal)}</span>
+        <span className={styles.purchaseSummaryLabel}>{t("purchase.netTotal")}</span>
+        <span className={styles.purchaseNetValue}>฿{formatMoney(netTotal)}</span>
       </div>
 
       {(status === null || status === "draft") && (
         <div className={styles.workflowActionGroup}>
-          <span className={styles.workflowHint}>Stock will not change</span>
+          <span className={styles.workflowHint}>{t("purchaseEntry.stockUnchanged")}</span>
           <button
             type="button"
             className={styles.purchaseNetButton}
@@ -79,8 +76,8 @@ export function PurchaseWorkflowBar({
           >
             <ClipboardCheck size={17} />
             <span>
-              <small>Step 1</small>
-              Prepare for review
+              <small>{t("purchaseEntry.stepOne")}</small>
+              {t("purchaseEntry.prepare")}
             </span>
           </button>
         </div>
@@ -94,12 +91,12 @@ export function PurchaseWorkflowBar({
               checked={reviewConfirmed}
               onChange={event => onReviewConfirmedChange(event.target.checked)}
             />
-            <span>I checked supplier, quantities, lots and expiry dates</span>
+            <span>{t("purchaseEntry.checked")}</span>
           </label>
           <div className={styles.workflowButtons}>
             <button type="button" className={styles.workflowSecondaryButton} onClick={onBackToEdit} disabled={isBusy}>
               <RotateCcw size={15} />
-              Back to edit
+              {t("purchaseEntry.backEdit")}
             </button>
             <button
               type="button"
@@ -108,7 +105,7 @@ export function PurchaseWorkflowBar({
               disabled={!canContinue || !reviewConfirmed || isBusy}
             >
               <CheckCircle2 size={16} />
-              Complete &amp; update stock
+              {t("purchaseEntry.completeStock")}
             </button>
           </div>
         </div>
@@ -118,12 +115,12 @@ export function PurchaseWorkflowBar({
         <div className={styles.workflowCompletedActions}>
           <span className={styles.completedState}>
             <CheckCircle2 size={16} />
-            Completed · bill locked
+            {t("purchaseEntry.locked")}
           </span>
           {canManageStock ? (
             <button type="button" className={styles.workflowManagerButton} onClick={onAdjustStock}>
               <ShieldCheck size={16} />
-              {hasPendingCorrection ? "Review correction" : "Adjust stock"}
+              {hasPendingCorrection ? t("purchaseEntry.reviewCorrection") : t("purchaseEntry.adjustStock")}
             </button>
           ) : (
             <button
@@ -133,7 +130,7 @@ export function PurchaseWorkflowBar({
               disabled={hasPendingCorrection}
             >
               <Send size={15} />
-              {hasPendingCorrection ? "Correction pending" : "Request correction"}
+              {hasPendingCorrection ? t("purchaseEntry.correctionPending") : t("purchaseEntry.requestCorrection")}
             </button>
           )}
         </div>

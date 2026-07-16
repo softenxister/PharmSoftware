@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { usePreferences } from '@/app/PreferencesProvider';
 import styles from './SalesHome.module.css';
 
 /**
@@ -27,22 +28,6 @@ interface RecentBill {
 
 const SAVED_SALES_KEY = 'pharm_recent_sales';
 
-const STATUS_LABEL: Record<BillStatus, string> = {
-  paid: 'Paid',
-  pending: 'Pending payment',
-  void: 'Void',
-};
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) +
-    ' · ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatBaht(amount: number): string {
-  return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function initials(name: string): string {
   const parts = name.trim().split(' ').filter(Boolean);
   if (parts.length === 0) return '?';
@@ -54,6 +39,10 @@ type StatusFilter = 'all' | BillStatus;
 
 export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: StatusFilter }): React.ReactElement {
   const navigate = useNavigate();
+  const { t, formatDate, formatMoney } = usePreferences();
+  const statusLabel = (status: BillStatus) => t(status === 'paid'
+    ? 'sales.paid'
+    : status === 'pending' ? 'sales.pendingPayment' : 'sales.void');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
   const [bills, setBills] = useState<RecentBill[]>([]);
@@ -122,35 +111,35 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
       <div className={styles.content}>
         <header className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>Sales counter</p>
-            <h1 className={styles.title}>Recent bills</h1>
+            <p className={styles.eyebrow}>{t('sales.counter')}</p>
+            <h1 className={styles.title}>{t('sales.recentBills')}</h1>
           </div>
           <button
             type="button"
             className={styles.newSaleButton}
             onClick={goToNewSale}
-            aria-label="Start a new sale"
-            title="New sale"
+            aria-label={t('sales.startNew')}
+            title={t('nav.newSale')}
           >
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
               <circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" strokeWidth="1.6" />
               <path d="M12 7.5v9M7.5 12h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            <span>New Sale</span>
+            <span>{t('nav.newSale')}</span>
           </button>
         </header>
 
-        <section className={styles.summaryGrid} aria-label="Sales summary">
+        <section className={styles.summaryGrid} aria-label={t('sales.summary')}>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Paid sales</span>
-            <strong className={styles.metricValue}>฿{formatBaht(totalSales)}</strong>
+            <span className={styles.metricLabel}>{t('sales.paidSales')}</span>
+            <strong className={styles.metricValue}>฿{formatMoney(totalSales)}</strong>
           </div>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Paid bills</span>
+            <span className={styles.metricLabel}>{t('sales.paidBills')}</span>
             <strong className={styles.metricValue}>{paidCount}</strong>
           </div>
           <div className={styles.metric}>
-            <span className={styles.metricLabel}>Pending</span>
+            <span className={styles.metricLabel}>{t('sales.pending')}</span>
             <strong className={styles.metricValue}>{pendingCount}</strong>
           </div>
         </section>
@@ -158,8 +147,8 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-              <h2 className={styles.panelTitle}>Transactions</h2>
-              <p className={styles.panelMeta}>Saved sales appear here immediately.</p>
+              <h2 className={styles.panelTitle}>{t('sales.transactions')}</h2>
+              <p className={styles.panelMeta}>{t('sales.savedImmediately')}</p>
             </div>
 
             <div className={styles.toolbar}>
@@ -172,12 +161,12 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search bill or customer"
+                  placeholder={t('sales.search')}
                   className={styles.searchInput}
                 />
               </div>
 
-              <div className={styles.statusChips} role="tablist" aria-label="Filter by status">
+              <div className={styles.statusChips} role="tablist" aria-label={t('sales.filterStatus')}>
                 {(['all', 'paid', 'pending', 'void'] as StatusFilter[]).map((s) => (
                   <button
                     key={s}
@@ -187,7 +176,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                     className={`${styles.chip} ${statusFilter === s ? styles.chipActive : ''}`}
                     onClick={() => setStatusFilter(s)}
                   >
-                    {s === 'all' ? 'All' : STATUS_LABEL[s]}
+                    {s === 'all' ? t('sales.all') : statusLabel(s)}
                   </button>
                 ))}
               </div>
@@ -198,13 +187,13 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Bill</th>
-                  <th>Customer</th>
-                  <th>Items</th>
-                  <th>Payment</th>
-                  <th>Fulfilment</th>
-                  <th className={styles.alignRight}>Net total</th>
-                  <th>Status</th>
+                  <th>{t('sales.bill')}</th>
+                  <th>{t('sales.customer')}</th>
+                  <th>{t('sales.items')}</th>
+                  <th>{t('sales.payment')}</th>
+                  <th>{t('sales.fulfilment')}</th>
+                  <th className={styles.alignRight}>{t('sales.netTotal')}</th>
+                  <th>{t('sales.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,8 +205,8 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                       className={`${styles.row} ${isPending ? styles.rowPending : ''}`}
                       tabIndex={isPending ? 0 : undefined}
                       role={isPending ? 'button' : undefined}
-                      aria-label={isPending ? `Open pending bill ${bill.billNo}` : undefined}
-                      title={isPending ? 'Open pending bill' : undefined}
+                      aria-label={isPending ? `${t('sales.openPending')} ${bill.billNo}` : undefined}
+                      title={isPending ? t('sales.openPending') : undefined}
                       onClick={() => openPendingBill(bill)}
                       onKeyDown={(e) => {
                         if (!isPending) return;
@@ -230,7 +219,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                     <td>
                       <div className={styles.billCell}>
                         <span className={styles.billNo}>{bill.billNo}</span>
-                        <span className={styles.billDate}>{formatDate(bill.date)}</span>
+                        <span className={styles.billDate}>{formatDate(bill.date, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                     </td>
                     <td>
@@ -238,19 +227,19 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                         <span className={styles.avatar}>{initials(bill.customerName)}</span>
                         <div className={styles.customerMeta}>
                           <span className={styles.customerName}>{bill.customerName}</span>
-                          {bill.isMember && <span className={styles.memberTag}>Member</span>}
+                          {bill.isMember && <span className={styles.memberTag}>{t('sales.member')}</span>}
                         </div>
                       </div>
                     </td>
                     <td>{bill.itemCount}</td>
                     <td>{bill.paymentMethod}</td>
-                    <td className={styles.capitalize}>{bill.purchaseMethod}</td>
+                    <td>{t(bill.purchaseMethod === 'pickup' ? 'sales.pickup' : 'sales.delivery')}</td>
                     <td className={styles.alignRight}>
-                      <span className={styles.amount}>฿{formatBaht(bill.netTotal)}</span>
+                      <span className={styles.amount}>฿{formatMoney(bill.netTotal)}</span>
                     </td>
                     <td>
                       <span className={`${styles.status} ${styles[`status_${bill.status}`]}`}>
-                        {STATUS_LABEL[bill.status]}
+                        {statusLabel(bill.status)}
                       </span>
                     </td>
                   </tr>
@@ -261,8 +250,8 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
 
             {filteredBills.length === 0 && (
               <div className={styles.emptyState}>
-                <p className={styles.emptyTitle}>No bills match this search</p>
-                <p className={styles.emptyBody}>Try a different bill number, customer name, or clear the status filter.</p>
+                <p className={styles.emptyTitle}>{t('sales.noBills')}</p>
+                <p className={styles.emptyBody}>{t('sales.noBillsHint')}</p>
               </div>
             )}
           </div>
