@@ -117,3 +117,59 @@ Replace the Next.js runtime without changing pharmacy behavior, API contracts, a
 | SPA refresh returns 404 | High | Production fallback test for nested routes. |
 | Auth guard flickers or loops | High | Centralize the session state machine and test redirect decisions. |
 | Existing dirty work is lost | High | Use scoped patches only; never reset or checkout user changes. |
+
+---
+
+# Implementation Plan: Set Item Detail
+
+## Overview
+
+Add a compact, persisted Set Item Detail workflow to `/stock` while preserving the existing full item editor on row click. The pen action opens the compact dialog; saved stock thresholds, tag, returnability, dosage defaults, and item discount policy flow through the stock catalog into filtering and `/sales/new`.
+
+## Architecture Decisions
+
+- Extend `Product` with additive fields and safe database defaults: minimum 20, maximum 200, discount 0, unlocked, returnable, four zero dosage values, and one optional tag.
+- Use `PATCH /api/stock` for partial detail updates. Any authenticated pharmacist may update operational fields; only owners may change discount percentage or discount locking.
+- Keep the existing full edit window on stock-row activation. Only the pen action changes to Set Item Detail.
+- Apply item discounts before the existing bill discount. An all-zero dosage means the pill-reminder row starts unchecked.
+
+## Task List
+
+### Phase 1: Contract and Persistence
+
+- [x] Add failing validation, authorization, filter, discount, and dosage tests.
+- [x] Add the product fields, migration defaults, catalog mapping, and authorized stock detail update endpoint.
+
+### Checkpoint: Foundation
+
+- [x] Focused contract and repository-adjacent tests pass.
+- [x] Generated Prisma client and TypeScript contracts are current.
+
+### Phase 2: Stock Workflow
+
+- [x] Build the accessible Set Item Detail dialog using the Stock Adjustment visual shell.
+- [x] Preserve row-click full editing and route only the pen action to the compact dialog.
+- [x] Add the searchable multi-select Tags filter to the left stock sidebar.
+
+### Phase 3: Sales Integration
+
+- [x] Apply item discounts before bill discount and preserve locked item discount policy.
+- [x] Prefill Pill Reminder from the four saved dosage values; all-zero defaults start unchecked.
+
+### Checkpoint: Complete
+
+- [x] Focused tests, TypeScript, generated client, production builds, and `git diff --check` pass.
+- [ ] Desktop/tablet dialog and interactions are visually verified (browser tooling unavailable in this session).
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Pharmacist tampers with owner-only discount fields | High | Enforce field-level authorization on the server, not only disabled controls. |
+| Item and bill discounts produce incorrect totals | High | Isolate sequential discount math in tested pure functions and use the same values for submit totals. |
+| Existing products keep calculated placeholder thresholds | Medium | Backfill the migration explicitly to 20/200 and map stored values everywhere. |
+| Compact dialog destabilizes the dense stock table | Medium | Reuse the adjustment shell, fixed control heights, min-width safeguards, and tablet wrapping. |
+
+## Open Questions
+
+- None. The user approved each behavior during the grilling session and explicitly requested implementation.

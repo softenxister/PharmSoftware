@@ -3,7 +3,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemberAvatar } from "./member/MemberAvatarView";
-import { isAllowedMemberAvatarFile } from "./member/memberAvatar";
+import { decodeMemberAvatarDataUrl, isAllowedMemberAvatarFile } from "./member/memberAvatar";
 
 test("member avatar upload accepts supported images within the size limit", () => {
   assert.equal(isAllowedMemberAvatarFile({ type: "image/png", size: 512 * 1024 }), true);
@@ -15,6 +15,15 @@ test("member avatar upload rejects unsupported and oversized files", () => {
   assert.equal(isAllowedMemberAvatarFile({ type: "image/svg+xml", size: 12_000 }), false);
   assert.equal(isAllowedMemberAvatarFile({ type: "image/png", size: (512 * 1024) + 1 }), false);
   assert.equal(isAllowedMemberAvatarFile({ type: "image/png", size: 0 }), false);
+});
+
+test("stored member avatars decode to cacheable binary image responses", () => {
+  const decoded = decodeMemberAvatarDataUrl("data:image/png;base64,aGVsbG8=");
+
+  assert.equal(decoded?.contentType, "image/png");
+  assert.equal(decoded ? new TextDecoder().decode(decoded.bytes) : null, "hello");
+  assert.equal(decodeMemberAvatarDataUrl("https://example.com/avatar.png"), null);
+  assert.equal(decodeMemberAvatarDataUrl("data:image/svg+xml;base64,aGVsbG8="), null);
 });
 
 test("member avatar renders the saved profile image globally", () => {

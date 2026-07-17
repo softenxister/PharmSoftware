@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
     const message = error instanceof Error && [
       "A sale", "Sale ", "One or more", "Customer payment", "Payment and",
-      "Batch ", "Insufficient stock", "A paid sale",
+      "Batch ", "Insufficient stock", "A paid sale", "Store Profile", "Receipt ",
     ].some((prefix) => error.message.startsWith(prefix))
       ? error.message
       : "Unable to save sale.";

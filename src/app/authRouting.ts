@@ -8,6 +8,7 @@ export type AuthRouteDecision = {
 export function resolveAuthRoute(pathname: string, user: PharmUser | null): AuthRouteDecision {
   const isLogin = pathname === "/login";
   const isPasswordChange = pathname === "/change-password";
+  const isReceiptPreview = pathname.startsWith("/sales/receipt/");
 
   if (!user) {
     return {
@@ -27,5 +28,5 @@ export function resolveAuthRoute(pathname: string, user: PharmUser | null): Auth
     return { redirectTo: "/", showAppShell: false };
   }
 
-  return { redirectTo: null, showAppShell: true };
+  return { redirectTo: null, showAppShell: !isReceiptPreview };
 }

@@ -39,6 +39,8 @@ Use these project rules for all future edits in this pharmacy retail software.
 
 - Do not use native browser or OS dropdown styling for pharmacy app forms.
 - Use custom searchable dropdown components like the pattern in `/sales/new`, especially for item, unit, packaging, category, manufacturer, and similar selectable fields.
+- Every dropdown, searchable select, autocomplete panel, and popover menu must close when the user clicks or taps outside its trigger and panel.
+- Interacting inside a dropdown must keep it open, while opening another dropdown must close the previously open dropdown.
 
 ## Verification
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Banknote, CreditCard, Landmark, Store, Truck } from 'lucide-react';
+import { Banknote, CreditCard, Landmark, Printer, Store, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { usePreferences } from '@/app/PreferencesProvider';
 import { formatThaiPhoneNumber } from '@/lib/thaiPhoneNumber';
@@ -200,6 +200,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                 <col className={styles.amountColumn} />
                 <col className={styles.paymentColumn} />
                 <col className={styles.statusColumn} />
+                <col className={styles.printColumn} />
               </colgroup>
               <thead>
                 <tr>
@@ -211,6 +212,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                   <th className={styles.alignRight}>{t('sales.billAmount')}</th>
                   <th className={styles.iconHeader} aria-label={t('sales.payment')} />
                   <th>{t('sales.status')}</th>
+                  <th className={styles.iconHeader} aria-label={t('sales.printReceipt')} />
                 </tr>
               </thead>
               <tbody>
@@ -285,6 +287,22 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                       <span className={`${styles.status} ${styles[`status_${bill.status}`]}`}>
                         {bill.status === 'pending' ? t('sales.pending') : statusLabel(bill.status)}
                       </span>
+                    </td>
+                    <td className={styles.iconColumnCell}>
+                      {bill.status === 'paid' && (
+                        <button
+                          type="button"
+                          className={styles.printButton}
+                          aria-label={`${t('sales.printReceipt')} ${bill.billNo}`}
+                          title={t('sales.printReceipt')}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            window.open(`/sales/receipt/${encodeURIComponent(bill.id)}`, '_blank', 'noopener,noreferrer');
+                          }}
+                        >
+                          <Printer size={16} aria-hidden="true" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                   );

@@ -12,6 +12,7 @@ const items: StockInventoryFilterItem[] = [
     dosageType: "tablet",
     expiryDates: ["2026-07-20"],
     manufacturer: "GPO",
+    tagName: "Best seller",
     min: 10,
     max: 50,
     stock: 6,
@@ -21,6 +22,7 @@ const items: StockInventoryFilterItem[] = [
     dosageType: "cream",
     expiryDates: ["2027-12-31"],
     manufacturer: "Thai Pharma",
+    tagName: "Refrigerated",
     min: 5,
     max: 30,
     stock: 38,
@@ -35,6 +37,7 @@ test("inventory filters combine dosage, manufacturer, expiry, stock state, and r
       dosageTypes: ["TABLET"],
       expiryWindows: ["Within 30 days"],
       manufacturers: ["gpo"],
+      tags: ["BEST SELLER"],
       stockLevels: ["Low Stock"],
       stockRange: { min: 5, max: 10 },
     },
@@ -42,6 +45,18 @@ test("inventory filters combine dosage, manufacturer, expiry, stock state, and r
   );
 
   assert.deepEqual(filtered, [items[0]]);
+});
+
+test("tag filters match any selected tag and combine with the other stock filters", () => {
+  assert.deepEqual(filterStockInventoryItems(items, {
+    categories: [],
+    dosageTypes: [],
+    expiryWindows: [],
+    manufacturers: [],
+    tags: ["refrigerated", "controlled"],
+    stockLevels: [],
+    stockRange: null,
+  }), [items[1]]);
 });
 
 test("stock range parsing accepts optional valid bounds and rejects invalid ranges", () => {

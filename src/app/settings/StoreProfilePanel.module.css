@@ -1,0 +1,108 @@
+.body {
+  padding: 18px;
+}
+
+.imageEditor {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--settings-border-soft);
+  padding-bottom: 16px;
+}
+
+.imagePreview {
+  display: flex;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #cbded2;
+  border-radius: 8px;
+  background: #f1f6f3;
+  color: #658071;
+}
+
+.imagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageCopy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.imageCopy strong {
+  font-size: 13.5px;
+}
+
+.imageCopy small {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--settings-muted);
+  font-size: 11.5px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.imageButton {
+  position: relative;
+  cursor: pointer;
+}
+
+.imageButton:focus-within {
+  outline: 2px solid rgba(43, 101, 66, 0.35);
+  outline-offset: 2px;
+}
+
+.imageButton input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  margin-top: 16px;
+}
+
+.addressField {
+  grid-column: 1 / -1;
+}
+
+.addressInput {
+  width: 100%;
+  min-width: 0;
+  min-height: 76px;
+  resize: vertical;
+  border: 1px solid #cfd9d2;
+  border-radius: 6px;
+  outline: 0;
+  background: #fff;
+  color: #233129;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  padding: 9px 10px;
+}
+
+.addressInput:focus {
+  border-color: var(--settings-green);
+  box-shadow: 0 0 0 3px rgba(43, 101, 66, 0.13);
+}
+
+.addressInput:read-only {
+  background: #f5f7f6;
+  color: #5f6c64;
+}

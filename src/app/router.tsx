@@ -24,6 +24,7 @@ export const router = createBrowserRouter([
       { path: "purchase/new", lazy: () => lazyPage(import("./purchase/new/page")) },
       { path: "sales", lazy: () => lazyPage(import("./sales/page")) },
       { path: "sales/new", lazy: () => lazyPage(import("./sales/new/page")) },
+      { path: "sales/receipt/:saleId", lazy: () => lazyPage(import("./sales/receipt/page")) },
       { path: "settings", lazy: () => lazyPage(import("./settings/page")) },
       { path: "stock", lazy: () => lazyPage(import("./stock/page")) },
       { path: "stock/adjustment", lazy: () => lazyPage(import("./stock/adjustment/page")) },

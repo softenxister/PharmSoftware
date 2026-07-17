@@ -32,4 +32,5 @@ test("active accounts leave auth screens and receive the application shell", () 
   assert.deepEqual(resolveAuthRoute("/login", owner), { redirectTo: "/", showAppShell: false });
   assert.deepEqual(resolveAuthRoute("/change-password", owner), { redirectTo: "/", showAppShell: false });
   assert.deepEqual(resolveAuthRoute("/stock", owner), { redirectTo: null, showAppShell: true });
+  assert.deepEqual(resolveAuthRoute("/sales/receipt/sale-1", owner), { redirectTo: null, showAppShell: false });
 });

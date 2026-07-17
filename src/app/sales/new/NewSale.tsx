@@ -19,7 +19,12 @@ import {
 import { usePosPreferences } from '@/app/settings/usePosPreferences';
 import { useStorePosSettings } from '@/app/settings/useStorePosSettings';
 import { PosConfirmationDialog } from './PosConfirmationDialog';
-import { buildProductDescription, shouldUseSellPackDropdown } from './salesPresentation';
+import {
+  buildProductDescription,
+  calculateSalePricing,
+  createReminderFromDefaultDosage,
+  shouldUseSellPackDropdown,
+} from './salesPresentation';
 import { resolveSaleShortcut, subscribeSaleShortcuts } from './salesShortcuts';
 import morningReminderIcon from '@/styles/vector/morning.png';
 import noonReminderIcon from '@/styles/vector/noon.png';
@@ -94,6 +99,9 @@ interface CatalogItem {
   loc: string;
   image: string;
   weeklySold: number;
+  discountPercent: number;
+  isDiscountLocked: boolean;
+  defaultDosage: ReminderDoses;
   activeIngredients: Array<{
     id: string;
     canonicalName: string;
@@ -128,6 +136,7 @@ type SelectOption = {
 };
 
 type InvoiceCreated = {
+  saleId: string;
   invoiceNo: string;
   amountPaid: number;
   netTotal: number;
@@ -177,8 +186,8 @@ const REMINDER_TIMES = [
   { label: '10 PM', icon: nightReminderIcon },
 ] as const;
 
-function createDefaultReminder(totalTabs = 1): ReminderState {
-  return { enabled: true, activeTime: 0, doses: [Math.max(1, totalTabs), 0, 0, 0] };
+function createDefaultReminder(defaultDosage?: readonly number[]): ReminderState {
+  return createReminderFromDefaultDosage(defaultDosage);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -251,6 +260,9 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
     loc: product.location,
     image: product.imageUrl,
     weeklySold: product.weeklySold,
+    discountPercent: product.discountPercent ?? 0,
+    isDiscountLocked: product.isDiscountLocked ?? false,
+    defaultDosage: product.defaultDosage ?? [0, 0, 0, 0],
     activeIngredients: (product.activeIngredients ?? []).map((ingredient) => ({
       id: ingredient.id,
       canonicalName: ingredient.canonicalName,
@@ -350,12 +362,6 @@ function mergeCartLinesByItemPack(lines: CartLine[], catalog: CatalogItem[]): { 
   });
 
   return { lines: mergedLines, changed };
-}
-
-function calculateDiscountAmount(discount: AppliedDiscount | null, subtotal: number): number {
-  if (!discount) return 0;
-  const raw = discount.type === 'percent' ? (subtotal * discount.value) / 100 : discount.value;
-  return Math.min(Math.max(raw, 0), subtotal);
 }
 
 /** Ranks barcode and item-name matches ahead of lower-priority manufacturer matches. */
@@ -650,7 +656,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [billingDevice, setBillingDevice] = useState('Front Counter Thermal Printer');
   const [cashDrawerDevice, setCashDrawerDevice] = useState('Front Counter Cash Drawer');
-  const [paperSize, setPaperSize] = useState('80mm thermal');
+  const [paperSize, setPaperSize] = useState(() => window.localStorage.getItem('pharm_receipt_paper_size') === '58' ? '58' : '80');
   const [autoPrint, setAutoPrint] = useState(true);
   const [autoOpenCashDrawer, setAutoOpenCashDrawer] = useState(true);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
@@ -703,22 +709,29 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   const totalQty = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty, 0), [cartLines]);
   const uniqueItemCount = cartLines.length;
-  const subtotal = useMemo(
-    () => cartLines.reduce((sum, l) => sum + l.qty * l.batch.sellPrice * l.packMultiplier, 0),
-    [cartLines]
+  const pricingLines = useMemo(() => cartLines.map((line) => ({
+    quantity: line.qty,
+    unitPrice: line.batch.sellPrice * line.packMultiplier,
+    discountPercent: catalogItemForLine(line, catalog)?.discountPercent ?? 0,
+  })), [cartLines, catalog]);
+  const salePricing = useMemo(
+    () => calculateSalePricing(pricingLines, appliedDiscount),
+    [appliedDiscount, pricingLines],
   );
-
-  const discountAmount = useMemo(() => {
-    return calculateDiscountAmount(appliedDiscount, subtotal);
-  }, [appliedDiscount, subtotal]);
-
-  const netPayable = Math.max(subtotal - discountAmount, 0);
-  const draftDiscountAmount = useMemo(() => {
+  const subtotal = salePricing.grossSubtotal;
+  const itemDiscountAmount = salePricing.itemDiscountAmount;
+  const discountAmount = salePricing.billDiscountAmount;
+  const netPayable = salePricing.netPayable;
+  const draftBillDiscount = useMemo((): AppliedDiscount | null => {
     const value = parseFloat(discountInput);
-    if (Number.isNaN(value) || value <= 0) return discountAmount;
-    return calculateDiscountAmount({ type: discountType, value }, subtotal);
-  }, [discountAmount, discountInput, discountType, subtotal]);
-  const draftNetPayable = Math.max(subtotal - draftDiscountAmount, 0);
+    if (Number.isNaN(value) || value <= 0) return appliedDiscount;
+    return { type: discountType, value };
+  }, [appliedDiscount, discountInput, discountType]);
+  const draftPricing = useMemo(
+    () => calculateSalePricing(pricingLines, draftBillDiscount),
+    [draftBillDiscount, pricingLines],
+  );
+  const draftNetPayable = draftPricing.netPayable;
   const customerPaidAmount = parseFloat(customerPayInput);
   const liveChangeDue = Number.isNaN(customerPaidAmount) ? 0 : Math.max(customerPaidAmount - draftNetPayable, 0);
   const canSaveSale = cartLines.length > 0 && Number.isFinite(netPayable) && netPayable > 0;
@@ -1089,15 +1102,10 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     setReminderRows((prev) => {
       const next = { ...prev };
       reminderEligibleLines.forEach((line) => {
-        const totalTabs = totalTabsForLine(line, catalog);
+        const catalogItem = catalogItemForLine(line, catalog);
         if (!next[line.lineId]) {
-          next[line.lineId] = createDefaultReminder(totalTabs);
-          return;
+          next[line.lineId] = createDefaultReminder(catalogItem?.defaultDosage);
         }
-        next[line.lineId] = {
-          ...next[line.lineId],
-          doses: [Math.max(1, totalTabs), next[line.lineId].doses[1], next[line.lineId].doses[2], next[line.lineId].doses[3]],
-        };
       });
       return next;
     });
@@ -1275,6 +1283,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify([savedBill, ...otherSales].slice(0, 30)));
 
     return {
+      saleId: savedBill.id,
       invoiceNo,
       amountPaid: effectiveCustomerPaid ?? effectiveNetPayable,
       netTotal: effectiveNetPayable,
@@ -1286,9 +1295,10 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   async function submitInvoicePayment() {
     if (!canSaveSale || saleSubmitting) return;
+    const autoPreviewWindow = autoPrint ? window.open('', '_blank') : null;
+    if (autoPreviewWindow) autoPreviewWindow.opener = null;
     const nextDiscount = readDraftDiscount();
-    const nextDiscountAmount = calculateDiscountAmount(nextDiscount, subtotal);
-    const nextNetPayable = Math.max(subtotal - nextDiscountAmount, 0);
+    const nextNetPayable = calculateSalePricing(pricingLines, nextDiscount).netPayable;
     const paid = parseFloat(customerPayInput);
     const nextChangeDue = Number.isNaN(paid) ? 0 : Math.max(paid - nextNetPayable, 0);
 
@@ -1335,6 +1345,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       }
       savedSale = saleData.sale;
     } catch (error) {
+      autoPreviewWindow?.close();
       setSaleSubmitError(error instanceof Error ? error.message : 'Unable to update stock for this sale.');
       setSaleSubmitting(false);
       return;
@@ -1358,6 +1369,11 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     setDiscountOpen(false);
     setInvoiceCreated(createdInvoice);
     setSaleSubmitting(false);
+    if (autoPrint) {
+      const receiptUrl = `/sales/receipt/${encodeURIComponent(createdInvoice.saleId)}`;
+      if (autoPreviewWindow && !autoPreviewWindow.closed) autoPreviewWindow.location.replace(receiptUrl);
+      else window.open(receiptUrl, '_blank', 'noopener,noreferrer');
+    }
   }
 
   function clearDiscount() {
@@ -2047,7 +2063,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                   <tbody>
                     {reminderEligibleLines.map((line) => {
                       const catalogItem = catalog.find((item) => item.id === line.itemId);
-                      const reminder = reminderRows[line.lineId] ?? createDefaultReminder();
+                      const reminder = reminderRows[line.lineId] ?? createDefaultReminder(catalogItem?.defaultDosage);
                       const totalTabs = totalTabsForLine(line, catalog);
                       return (
                         <tr key={line.lineId} className={!reminder.enabled ? styles.reminderRowMuted : ''}>
@@ -2148,12 +2164,13 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                 ariaLabel={t('newSale.paperSize')}
                 value={paperSize}
                 options={[
-                  { value: '80mm thermal', label: '80mm thermal' },
-                  { value: '58mm thermal', label: '58mm thermal' },
-                  { value: 'A5 invoice', label: 'A5 invoice' },
-                  { value: 'A4 invoice', label: 'A4 invoice' },
+                  { value: '80', label: '80 mm thermal' },
+                  { value: '58', label: '58 mm thermal' },
                 ]}
-                onChange={setPaperSize}
+                onChange={(value) => {
+                  window.localStorage.setItem('pharm_receipt_paper_size', value);
+                  setPaperSize(value);
+                }}
                 className={styles.settingsCustomSelect}
               />
             </div>
@@ -2201,7 +2218,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             <div className={styles.devicePreview}>
               <span className={styles.muted}>{t('newSale.currentSetup')}</span>
               <strong>{billingDevice}</strong>
-              <span>{paperSize} | {autoPrint ? t('pos.on') : t('pos.off')}</span>
+              <span>{paperSize} mm thermal | {autoPrint ? t('pos.on') : t('pos.off')}</span>
               <span>{cashDrawerDevice} | {autoOpenCashDrawer ? t('pos.on') : t('pos.off')}</span>
             </div>
 
@@ -2226,6 +2243,10 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             <div className={styles.drawerRow}>
               <span className={styles.muted}>{t('newSale.subtotal')}</span>
               <span>฿{formatBaht(subtotal)}</span>
+            </div>
+            <div className={styles.drawerRow}>
+              <span className={styles.muted}>{t('newSale.itemDiscount')}</span>
+              <span>฿{formatBaht(itemDiscountAmount)}</span>
             </div>
             <div className={styles.drawerRow}>
               <span className={styles.muted}>{t('newSale.currentDiscount')}</span>
@@ -2393,7 +2414,11 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             <button
               type="button"
               className={styles.printReceiptBtn}
-              onClick={() => console.log('Print receipt', invoiceCreated)}
+              onClick={() => window.open(
+                `/sales/receipt/${encodeURIComponent(invoiceCreated.saleId)}`,
+                '_blank',
+                'noopener,noreferrer',
+              )}
             >
               <IconPrint />
               {t('newSale.printReceipt')}

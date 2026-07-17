@@ -66,3 +66,31 @@
 - [x] Final migration verification
   - Acceptance: existing tests and workflows pass without database changes or unrelated worktree loss.
   - Verify: tests, TypeScript, builds, runtime smoke tests, `git diff --check`; Chrome DevTools/browser control was unavailable for desktop/tablet visual checks in this session.
+
+---
+
+# Set Item Detail
+
+- [x] Contract and persistence
+  - Acceptance: product detail defaults persist; pharmacists cannot change discount policy; invalid integers and min/max ranges are rejected.
+  - Verify: focused validation/authorization tests, Prisma generation, TypeScript.
+
+- [x] Compact stock dialog
+  - Acceptance: pen opens Set Item Detail; row click still opens full Edit Item; owner-only controls stay visible and disabled for pharmacists.
+  - Verify: component interaction/runtime check and accessibility inspection where browser tooling is available.
+
+- [x] Tags filter
+  - Acceptance: saved non-empty tags populate a searchable multi-select sidebar filter and combine with other filters.
+  - Verify: stock filter unit tests.
+
+- [x] Sales discount integration
+  - Acceptance: integer item discount applies first and bill discount applies to the remaining subtotal; zero remains the default.
+  - Verify: sales calculation unit tests and sale totals check.
+
+- [x] Pill reminder defaults
+  - Acceptance: four saved whole-number doses prefill the reminder; all-zero defaults leave the row unchecked.
+  - Verify: reminder-default unit tests and runtime interaction check.
+
+- [x] Final verification
+  - Acceptance: no unrelated worktree changes are overwritten and all agreed behavior is represented in code and tests.
+  - Verify: focused tests, direct TypeScript check, `git diff --check`, and browser verification if available.

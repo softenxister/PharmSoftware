@@ -53,6 +53,13 @@ export type SalesProduct = {
   pack: ProductPack;
   parentPacks: ParentPack[];
   location: string;
+  minimumStock?: number;
+  maximumStock?: number;
+  discountPercent?: number;
+  isDiscountLocked?: boolean;
+  isReturnable?: boolean;
+  defaultDosage?: [number, number, number, number];
+  tagName?: string;
   barcode: string;
   category: string;
   imageUrl: string;

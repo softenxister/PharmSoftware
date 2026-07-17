@@ -24,7 +24,7 @@ export function MemberAvatar({ name, avatarUrl, className }: MemberAvatarProps) 
   return (
     <span className={className}>
       {imageUrl && failedImageUrl !== imageUrl
-        ? <img src={imageUrl} alt={name} onError={() => setFailedImageUrl(imageUrl)} />
+        ? <img src={imageUrl} alt={name} decoding="async" onError={() => setFailedImageUrl(imageUrl)} />
         : <span aria-hidden="true">{memberInitials(name)}</span>}
     </span>
   );

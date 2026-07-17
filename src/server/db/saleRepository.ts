@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { DiscountType, Prisma, SaleStatus } from "@/generated/prisma/client";
+import { calculateSalePricing } from "@/lib/salePricing";
+import { createReceiptSnapshot, type ReceiptStoreSnapshot } from "@/lib/receipt";
 import type { SalesProduct } from "./types";
 import { prisma } from "./prisma";
+import { readStoreProfile } from "./storeProfileRepository";
 import {
   dispenseSoldStock,
   readStockProducts,
@@ -74,6 +77,8 @@ export type SavedSale = {
   discount: { type: "percent" | "thb"; value: number } | null;
 };
 
+const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
 function createBillIdentity(input: SaleInput, now: Date) {
   const randomSuffix = randomUUID();
   return {
@@ -102,6 +107,7 @@ export function validateSale(input: SaleInput) {
     || !line.batch?.batchNo?.trim()
     || !Number.isFinite(Number(line.qty))
     || Number(line.qty) <= 0
+    || !Number.isInteger(Number(line.qty))
     || !Number.isFinite(Number(line.packMultiplier))
     || Number(line.packMultiplier) <= 0
     || !Number.isFinite(Number(line.batch.sellPrice))
@@ -166,6 +172,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
   const now = new Date();
   const identity = createBillIdentity(input, now);
   const nextStatus = input.status === "paid" ? SaleStatus.PAID : SaleStatus.PENDING;
+  const storeProfile = nextStatus === SaleStatus.PAID ? await readStoreProfile() : null;
 
   const sale = await prisma.$transaction(async (tx) => {
     const existingSale = await tx.sale.findUnique({ where: { id: identity.id } });
@@ -174,7 +181,59 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
       throw new Error("A paid sale cannot be changed.");
     }
 
+    const productIds = [...new Set(input.lines.map((line) => line.itemId.trim()))];
+    const pricedProducts = await tx.product.findMany({
+      where: { id: { in: productIds }, isActive: true },
+      select: { id: true, discountPercent: true },
+    });
+    if (pricedProducts.length !== productIds.length) throw new Error("Sale item was not found in stock.");
+    const discountByProduct = new Map(pricedProducts.map((product) => [product.id, product.discountPercent]));
+    const pricing = calculateSalePricing(input.lines.map((line) => ({
+      quantity: Number(line.qty),
+      unitPrice: Number(line.batch.sellPrice) * Number(line.packMultiplier),
+      discountPercent: discountByProduct.get(line.itemId.trim()) ?? 0,
+    })), input.discount ?? null);
+    validateSale({
+      ...input,
+      subtotal: pricing.grossSubtotal,
+      netPayable: pricing.netPayable,
+    });
+    const canonicalCustomerPaid = nextStatus === SaleStatus.PAID ? roundCurrency(Number(input.customerPaid)) : null;
+    const canonicalChangeDue = canonicalCustomerPaid === null
+      ? null
+      : roundCurrency(Math.max(canonicalCustomerPaid - pricing.netPayable, 0));
+
     await upsertPeople(tx, input);
+    const receiptSnapshot = storeProfile ? createReceiptSnapshot({
+      saleId: identity.id,
+      billNo: identity.billNo,
+      soldAt: now.toISOString(),
+      customerName: input.customer?.name || "Walk-in Customer",
+      salespersonName: input.pharmacist?.name?.trim() || input.owner?.name?.trim() || "ไม่ระบุ",
+      paymentMethod: input.paymentMethod,
+      customerPaid: canonicalCustomerPaid ?? 0,
+      changeDue: canonicalChangeDue ?? 0,
+      billDiscountAmount: pricing.billDiscountAmount,
+      expectedNetTotal: pricing.netPayable,
+      store: {
+        storeName: storeProfile.storeName,
+        address: storeProfile.address,
+        phone: storeProfile.phone,
+        email: storeProfile.email,
+        taxId: storeProfile.taxId,
+        lineId: storeProfile.lineId,
+        facebookPage: storeProfile.facebookPage,
+        openingTime: storeProfile.openingTime,
+        closingTime: storeProfile.closingTime,
+      } satisfies ReceiptStoreSnapshot,
+      lines: input.lines.map((line, position) => ({
+        position,
+        itemName: line.itemName,
+        quantity: Number(line.qty),
+        originalUnitPrice: Number(line.batch.sellPrice) * Number(line.packMultiplier),
+        discountPercent: discountByProduct.get(line.itemId.trim()) ?? 0,
+      })),
+    }) : null;
     if (nextStatus === SaleStatus.PAID) {
       await dispenseSoldStock(tx, stockLines(input.lines));
     }
@@ -194,15 +253,18 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
       totalQuantity: input.lines.reduce((sum, line) => sum + Number(line.qty), 0),
       paymentMethod: input.paymentMethod.trim(),
       purchaseMethod: input.purchaseMethod.trim(),
-      subtotal: input.subtotal,
-      netTotal: input.netPayable,
-      customerPaid: input.customerPaid ?? null,
-      changeDue: input.changeDue ?? null,
+      subtotal: pricing.grossSubtotal,
+      netTotal: pricing.netPayable,
+      customerPaid: canonicalCustomerPaid,
+      changeDue: canonicalChangeDue,
       status: nextStatus,
       ownerId: input.owner?.id || null,
       pharmacistId: input.pharmacist?.id || null,
       discountType,
       discountValue: input.discount?.value ?? null,
+      receiptSnapshot: receiptSnapshot
+        ? receiptSnapshot as unknown as Prisma.InputJsonValue
+        : Prisma.DbNull,
     };
 
     if (existingSale) {
@@ -213,7 +275,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
       where: { id: identity.id },
       update: {
         ...saleData,
-        lines: { create: input.lines.map((line) => ({
+        lines: { create: input.lines.map((line, position) => ({
           id: line.lineId,
           productId: line.itemId,
           itemName: line.itemName,
@@ -224,12 +286,13 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
           expiryDate: line.batch.exp,
           sellPriceThb: line.batch.sellPrice,
           quantity: line.qty,
+          position,
         })) },
       },
       create: {
         id: identity.id,
         ...saleData,
-        lines: { create: input.lines.map((line) => ({
+        lines: { create: input.lines.map((line, position) => ({
           id: line.lineId,
           productId: line.itemId,
           itemName: line.itemName,
@@ -240,6 +303,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
           expiryDate: line.batch.exp,
           sellPriceThb: line.batch.sellPrice,
           quantity: line.qty,
+          position,
         })) },
       },
     });
@@ -262,7 +326,7 @@ export async function readSales(): Promise<SavedSale[]> {
       customer: { select: { mobile: true } },
       lines: {
         include: { product: { include: { batches: true } } },
-        orderBy: { id: "asc" },
+        orderBy: [{ position: "asc" }, { id: "asc" }],
       },
     },
     orderBy: { soldAt: "desc" },

@@ -37,6 +37,12 @@ test("sales reject lines without a positive quantity", () => {
   assert.throws(() => validateSale(input), /sale items are invalid/);
 });
 
+test("sales reject fractional item quantities", () => {
+  const input = saleInput();
+  input.lines[0].qty = 1.5;
+  assert.throws(() => validateSale(input), /sale items are invalid/);
+});
+
 test("pending sales can be saved without customer payment", () => {
   assert.doesNotThrow(() => validateSale(saleInput({ status: "pending", customerPaid: null })));
 });

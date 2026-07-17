@@ -1,0 +1,252 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: #e9eeea;
+  color: #17271c;
+}
+
+.toolbar {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  min-height: 68px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #ccd8d0;
+  background: rgba(252, 253, 252, 0.97);
+  box-shadow: 0 3px 12px rgba(23, 49, 31, 0.07);
+}
+
+.identity,
+.actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.identity {
+  gap: 10px;
+}
+
+.receiptIcon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cee0d3;
+  border-radius: 8px;
+  background: #eaf3ed;
+  color: #2e6743;
+}
+
+.identityText {
+  min-width: 0;
+}
+
+.identityText h1,
+.identityText p {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identityText h1 {
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.identityText p {
+  margin-top: 2px;
+  color: #65746a;
+  font-size: 11.5px;
+}
+
+.actions {
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.paperSwitch {
+  display: inline-flex;
+  height: 36px;
+  box-sizing: border-box;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #cdd8d0;
+  border-radius: 7px;
+  background: #f1f5f2;
+}
+
+.paperSwitch button {
+  min-width: 62px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #607067;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.paperSwitch button:hover:not(.paperActive) {
+  background: #e3ebe5;
+}
+
+.paperSwitch .paperActive {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(21, 50, 31, 0.14);
+  color: #245a38;
+}
+
+.secondaryAction,
+.printAction {
+  display: inline-flex;
+  height: 36px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 710;
+  padding: 0 13px;
+  text-decoration: none;
+}
+
+.secondaryAction {
+  border: 1px solid #bfcfc4;
+  background: #fff;
+  color: #315b3f;
+}
+
+.printAction {
+  border: 1px solid #245b38;
+  background: #285f3d;
+  color: #fff;
+}
+
+.secondaryAction:hover,
+.printAction:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.printAction:disabled,
+.secondaryAction[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.paperSwitch button:focus-visible,
+.secondaryAction:focus-visible,
+.printAction:focus-visible {
+  outline: 3px solid rgba(47, 124, 78, 0.23);
+  outline-offset: 2px;
+}
+
+.legacyNotice {
+  margin: 12px 20px 0;
+  padding: 9px 12px;
+  border: 1px solid #e1c994;
+  border-radius: 7px;
+  background: #fff8e7;
+  color: #76571e;
+  font-size: 12px;
+}
+
+.previewArea {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 24px;
+}
+
+.paperFrame {
+  position: relative;
+  width: min(100%, 660px);
+  min-height: calc(100vh - 120px);
+  overflow: hidden;
+  border: 1px solid #cbd3cd;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(19, 39, 26, 0.16);
+}
+
+.paperFrame[data-paper="58"] {
+  width: min(100%, 520px);
+}
+
+.pdfFrame {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 122px);
+  min-height: 620px;
+  border: 0;
+  background: #fff;
+}
+
+.loading,
+.loadingState,
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #617168;
+  font-size: 13px;
+}
+
+.loading {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: #fff;
+}
+
+.loadingState,
+.error {
+  min-height: 260px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.error {
+  width: min(100%, 480px);
+  border: 1px solid #e3c6c3;
+  border-radius: 8px;
+  background: #fff8f7;
+  color: #8a3c34;
+}
+
+@media (max-width: 780px) {
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .previewArea {
+    padding: 14px;
+  }
+
+  .paperFrame,
+  .paperFrame[data-paper="58"] {
+    width: 100%;
+  }
+}

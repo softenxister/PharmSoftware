@@ -45,6 +45,7 @@ export interface StockInventoryFilterItem {
   dosageType: string;
   expiryDates: string[];
   manufacturer: string;
+  tagName: string;
   min: number;
   max: number;
   stock: number;
@@ -55,6 +56,7 @@ export interface AppliedStockInventoryFilters {
   dosageTypes: string[];
   expiryWindows: ExpiryWindow[];
   manufacturers: string[];
+  tags: string[];
   stockLevels: StockLevel[];
   stockRange: StockRange | null;
 }
@@ -159,10 +161,12 @@ export function filterStockInventoryItems<T extends StockInventoryFilterItem>(
   const categoryFilteredItems = filterByStockCategories(items, filters.categories);
   const dosageTypes = new Set(filters.dosageTypes.map(normalizeFilterValue));
   const manufacturers = new Set(filters.manufacturers.map(normalizeFilterValue));
+  const tags = new Set(filters.tags.map(normalizeFilterValue));
 
   return categoryFilteredItems.filter((item) => {
     if (dosageTypes.size > 0 && !dosageTypes.has(normalizeFilterValue(item.dosageType))) return false;
     if (manufacturers.size > 0 && !manufacturers.has(normalizeFilterValue(item.manufacturer))) return false;
+    if (tags.size > 0 && !tags.has(normalizeFilterValue(item.tagName))) return false;
     if (filters.stockLevels.length > 0 && !filters.stockLevels.some((level) => matchesStockLevel(item, level))) {
       return false;
     }

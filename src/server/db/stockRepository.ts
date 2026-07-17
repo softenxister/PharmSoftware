@@ -6,6 +6,11 @@ import {
   relatedLineUpdates,
   savedStockToSalesProduct,
 } from "./stockItemMapper";
+import type { PharmUser } from "@/server/auth/pharmUser";
+import {
+  hasForbiddenStockDiscountChange,
+  type StockItemDetailPatch,
+} from "./stockItemDetail";
 
 export type PurchasedStockLineInput = {
   productId: string;
@@ -62,6 +67,18 @@ function productRowToSalesProduct(
       priceMultiplier: Number(pack.priceMultiplier),
     })),
     location: product.location,
+    minimumStock: product.minimumStock,
+    maximumStock: product.maximumStock,
+    discountPercent: product.discountPercent,
+    isDiscountLocked: product.isDiscountLocked,
+    isReturnable: product.isReturnable,
+    defaultDosage: [
+      product.defaultDoseMorning,
+      product.defaultDoseNoon,
+      product.defaultDoseEvening,
+      product.defaultDoseNight,
+    ],
+    tagName: product.tagName,
     barcode: product.barcode,
     category: product.category.name,
     imageUrl: product.imageUrl,
@@ -231,6 +248,45 @@ export async function saveStockItems(inputs: StockItemInput[]): Promise<SalesPro
     for (const input of inputs) await upsertStockItem(tx, input);
   });
   return readStockProducts();
+}
+
+export async function updateStockItemDetail(
+  input: StockItemDetailPatch,
+  user: Pick<PharmUser, "role">,
+): Promise<SalesProduct[] | null> {
+  const updated = await prisma.$transaction(async (tx) => {
+    const current = await tx.product.findUnique({ where: { id: input.productId } });
+    if (!current || !current.isActive) return false;
+    if (hasForbiddenStockDiscountChange(user.role, current, input)) {
+      throw new Error("Stock discount permission denied.");
+    }
+    const category = await tx.category.upsert({
+      where: { name: input.category },
+      update: {},
+      create: { name: input.category },
+    });
+    await tx.product.update({
+      where: { id: current.id },
+      data: {
+        location: input.location,
+        categoryId: category.id,
+        minimumStock: input.minimumStock,
+        maximumStock: input.maximumStock,
+        isReturnable: input.isReturnable,
+        defaultDoseMorning: input.defaultDosage[0],
+        defaultDoseNoon: input.defaultDosage[1],
+        defaultDoseEvening: input.defaultDosage[2],
+        defaultDoseNight: input.defaultDosage[3],
+        tagName: input.tagName,
+        ...(user.role === "owner" ? {
+          discountPercent: input.discountPercent,
+          isDiscountLocked: input.isDiscountLocked,
+        } : {}),
+      },
+    });
+    return true;
+  });
+  return updated ? readStockProducts() : null;
 }
 
 export async function deleteStockItem(productId: string): Promise<SalesProduct[] | null> {

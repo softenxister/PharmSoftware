@@ -64,18 +64,18 @@ function useClickOutside<T extends HTMLElement>(onOutside: () => void) {
   const ref = useRef<T | null>(null);
 
   useEffect(() => {
-    function handleMouseDown(event: MouseEvent) {
+    function handlePointerDown(event: PointerEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) onOutside();
     }
 
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
   }, [onOutside]);
 
   return ref;
 }
 
-function SearchableSelect({
+export function SearchableSelect({
   ariaLabel,
   value,
   options,
@@ -171,14 +171,11 @@ function SearchableSelect({
           aria-label={t("stockForm.open", { label: ariaLabel })}
           onClick={() => {
             setSearch("");
-            setOpen((current) => !current);
-            window.setTimeout(() => inputRef.current?.focus(), 0);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              event.stopPropagation();
+            if (open) {
+              setOpen(false);
+            } else {
               setOpen(true);
+              window.setTimeout(() => inputRef.current?.focus(), 0);
             }
           }}
         >
@@ -387,7 +384,11 @@ export function StockEntryForm({
   };
 
   return (
-    <form className={`${styles.stockForm} ${styles.stockFormPortrait}`} onSubmit={handleSubmit} noValidate>
+    <form
+      className={`${styles.stockForm} ${styles.stockFormPortrait} ${!isEditing ? styles.stockFormCreate : ""}`}
+      onSubmit={handleSubmit}
+      noValidate
+    >
       <div className={styles.formHeader}>
         <div>
           <h1>{isEditing ? t("stockForm.edit") : t("stock.createItem")}</h1>
@@ -451,6 +452,7 @@ export function StockEntryForm({
         </div>
       )}
 
+      <div className={styles.stockFormContent}>
       <div className={styles.formBody}>
         <section className={styles.photoPanel} aria-label={t("stockForm.productPhoto")}>
           <div className={styles.photoPreview}>
@@ -603,6 +605,7 @@ export function StockEntryForm({
         </section>
       </div>
 
+      <div className={styles.stockFormLowerGrid}>
       <section className={styles.packagingPanel} aria-label={t("stockForm.packaging")}>
         <div className={styles.packagingHeader}>
           <div>
@@ -702,6 +705,8 @@ export function StockEntryForm({
           ))}
         </div>
       </section>
+      </div>
+      </div>
 
       <div className={styles.formFooter}>
         <button type="submit" className={styles.toolbarAddButton} disabled={!canSave || isDeleting}>

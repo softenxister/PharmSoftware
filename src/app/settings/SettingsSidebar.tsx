@@ -36,7 +36,7 @@ type SidebarItem = {
 const accountItems: SidebarItem[] = [
   { id: "account", labelKey: "settings.account", icon: UserRound, available: true },
   { id: "appearance", labelKey: "settings.appearance", icon: Palette, available: true },
-  { id: "store-profile", labelKey: "settings.storeProfile", icon: Building2 },
+  { id: "store-profile", labelKey: "settings.storeProfile", icon: Building2, available: true },
   { id: "pos-preferences", labelKey: "settings.posPreferences", icon: SlidersHorizontal, available: true },
   { id: "staff-management", labelKey: "settings.staff", icon: UsersRound, ownerOnly: true, available: true },
   { id: "accessibility", labelKey: "settings.accessibility", icon: Accessibility, ownerOnly: true },

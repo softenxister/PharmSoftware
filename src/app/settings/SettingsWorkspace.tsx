@@ -8,6 +8,7 @@ import { PosPreferencesPanel } from "./PosPreferencesPanel";
 import { AccountPanel } from "./AccountPanel";
 import { AppearancePanel } from "./AppearancePanel";
 import { StaffPanel } from "./StaffPanel";
+import { StoreProfilePanel } from "./StoreProfilePanel";
 import { SettingsPlaceholder } from "./SettingsPlaceholders";
 import { SettingsSidebar, type SettingsSection } from "./SettingsSidebar";
 import styles from "./Settings.module.css";
@@ -54,10 +55,11 @@ export function SettingsWorkspace({
           <div className={styles.contentInner}>
             {activeSection === "account" && <AccountPanel user={currentUser} onUpdated={updateCurrentUser} />}
             {activeSection === "appearance" && <AppearancePanel />}
+            {activeSection === "store-profile" && <StoreProfilePanel user={currentUser} />}
             {activeSection === "pos-preferences" && <PosPreferencesPanel user={currentUser} />}
             {activeSection === "staff-management" && isOwner && <StaffPanel />}
-            {activeSection !== "account" && activeSection !== "appearance" && activeSection !== "pos-preferences" && activeSection !== "staff-management"
-              && <SettingsPlaceholder section={activeSection} isOwner={isOwner} />}
+            {activeSection !== "account" && activeSection !== "appearance" && activeSection !== "store-profile" && activeSection !== "pos-preferences" && activeSection !== "staff-management"
+              && <SettingsPlaceholder section={activeSection} />}
           </div>
         </main>
       </div>

@@ -312,6 +312,10 @@
   width: 92px;
 }
 
+.printColumn {
+  width: 48px;
+}
+
 .table th {
   height: 38px;
   box-sizing: border-box;
@@ -362,6 +366,29 @@
   height: 24px;
   align-items: center;
   justify-content: center;
+}
+
+.printButton {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c9d9ce;
+  border-radius: 6px;
+  background: #f7faf8;
+  color: #2c6641;
+  cursor: pointer;
+}
+
+.printButton:hover {
+  border-color: #9fbba8;
+  background: #eaf3ed;
+}
+
+.printButton:focus-visible {
+  outline: 3px solid rgba(47, 124, 78, 0.22);
+  outline-offset: 2px;
 }
 
 .iconCash {

@@ -671,37 +671,12 @@
   padding: 3px 6px;
 }
 
-.profileRow,
 .tableToolbar,
 .deviceCard,
 .soundPreview {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.profileRow {
-  min-height: 58px;
-  border-bottom: 1px solid var(--settings-border-soft);
-  padding-bottom: 14px;
-}
-
-.profileRow > div:nth-child(2) {
-  min-width: 0;
-  flex: 1;
-}
-
-.logoPlaceholder {
-  display: flex;
-  width: 50px;
-  height: 50px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed #bdccc2;
-  border-radius: 7px;
-  background: #f6f9f7;
-  color: #718078;
 }
 
 .secondaryButton,
@@ -1282,35 +1257,6 @@
 .themeOption:disabled {
   cursor: not-allowed;
   opacity: 0.7;
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.field {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 5px;
-  color: #536159;
-  font-size: 11.5px;
-  font-weight: 700;
-}
-
-.field input {
-  width: 100%;
-  height: 38px;
-  border: 1px solid #d7dfda;
-  border-radius: 6px;
-  background: #f7f9f8;
-  color: #7a867e;
-  font-family: inherit;
-  font-size: 12.5px;
-  padding: 0 10px;
 }
 
 .readOnlyNote {

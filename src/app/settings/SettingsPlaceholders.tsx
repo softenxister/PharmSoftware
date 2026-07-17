@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ImagePlus,
-  Printer,
-  Volume2,
-} from "lucide-react";
+import { Printer, Volume2 } from "lucide-react";
 import type { SettingsSection } from "./SettingsSidebar";
 import styles from "./Settings.module.css";
 
@@ -49,34 +45,6 @@ function AppearancePlaceholder() {
             </button>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-function StoreProfilePlaceholder({ isOwner }: { isOwner: boolean }) {
-  return (
-    <section className={styles.panel}>
-      <PlaceholderHeader title="Store Profile" description="Pharmacy identity and contact details used across receipts." />
-      <PlannedBanner />
-      <div className={styles.placeholderBody}>
-        <div className={styles.profileRow}>
-          <div className={styles.logoPlaceholder}><ImagePlus size={22} aria-hidden="true" /></div>
-          <div>
-            <h3 className={styles.sectionLabel}>Store image</h3>
-            <p className={styles.mutedText}>{isOwner ? "Logo upload will be available here." : "Only the owner can change this image."}</p>
-          </div>
-          <button type="button" className={styles.secondaryButton} disabled>Change image</button>
-        </div>
-        <div className={styles.formGrid}>
-          {["Store name", "Store phone", "Store email", "Tax ID", "Store pharmacy license", "Store address"].map((label) => (
-            <label className={styles.field} key={label}>
-              <span>{label}</span>
-              <input type="text" value="Not configured" readOnly disabled />
-            </label>
-          ))}
-        </div>
-        {!isOwner && <p className={styles.readOnlyNote}>Store Profile is read-only for pharmacist accounts.</p>}
       </div>
     </section>
   );
@@ -142,9 +110,8 @@ function ScanFeedbackPlaceholder() {
   );
 }
 
-export function SettingsPlaceholder({ section, isOwner }: { section: SettingsSection; isOwner: boolean }) {
+export function SettingsPlaceholder({ section }: { section: SettingsSection }) {
   if (section === "appearance") return <AppearancePlaceholder />;
-  if (section === "store-profile") return <StoreProfilePlaceholder isOwner={isOwner} />;
   if (section === "accessibility") return <AccessibilityPlaceholder />;
   if (section === "printers-drawer") return <DevicesPlaceholder />;
   return <ScanFeedbackPlaceholder />;

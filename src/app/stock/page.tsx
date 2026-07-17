@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
   CheckCircle2,
   ChevronDown,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { SalesProduct, StockItemInput } from "@/server/db/types";
 import { useAuth } from "@/app/AuthProvider";
+import { shouldCloseDropdown } from "@/app/dropdownInteraction";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { buildStockCategoryOptions, getStockCategoryLabel } from "./stockCategoryFilter";
 import { getStockFilterOptionLabel } from "./stockFilterLabels";
@@ -34,6 +35,7 @@ import {
 import { isStockRowActivationKey } from "./stockRowInteraction";
 import { StockEntryForm } from "./StockEntryForm";
 import { StockBatchAdjustmentDialog } from "./StockBatchAdjustmentDialog";
+import { StockItemDetailDialog } from "./StockItemDetailDialog";
 import styles from "./Stock.module.css";
 
 type StockState = "normal" | "low" | "overstock";
@@ -43,6 +45,7 @@ interface StockItem {
   name: string;
   brand: string;
   manufacturer: string;
+  tagName: string;
   category: string;
   dosageType: string;
   expiryDates: string[];
@@ -57,10 +60,10 @@ interface StockItem {
   state: StockState;
 }
 
-function productToStockItem(product: SalesProduct, index: number): StockItem {
+function productToStockItem(product: SalesProduct): StockItem {
   const stock = product.batches.reduce((sum, batch) => sum + batch.availableStock, 0);
-  const min = Math.max(8, Math.round(product.weeklySold * 0.16));
-  const max = Math.max(min + 24, Math.round(product.weeklySold * 0.8));
+  const min = product.minimumStock ?? 20;
+  const max = product.maximumStock ?? 200;
   const sellPrice = product.batches[0]?.sellPriceThb ?? 0;
   const state: StockState = stock < min ? "low" : stock > max ? "overstock" : "normal";
 
@@ -69,6 +72,7 @@ function productToStockItem(product: SalesProduct, index: number): StockItem {
     name: product.itemName,
     brand: product.brandName,
     manufacturer: product.manufacturerName,
+    tagName: product.tagName ?? "",
     category: product.category,
     dosageType: product.pack.childUnit,
     expiryDates: product.batches.map((batch) => batch.expiryDate),
@@ -77,7 +81,7 @@ function productToStockItem(product: SalesProduct, index: number): StockItem {
     max,
     stock,
     loc: product.location,
-    discount: index % 4 === 0 ? 2 : index % 5 === 0 ? 1.5 : 0,
+    discount: product.discountPercent ?? 0,
     sellPrice,
     imageUrl: product.imageUrl,
     state,
@@ -115,7 +119,7 @@ const SIDEBAR_MAX_WIDTH = 360;
 const SIDEBAR_DEFAULT_WIDTH = 270;
 
 function formatPercent(value: number): string {
-  return `${value.toFixed(2)}%`;
+  return `${value}%`;
 }
 
 type StockFilterPanel =
@@ -125,6 +129,7 @@ type StockFilterPanel =
   | "stock"
   | "stockRange"
   | "manufacturer"
+  | "tags"
   | "stockAdjustment";
 
 interface DraftStockFilters {
@@ -133,6 +138,7 @@ interface DraftStockFilters {
   expiryWindows: ExpiryWindow[];
   stockLevels: StockLevel[];
   manufacturers: string[];
+  tags: string[];
   adjustmentStatuses: string[];
   minimumStock: string;
   maximumStock: string;
@@ -140,7 +146,7 @@ interface DraftStockFilters {
 
 type MultiSelectFilterKey = keyof Pick<
   DraftStockFilters,
-  "categories" | "dosageTypes" | "expiryWindows" | "stockLevels" | "manufacturers" | "adjustmentStatuses"
+  "categories" | "dosageTypes" | "expiryWindows" | "stockLevels" | "manufacturers" | "tags" | "adjustmentStatuses"
 >;
 
 function createEmptyDraftFilters(): DraftStockFilters {
@@ -150,6 +156,7 @@ function createEmptyDraftFilters(): DraftStockFilters {
     expiryWindows: [],
     stockLevels: [],
     manufacturers: [],
+    tags: [],
     adjustmentStatuses: [],
     minimumStock: "",
     maximumStock: "",
@@ -163,6 +170,7 @@ function createEmptyAppliedFilters(): AppliedStockInventoryFilters {
     expiryWindows: [],
     stockLevels: [],
     manufacturers: [],
+    tags: [],
     stockRange: null,
   };
 }
@@ -198,9 +206,11 @@ export default function StockPage() {
   const [stockWindowOpen, setStockWindowOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<SalesProduct | null>(null);
   const [adjustmentProduct, setAdjustmentProduct] = useState<SalesProduct | null>(null);
+  const [detailProduct, setDetailProduct] = useState<SalesProduct | null>(null);
   const [adjustmentSuccess, setAdjustmentSuccess] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [products, setProducts] = useState<SalesProduct[]>([]);
+  const filterListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -225,6 +235,19 @@ export default function StockPage() {
     const timeout = window.setTimeout(() => setAdjustmentSuccess(false), 2600);
     return () => window.clearTimeout(timeout);
   }, [adjustmentSuccess]);
+
+  useEffect(() => {
+    if (openFilterPanel === null) return;
+
+    const closeFilterPanelOnOutsideClick = (event: PointerEvent) => {
+      if (shouldCloseDropdown(filterListRef.current, event.target as Node)) {
+        setOpenFilterPanel(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeFilterPanelOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeFilterPanelOnOutsideClick);
+  }, [openFilterPanel]);
 
   const stockItems = useMemo(() => products.map(productToStockItem), [products]);
 
@@ -268,6 +291,11 @@ export default function StockPage() {
     [products],
   );
 
+  const tagFilterOptions = useMemo(
+    () => buildFilterOptions([], products.map((product) => product.tagName ?? "")),
+    [products],
+  );
+
   const stockRangeResult = useMemo(
     () => parseStockRange(draftFilters.minimumStock, draftFilters.maximumStock),
     [draftFilters.maximumStock, draftFilters.minimumStock],
@@ -289,6 +317,15 @@ export default function StockPage() {
     if (user?.role !== "owner") return;
     const product = products.find((candidate) => candidate.barcode === barcode);
     if (product) setAdjustmentProduct(product);
+  };
+  const openItemDetailByBarcode = (barcode: string) => {
+    const product = products.find((candidate) => candidate.barcode === barcode);
+    if (product) setDetailProduct(product);
+  };
+  const handleItemDetailSaved = (nextProducts: SalesProduct[]) => {
+    updateStockCatalog(nextProducts);
+    setProducts(nextProducts);
+    setDetailProduct(null);
   };
   const handleStockAdjustmentUpdated = (
     productId: string,
@@ -335,6 +372,9 @@ export default function StockPage() {
       if (filter === "manufacturers") {
         return { ...currentFilters, manufacturers: toggleSelectedOption(currentFilters.manufacturers, option) };
       }
+      if (filter === "tags") {
+        return { ...currentFilters, tags: toggleSelectedOption(currentFilters.tags, option) };
+      }
       return {
         ...currentFilters,
         adjustmentStatuses: toggleSelectedOption(currentFilters.adjustmentStatuses, option),
@@ -354,6 +394,7 @@ export default function StockPage() {
       expiryWindows: draftFilters.expiryWindows,
       stockLevels: draftFilters.stockLevels,
       manufacturers: draftFilters.manufacturers,
+      tags: draftFilters.tags,
       stockRange: stockRangeResult.range,
     });
     setOpenFilterPanel(null);
@@ -464,7 +505,7 @@ export default function StockPage() {
               <span>{t("stock.createItem")}</span>
             </button>
 
-            <div className={styles.filterList}>
+            <div className={styles.filterList} ref={filterListRef}>
               <button type="button" className={styles.filterButton}>
                 <span className={styles.filterText}>
                   <span className={styles.filterLabel}>{t("stock.items")}</span>
@@ -543,6 +584,16 @@ export default function StockPage() {
                 isOpen={openFilterPanel === "manufacturer"}
                 onToggle={() => toggleFilterPanel("manufacturer")}
                 onToggleOption={(option) => toggleDraftFilterOption("manufacturers", option)}
+              />
+
+              <StockFilterDropdown
+                id="stock-tag-options"
+                label={t("stock.tags")}
+                options={tagFilterOptions}
+                selectedOptions={draftFilters.tags}
+                isOpen={openFilterPanel === "tags"}
+                onToggle={() => toggleFilterPanel("tags")}
+                onToggleOption={(option) => toggleDraftFilterOption("tags", option)}
               />
 
               <StockFilterDropdown
@@ -715,11 +766,11 @@ export default function StockPage() {
                         <button
                           type="button"
                           className={styles.actionButton}
-                          title={t("stock.editItem")}
-                          aria-label={t("stock.editItemFor", { name: item.name })}
+                          title={t("stock.setItemDetail")}
+                          aria-label={t("stock.setItemDetailFor", { name: item.name })}
                           onClick={(event) => {
                             event.stopPropagation();
-                            openEditStockByBarcode(item.id);
+                            openItemDetailByBarcode(item.id);
                           }}
                         >
                           <Edit3 size={16} />
@@ -767,6 +818,14 @@ export default function StockPage() {
           product={adjustmentProduct}
           onClose={() => setAdjustmentProduct(null)}
           onUpdated={handleStockAdjustmentUpdated}
+        />
+      )}
+      {detailProduct && user && (
+        <StockItemDetailDialog
+          product={detailProduct}
+          role={user.role}
+          onClose={() => setDetailProduct(null)}
+          onSaved={handleItemDetailSaved}
         />
       )}
       {adjustmentSuccess && (

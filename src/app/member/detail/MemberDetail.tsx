@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
+import { shouldCloseDropdown } from "@/app/dropdownInteraction";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { formatThaiPhoneInput, formatThaiPhoneNumber, isValidThaiPhoneNumber } from "@/lib/thaiPhoneNumber";
 import { isAllowedMemberAvatarFile } from "../memberAvatar";
@@ -79,14 +80,17 @@ export function MemberDetail() {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarChanged, setAvatarChanged] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const [selectedAllergies, setSelectedAllergies] = useState<IngredientOption[]>([]);
   const [ingredientQuery, setIngredientQuery] = useState("");
   const [ingredientOptions, setIngredientOptions] = useState<IngredientOption[]>([]);
+  const [ingredientOptionsOpen, setIngredientOptionsOpen] = useState(false);
   const [ingredientSearching, setIngredientSearching] = useState(false);
   const [ingredientSearchError, setIngredientSearchError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const ingredientDropdownRef = useRef<HTMLDivElement>(null);
   const mobileValid = isValidThaiPhoneNumber(mobile);
 
   useEffect(() => {
@@ -111,6 +115,19 @@ export function MemberDetail() {
       window.clearTimeout(timeout);
     };
   }, [editing, ingredientQuery, t]);
+
+  useEffect(() => {
+    if (!ingredientOptionsOpen) return;
+
+    const closeIngredientOptionsOnOutsideClick = (event: PointerEvent) => {
+      if (shouldCloseDropdown(ingredientDropdownRef.current, event.target as Node)) {
+        setIngredientOptionsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeIngredientOptionsOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeIngredientOptionsOnOutsideClick);
+  }, [ingredientOptionsOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,10 +174,12 @@ export function MemberDetail() {
     setName(member.name);
     setMobile(formatThaiPhoneNumber(member.mobile));
     setAvatarUrl(member.avatarUrl ?? null);
+    setAvatarChanged(false);
     setAvatarError("");
     setSelectedAllergies(member.allergies);
     setIngredientQuery("");
     setIngredientOptions([]);
+    setIngredientOptionsOpen(false);
     setIngredientSearchError("");
     setSaveError("");
     setEditing(true);
@@ -184,7 +203,10 @@ export function MemberDetail() {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") setAvatarUrl(reader.result);
+      if (typeof reader.result === "string") {
+        setAvatarUrl(reader.result);
+        setAvatarChanged(true);
+      }
     };
     reader.onerror = () => setAvatarError(t("member.imageError"));
     reader.readAsDataURL(file);
@@ -203,7 +225,7 @@ export function MemberDetail() {
           memberId: member.id,
           name,
           mobile,
-          avatarUrl,
+          ...(avatarChanged ? { avatarUrl } : {}),
           allergyIngredientIds: selectedAllergies.map((ingredient) => ingredient.id),
         }),
       });
@@ -413,7 +435,7 @@ export function MemberDetail() {
                   />
                 </label>
                 {avatarUrl && (
-                  <button type="button" className={styles.removePhotoButton} onClick={() => { setAvatarUrl(null); setAvatarError(""); }}>
+                  <button type="button" className={styles.removePhotoButton} onClick={() => { setAvatarUrl(null); setAvatarChanged(true); setAvatarError(""); }}>
                     {t("member.removePhoto")}
                   </button>
                 )}
@@ -456,38 +478,53 @@ export function MemberDetail() {
                     ))}
                   </div>
                 )}
-                <div className={styles.ingredientCombobox}>
-                  <Search size={15} aria-hidden="true" />
-                  <input
-                    id="member-allergy-search"
-                    type="search"
-                    value={ingredientQuery}
-                    onChange={(event) => setIngredientQuery(event.target.value)}
-                    placeholder={t("member.searchIngredients")}
-                    autoComplete="off"
-                    aria-controls="member-allergy-options"
-                  />
-                </div>
-                <div id="member-allergy-options" className={styles.ingredientOptions} role="listbox" aria-label={t("member.ingredientResults")}>
-                  {ingredientSearching && <span className={styles.ingredientState}>{t("common.loading")}</span>}
-                  {!ingredientSearching && ingredientSearchError && <span className={styles.ingredientState} role="alert">{ingredientSearchError}</span>}
-                  {!ingredientSearching && !ingredientSearchError && availableIngredientOptions.map((ingredient) => (
-                    <button
-                      key={ingredient.id}
-                      type="button"
-                      role="option"
-                      aria-selected="false"
-                      onClick={() => {
-                        setSelectedAllergies((current) => [...current, ingredient]);
-                        setIngredientQuery("");
+                <div ref={ingredientDropdownRef}>
+                  <div className={styles.ingredientCombobox}>
+                    <Search size={15} aria-hidden="true" />
+                    <input
+                      id="member-allergy-search"
+                      type="search"
+                      value={ingredientQuery}
+                      onChange={(event) => {
+                        setIngredientQuery(event.target.value);
+                        setIngredientOptionsOpen(true);
                       }}
-                    >
-                      <strong>{ingredient.canonicalName}</strong>
-                      <span>{ingredient.thaiName || ingredient.aliases?.slice(0, 2).join(" · ") || t("member.standardIngredient")}</span>
-                    </button>
-                  ))}
-                  {!ingredientSearching && !ingredientSearchError && availableIngredientOptions.length === 0 && (
-                    <span className={styles.ingredientState}>{t("member.noIngredients")}</span>
+                      onFocus={() => setIngredientOptionsOpen(true)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") setIngredientOptionsOpen(false);
+                      }}
+                      placeholder={t("member.searchIngredients")}
+                      autoComplete="off"
+                      role="combobox"
+                      aria-haspopup="listbox"
+                      aria-expanded={ingredientOptionsOpen}
+                      aria-controls="member-allergy-options"
+                    />
+                  </div>
+                  {ingredientOptionsOpen && (
+                    <div id="member-allergy-options" className={styles.ingredientOptions} role="listbox" aria-label={t("member.ingredientResults")}>
+                      {ingredientSearching && <span className={styles.ingredientState}>{t("common.loading")}</span>}
+                      {!ingredientSearching && ingredientSearchError && <span className={styles.ingredientState} role="alert">{ingredientSearchError}</span>}
+                      {!ingredientSearching && !ingredientSearchError && availableIngredientOptions.map((ingredient) => (
+                        <button
+                          key={ingredient.id}
+                          type="button"
+                          role="option"
+                          aria-selected="false"
+                          onClick={() => {
+                            setSelectedAllergies((current) => [...current, ingredient]);
+                            setIngredientQuery("");
+                            setIngredientOptionsOpen(false);
+                          }}
+                        >
+                          <strong>{ingredient.canonicalName}</strong>
+                          <span>{ingredient.thaiName || ingredient.aliases?.slice(0, 2).join(" · ") || t("member.standardIngredient")}</span>
+                        </button>
+                      ))}
+                      {!ingredientSearching && !ingredientSearchError && availableIngredientOptions.length === 0 && (
+                        <span className={styles.ingredientState}>{t("member.noIngredients")}</span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
