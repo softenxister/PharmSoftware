@@ -8,7 +8,7 @@ import { MemberAvatar } from '@/app/member/MemberAvatarView';
 import styles from './NewSale.module.css';
 import type { ParentPack, ProductPack, SalesProduct } from '@/server/db/types';
 import type { PharmUser } from '@/server/auth/pharmUser';
-import { loadStockCatalog, updateStockCatalog } from '@/app/stock/stockCatalogClient';
+import { invalidateStockCatalog, loadStockProductsByIds, searchStockCatalog } from '@/app/stock/stockCatalogClient';
 import { requiresPosConfirmation } from '@/app/settings/posPreferences';
 import {
   getPaymentMethodShortcut,
@@ -84,11 +84,14 @@ interface SellPack {
   relationLabel: string;
   displayLabel: string;
   priceMultiplier: number;
+  sellPriceThb?: number;
+  barcodes: string[];
 }
 
 interface CatalogItem {
   id: string;
   barcode: string;
+  barcodes: string[];
   category: string;
   name: string;
   brand: string;
@@ -116,6 +119,7 @@ interface CartLine {
   itemName: string;
   packLabel: string;
   packMultiplier: number;
+  unitPrice: number;
   loc: string;
   batch: Batch;
   qty: number;
@@ -150,7 +154,6 @@ type PendingConfirmation =
   | { kind: 'cancel-sale' };
 
 type SalesApiResponse = {
-  products?: SalesProduct[] | null;
   sale?: {
     id: string;
     billNo: string;
@@ -233,6 +236,12 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
   return products.map((product) => ({
     id: product.id,
     barcode: product.barcode,
+    barcodes: [
+      product.barcode,
+      ...(product.externalProductCode ? [product.externalProductCode] : []),
+      ...(product.barcodes ?? []),
+      ...product.parentPacks.flatMap((pack) => pack.barcodes ?? []),
+    ],
     category: product.category,
     name: product.itemName,
     brand: product.brandName,
@@ -241,20 +250,23 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
     packUnit: product.pack.packUnit,
     sellPacks: [
       {
-        key: product.pack.packUnit,
+        key: `${product.pack.packUnit}-1`,
         unit: product.pack.packUnit,
         label: sellPackButtonLabel(product.pack.packUnit),
         relationLabel: product.pack.label,
         displayLabel: `${product.pack.childQuantity} / ${displayPackUnit(product.pack.packUnit)}`,
         priceMultiplier: 1,
+        barcodes: [product.barcode, ...(product.barcodes ?? [])],
       },
       ...product.parentPacks.map((pack: ParentPack) => ({
-        key: pack.packUnit,
+        key: pack.id ?? `${pack.packUnit}-${pack.childPackQuantity}`,
         unit: pack.packUnit,
         label: sellPackButtonLabel(pack.packUnit),
         relationLabel: pack.label,
         displayLabel: `${pack.childPackQuantity} / ${displayPackUnit(pack.packUnit)}`,
-        priceMultiplier: pack.priceMultiplier,
+        priceMultiplier: pack.childPackQuantity,
+        ...(pack.sellPriceThb === undefined ? {} : { sellPriceThb: pack.sellPriceThb }),
+        barcodes: pack.barcodes ?? [],
       })),
     ],
     loc: product.location,
@@ -276,6 +288,11 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
       stock: batch.availableStock,
     })),
   }));
+}
+
+function mergeCatalogItems(current: CatalogItem[], incoming: CatalogItem[]): CatalogItem[] {
+  const incomingIds = new Set(incoming.map((item) => item.id));
+  return [...incoming, ...current.filter((item) => !incomingIds.has(item.id))].slice(0, 200);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -312,7 +329,13 @@ function availableStockForPack(batch: Batch, pack: SellPack): number {
 }
 
 function sellPriceForPack(batch: Batch, pack: SellPack): number {
-  return batch.sellPrice * pack.priceMultiplier;
+  return pack.sellPriceThb ?? batch.sellPrice * pack.priceMultiplier;
+}
+
+function lineUnitPrice(line: CartLine): number {
+  return Number.isFinite(line.unitPrice)
+    ? line.unitPrice
+    : line.batch.sellPrice * line.packMultiplier;
 }
 
 function catalogItemForLine(line: CartLine, catalog: CatalogItem[]): CatalogItem | undefined {
@@ -369,15 +392,18 @@ function getItemSearchPriority(item: CatalogItem, rawQuery: string): number | nu
   const q = rawQuery.trim().toLowerCase();
   if (!q) return null;
   if (/^\d{5,}$/.test(q)) {
-    return item.barcode.includes(q) ? 0 : null;
+    return item.barcodes.some((barcode) => barcode.includes(q)) ? 0 : null;
   }
 
   const itemName = item.name.toLowerCase();
+  const brand = item.brand.toLowerCase();
   const manufacturer = item.manufacturer.toLowerCase();
   if (itemName.startsWith(q)) return 1;
   if (itemName.includes(q)) return 2;
-  if (manufacturer.startsWith(q)) return 3;
-  if (manufacturer.includes(q)) return 4;
+  if (brand.startsWith(q)) return 3;
+  if (brand.includes(q)) return 4;
+  if (manufacturer.startsWith(q)) return 5;
+  if (manufacturer.includes(q)) return 6;
   return null;
 }
 
@@ -620,6 +646,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const itemFieldRef = useClickOutside<HTMLDivElement>(() => setItemDropdownOpen(false));
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [itemSearchLoading, setItemSearchLoading] = useState(false);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const batchPickerRef = useClickOutside<HTMLDivElement>(() => {
     setEditor((current) => {
@@ -711,7 +738,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const uniqueItemCount = cartLines.length;
   const pricingLines = useMemo(() => cartLines.map((line) => ({
     quantity: line.qty,
-    unitPrice: line.batch.sellPrice * line.packMultiplier,
+    unitPrice: lineUnitPrice(line),
     discountPercent: catalogItemForLine(line, catalog)?.discountPercent ?? 0,
   })), [cartLines, catalog]);
   const salePricing = useMemo(
@@ -778,21 +805,25 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadCatalog() {
+    const timeout = window.setTimeout(async () => {
+      setItemSearchLoading(true);
       try {
-        const products = await loadStockCatalog();
-        if (!cancelled) setCatalog(productsToCatalog(products));
+        const products = await searchStockCatalog(itemQuery);
+        if (!cancelled) {
+          setCatalog((currentCatalog) => mergeCatalogItems(currentCatalog, productsToCatalog(products)));
+        }
       } catch (error) {
         console.error(error);
+      } finally {
+        if (!cancelled) setItemSearchLoading(false);
       }
-    }
+    }, itemQuery.trim() ? 150 : 0);
 
-    void loadCatalog();
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
     };
-  }, []);
+  }, [itemQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -856,6 +887,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         const data = await response.json() as { sales?: SavedSale[] };
         const savedBill = data.sales?.find((bill) => bill.id === pendingBillId && bill.status === 'pending');
         if (cancelled || !savedBill || !Array.isArray(savedBill.lines) || savedBill.lines.length === 0) return;
+        const pendingProducts = await loadStockProductsByIds(savedBill.lines.map((line) => line.itemId));
+        if (cancelled) return;
+        setCatalog((currentCatalog) => mergeCatalogItems(currentCatalog, productsToCatalog(pendingProducts)));
 
         setEditingBillId(savedBill.id);
         setEditingBillNo(savedBill.billNo);
@@ -889,9 +923,11 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   /* ── Handlers ───────────────────────────────────────────────────── */
 
   function openEditorForItem(item: CatalogItem) {
-    const batch = nearestExpiryBatch(item.batches);
+    const exactBarcode = itemQuery.trim();
+    const sellPack = item.sellPacks.find((pack) => pack.barcodes.includes(exactBarcode)) ?? item.sellPacks[0];
+    const batch = nearestExpiryBatchForPack(item.batches, sellPack);
     if (!batch) return; // out of stock — nothing to sell
-    setEditor({ item, batch, sellPack: item.sellPacks[0], qty: '1', batchCardOpen: false });
+    setEditor({ item, batch, sellPack, qty: '1', batchCardOpen: false });
     setItemQuery('');
     setItemDropdownOpen(false);
     window.setTimeout(() => {
@@ -1021,6 +1057,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
           itemName: editor.item.name,
           packLabel: editor.sellPack.displayLabel,
           packMultiplier: editor.sellPack.priceMultiplier,
+          unitPrice: sellPriceForPack(editor.batch, editor.sellPack),
           loc: editor.item.loc,
           batch: editor.batch,
           qty,
@@ -1339,10 +1376,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         throw new Error(saleData.error || 'Unable to update stock for this sale.');
       }
 
-      if (Array.isArray(saleData.products)) {
-        updateStockCatalog(saleData.products);
-        setCatalog(productsToCatalog(saleData.products));
-      }
+      invalidateStockCatalog();
       savedSale = saleData.sale;
     } catch (error) {
       autoPreviewWindow?.close();
@@ -1684,7 +1718,11 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
           </div>
           {itemDropdownOpen && itemQuery.trim() && (
             <div className={styles.itemDropdownPanel}>
-              {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>{t('newSale.noItem')}</div>}
+              {itemMatches.length === 0 && (
+                <div className={styles.dropdownEmpty}>
+                  {itemSearchLoading ? 'Loading…' : t('newSale.noItem')}
+                </div>
+              )}
               {itemMatches.map((it, index) => {
                 const nearest = nearestExpiryBatch(it.batches);
                 const totalStock = it.batches.reduce((sum, batch) => sum + batch.stock, 0);
@@ -1897,7 +1935,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                     {storeSettings.showProductLocation && <td className={styles.muted}>{line.loc}</td>}
                     <td className={styles.muted}>{line.batch.batchNo}</td>
                     <td className={styles.muted}>{formatExpiry(line.batch.exp)}</td>
-                    <td className={styles.alignRight}>฿{formatBaht(line.batch.sellPrice * line.packMultiplier)}</td>
+                    <td className={styles.alignRight}>฿{formatBaht(lineUnitPrice(line))}</td>
                     <td className={styles.alignRight}>
                       <div className={styles.qtyStepper}>
                         <button
@@ -1943,7 +1981,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       </div>
                     </td>
                     <td className={styles.alignRight}>
-                      <span className={styles.lineTotal}>฿{formatBaht(line.qty * line.batch.sellPrice * line.packMultiplier)}</span>
+                      <span className={styles.lineTotal}>฿{formatBaht(line.qty * lineUnitPrice(line))}</span>
                     </td>
                   </tr>
                   );

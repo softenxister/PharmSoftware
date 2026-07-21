@@ -46,3 +46,16 @@ test("sales reject fractional item quantities", () => {
 test("pending sales can be saved without customer payment", () => {
   assert.doesNotThrow(() => validateSale(saleInput({ status: "pending", customerPaid: null })));
 });
+
+test("sales accept an independent parent-unit price", () => {
+  const input = saleInput();
+  input.lines[0].packMultiplier = 20;
+  input.lines[0].unitPrice = 95;
+  assert.doesNotThrow(() => validateSale(input));
+});
+
+test("sales reject an invalid independent parent-unit price", () => {
+  const input = saleInput();
+  input.lines[0].unitPrice = -1;
+  assert.throws(() => validateSale(input), /sale items are invalid/);
+});

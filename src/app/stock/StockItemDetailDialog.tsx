@@ -14,7 +14,7 @@ type StockItemDetailDialogProps = {
   product: SalesProduct;
   role: PharmUserRole;
   onClose: () => void;
-  onSaved: (products: SalesProduct[]) => void;
+  onSaved: (product: SalesProduct) => void;
 };
 
 const DOSAGE_TIMES = ["8 AM", "1 PM", "7 PM", "10 PM"] as const;
@@ -158,11 +158,11 @@ export function StockItemDetailDialog({ product, role, onClose, onSaved }: Stock
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      const data = await response.json() as { products?: SalesProduct[]; error?: string };
-      if (!response.ok || !Array.isArray(data.products)) {
+      const data = await response.json() as { product?: SalesProduct; error?: string };
+      if (!response.ok || !data.product) {
         throw new Error(data.error || t("stock.itemDetailSaveError"));
       }
-      onSaved(data.products);
+      onSaved(data.product);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t("stock.itemDetailSaveError"));
       setIsSaving(false);

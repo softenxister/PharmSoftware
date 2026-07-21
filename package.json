@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "stock:normalize-cw": "tsx scripts/normalize-cw-stock.ts",
     "test": "node --env-file-if-exists=.env --import tsx --test server/*.test.ts src/server/auth/*.test.ts src/server/db/*.test.ts src/app/*.test.ts src/app/stock/*.test.ts src/app/settings/*.test.ts src/app/login/*.test.ts src/app/sales/new/*.test.ts src/features/events/components/navigation/*.test.ts",
     "start": "NODE_ENV=production node --env-file-if-exists=.env dist-server/index.js",
     "typecheck": "tsc --noEmit"

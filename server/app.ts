@@ -3,10 +3,21 @@ import { bodyLimit } from "hono/body-limit";
 import { Hono, type Context } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import { runWithRequest } from "@/server/auth/requestContext";
+import { MAX_CW_STOCK_REQUEST_BYTES } from "@/server/import/cwStockUpload";
 import { apiRoutes, type ApiHandler } from "./apiRegistry";
 
 const isProduction = process.env.NODE_ENV === "production";
 const API_BODY_LIMIT_BYTES = 2 * 1024 * 1024;
+const STOCK_MIGRATION_PATH = "/api/stock/migrations/cw";
+
+const defaultApiBodyLimit = bodyLimit({
+  maxSize: API_BODY_LIMIT_BYTES,
+  onError: (context) => context.json({ error: "Request body is too large." }, 413),
+});
+const stockMigrationBodyLimit = bodyLimit({
+  maxSize: MAX_CW_STOCK_REQUEST_BYTES,
+  onError: (context) => context.json({ error: "Request body is too large." }, 413),
+});
 
 const securityOptions = isProduction ? {
   contentSecurityPolicy: {
@@ -38,10 +49,11 @@ export function createServerApp() {
     await next();
     context.header("Cache-Control", "no-store");
   });
-  app.use("/api/*", bodyLimit({
-    maxSize: API_BODY_LIMIT_BYTES,
-    onError: (context) => context.json({ error: "Request body is too large." }, 413),
-  }));
+  app.use("/api/*", (context, next) => (
+    context.req.path === STOCK_MIGRATION_PATH
+      ? stockMigrationBodyLimit(context, next)
+      : defaultApiBodyLimit(context, next)
+  ));
 
   const invoke = (apiHandler: ApiHandler) => (context: Context) => (
     runWithRequest(context.req.raw, () => apiHandler(context.req.raw))

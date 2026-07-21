@@ -25,7 +25,24 @@ function slugify(value: string): string {
   return slug || "stock-item";
 }
 
+export function normalizeBarcodeValues(
+  primaryValue: string,
+  aliases: readonly string[] = [],
+): string[] {
+  const seen = new Set<string>();
+  return [primaryValue, ...aliases]
+    .flatMap((value) => value.split(/[;,]/))
+    .map((value) => value.trim())
+    .filter((value) => {
+      if (!value || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+}
+
 export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
+  const baseBarcodes = normalizeBarcodeValues(item.barcode, item.barcodes);
+  const primaryBarcode = baseBarcodes[0] ?? "";
   const sellPrice = Number(item.sellPrice);
   const weightage = Number(item.weightage);
   const cleanWeightage = Number.isFinite(weightage) && weightage > 0 ? weightage : 1;
@@ -35,7 +52,7 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
   const category = item.itemCategory.trim();
   const location = item.location?.trim() || "-";
   const subUnit = item.subUnit?.trim() || item.unit.trim();
-  const lotNo = item.lotNo?.trim() || `NEW-${item.barcode.trim().slice(-6) || "000000"}`;
+  const lotNo = item.lotNo?.trim() || `NEW-${primaryBarcode.slice(-6) || "000000"}`;
   const expiryDate = item.expiryDate?.trim() || "";
   const imageUrl = item.photoUrl.trim() || `https://placehold.co/360x360/png?text=${encodeURIComponent(brandName.slice(0, 18))}`;
   const validPackagingRows = item.packagingRows.filter((row) => {
@@ -63,6 +80,8 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
     parentPacks: validPackagingRows.map((row) => {
       const quantity = Number(row.childQuantity);
       const cleanQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+      const unitBarcodes = normalizeBarcodeValues(row.barcode, row.barcodes);
+      const unitSellPrice = Number(row.sellPrice);
 
       return {
         packUnit: row.parentUnit.trim(),
@@ -70,10 +89,13 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
         childPackQuantity: cleanQuantity,
         label: `1 ${row.parentUnit.trim()} = ${cleanQuantity} ${row.childUnit.trim()}`,
         priceMultiplier: cleanQuantity,
+        ...(Number.isFinite(unitSellPrice) && unitSellPrice >= 0 ? { sellPriceThb: unitSellPrice } : {}),
+        barcodes: unitBarcodes,
       };
     }),
     location,
-    barcode: item.barcode.trim(),
+    barcode: primaryBarcode,
+    barcodes: baseBarcodes.slice(1),
     category,
     imageUrl,
     weeklySold: 0,
@@ -88,11 +110,13 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
 
 export function createSavedStockItem(input: StockItemInput, currentItem?: SavedStockItem): SavedStockItem {
   const now = new Date().toISOString();
-  const barcode = input.barcode.trim();
+  const baseBarcodes = normalizeBarcodeValues(input.barcode, input.barcodes);
+  const barcode = baseBarcodes[0] ?? "";
 
   return {
     photoUrl: input.photoUrl.trim(),
     barcode,
+    barcodes: baseBarcodes.slice(1),
     itemName: input.itemName.trim(),
     lotNo: input.lotNo.trim(),
     expiryDate: input.expiryDate.trim(),
@@ -105,12 +129,17 @@ export function createSavedStockItem(input: StockItemInput, currentItem?: SavedS
     unit: input.unit.trim(),
     brandName: input.brandName.trim(),
     packagingRows: input.packagingRows
-      .map((row) => ({
-        parentUnit: row.parentUnit.trim(),
-        childQuantity: row.childQuantity.trim(),
-        childUnit: row.childUnit.trim(),
-        barcode: row.barcode.trim(),
-      }))
+      .map((row) => {
+        const barcodes = normalizeBarcodeValues(row.barcode, row.barcodes);
+        return {
+          parentUnit: row.parentUnit.trim(),
+          childQuantity: row.childQuantity.trim(),
+          childUnit: row.childUnit.trim(),
+          barcode: barcodes[0] ?? "",
+          barcodes: barcodes.slice(1),
+          sellPrice: row.sellPrice?.trim() ?? "",
+        };
+      })
       .filter((row) => {
         const quantity = Number(row.childQuantity);
         return (

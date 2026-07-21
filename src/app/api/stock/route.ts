@@ -8,6 +8,7 @@ import {
 } from "@/server/db/stockRepository";
 import { parseStockItemDetailPatch } from "@/server/db/stockItemDetail";
 import type { StockItemInput } from "@/server/db/types";
+import { parseStockReadQuery } from "@/server/db/stockReadQuery";
 import { isAuthenticationError, requireAuthenticatedUser } from "@/server/auth/pharmUser";
 
 function isStockItemInput(value: unknown): value is StockItemInput {
@@ -18,15 +19,16 @@ function isStockItemInput(value: unknown): value is StockItemInput {
     "manufacturer", "sellPrice", "itemCategory", "weightage", "unit", "brandName",
   ];
   return stringFields.every((field) => typeof item[field] === "string")
+    && (item.productId === undefined || typeof item.productId === "string")
+    && (item.barcodes === undefined || (Array.isArray(item.barcodes) && item.barcodes.every((barcode) => typeof barcode === "string")))
     && (item.subUnit === undefined || typeof item.subUnit === "string")
     && Array.isArray(item.packagingRows);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireAuthenticatedUser();
-    const products = await readStockProducts();
-    return Response.json({ products });
+    return Response.json(await readStockProducts(parseStockReadQuery(request.url)));
   } catch (error) {
     if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
     return Response.json({ error: "Unable to load stock." }, { status: 500 });
@@ -42,10 +44,10 @@ export async function POST(request: Request) {
       return Response.json({ error: "Stock item data is invalid." }, { status: 400 });
     }
 
-    const products = Array.isArray(body?.items)
-      ? await saveStockItems(inputs)
-      : await saveStockItem(inputs[0]);
-    return Response.json({ products });
+    if (Array.isArray(body?.items)) {
+      return Response.json({ savedCount: await saveStockItems(inputs) });
+    }
+    return Response.json({ product: await saveStockItem(inputs[0]) });
   } catch (error) {
     if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
     return Response.json({ error: "Unable to save stock item." }, { status: 400 });
@@ -57,9 +59,9 @@ export async function PATCH(request: Request) {
     const user = await requireAuthenticatedUser();
     const input = parseStockItemDetailPatch(await request.json());
     if (!input) return Response.json({ error: "Stock item detail data is invalid." }, { status: 400 });
-    const products = await updateStockItemDetail(input, user);
-    if (!products) return Response.json({ error: "Stock item was not found." }, { status: 404 });
-    return Response.json({ products });
+    const product = await updateStockItemDetail(input, user);
+    if (!product) return Response.json({ error: "Stock item was not found." }, { status: 404 });
+    return Response.json({ product });
   } catch (error) {
     if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
     if (error instanceof Error && error.message === "Stock discount permission denied.") {
@@ -77,11 +79,11 @@ export async function DELETE(request: Request) {
       return Response.json({ error: "Stock item identifier is invalid." }, { status: 400 });
     }
 
-    const products = await deleteStockItem(input.productId);
-    if (!products) {
+    const deletedProductId = await deleteStockItem(input.productId);
+    if (!deletedProductId) {
       return Response.json({ error: "Stock item was not found." }, { status: 404 });
     }
-    return Response.json({ products });
+    return Response.json({ deletedProductId });
   } catch (error) {
     if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
     return Response.json({ error: "Unable to delete stock item." }, { status: 400 });

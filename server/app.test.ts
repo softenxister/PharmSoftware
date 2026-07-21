@@ -20,3 +20,13 @@ test("oversized API bodies are rejected before a route handler runs", async () =
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(await response.json(), { error: "Request body is too large." });
 });
+
+test("stock migration accepts multipart-sized bodies up to its 5 MB file limit", async () => {
+  const response = await createServerApp().request("http://pharm.test/api/stock/migrations/cw", {
+    method: "POST",
+    headers: { "content-type": "application/octet-stream" },
+    body: "x".repeat(3 * 1024 * 1024),
+  });
+
+  assert.equal(response.status, 401, "the stock route should receive the request instead of the 2 MB middleware rejecting it");
+});

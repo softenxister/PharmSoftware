@@ -12,7 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { SalesProduct } from "@/server/db/types";
-import { invalidateStockCatalog, loadStockCatalog } from "../stockCatalogClient";
+import { invalidateStockCatalog, loadStockProductsByIds } from "../stockCatalogClient";
 import styles from "./StockAdjustment.module.css";
 
 type PharmUser = {
@@ -151,17 +151,18 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
     setError("");
     setSuccess("");
     try {
-      const [billResponse, catalog] = await Promise.all([
-        fetch(`/api/purchase?id=${encodeURIComponent(nextPurchaseId)}`, { cache: "no-store" }),
-        loadStockCatalog(),
-      ]);
+      const billResponse = await fetch(
+        `/api/purchase?id=${encodeURIComponent(nextPurchaseId)}`,
+        { cache: "no-store" },
+      );
       if (!billResponse.ok) throw new Error(await readError(billResponse, "Unable to load purchase bill."));
       const data = await billResponse.json() as { bill?: PurchaseBill };
       if (!data.bill || data.bill.status !== "received") {
         throw new Error("Only completed purchase bills can be adjusted.");
       }
+      const products = await loadStockProductsByIds(data.bill.lines.map((line) => line.productId));
       setBill(data.bill);
-      setLines(buildAdjustmentLines(data.bill, catalog));
+      setLines(buildAdjustmentLines(data.bill, products));
     } catch (loadError) {
       setBill(null);
       setLines([]);

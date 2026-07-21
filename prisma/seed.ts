@@ -139,12 +139,19 @@ async function seedProducts() {
 
     for (const pack of product.parentPacks) {
       await prisma.productParentPack.upsert({
-        where: { productId_packUnit: { productId: product.id, packUnit: pack.packUnit } },
+        where: {
+          productId_packUnit_childPackQuantity: {
+            productId: product.id,
+            packUnit: pack.packUnit,
+            childPackQuantity: pack.childPackQuantity,
+          },
+        },
         update: {
           childPackUnit: pack.childPackUnit,
           childPackQuantity: pack.childPackQuantity,
           label: pack.label,
           priceMultiplier: pack.priceMultiplier,
+          sellPriceThb: pack.sellPriceThb ?? null,
         },
         create: {
           productId: product.id,
@@ -153,6 +160,7 @@ async function seedProducts() {
           childPackQuantity: pack.childPackQuantity,
           label: pack.label,
           priceMultiplier: pack.priceMultiplier,
+          sellPriceThb: pack.sellPriceThb ?? null,
         },
       });
     }

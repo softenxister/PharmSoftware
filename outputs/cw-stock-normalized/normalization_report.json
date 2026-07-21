@@ -1,0 +1,22 @@
+{
+  "source": "/home/sunkura/Downloads/cw_all_stock_head_100.csv",
+  "productCount": 86,
+  "unitCount": 100,
+  "multiUnitProductCount": 11,
+  "brandConfidenceCounts": {
+    "high": 75,
+    "medium": 3,
+    "review": 8
+  },
+  "brandReviewProductCodes": [
+    "P-12234",
+    "P-8676",
+    "P-9547",
+    "P-8922",
+    "P-7219",
+    "P-6349",
+    "P-6350",
+    "P-11460"
+  ],
+  "warnings": []
+}

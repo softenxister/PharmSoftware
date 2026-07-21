@@ -18,6 +18,7 @@ import * as staff from "@/app/api/staff/route";
 import * as stockAdjustments from "@/app/api/stock-adjustments/route";
 import * as stockBatchAdjustments from "@/app/api/stock/batch-adjustments/route";
 import * as stock from "@/app/api/stock/route";
+import * as cwStockMigration from "@/app/api/stock/migrations/cw/route";
 import * as storePosSettings from "@/app/api/store-pos-settings/route";
 import * as storeProfile from "@/app/api/store-profile/route";
 import * as storeProfileImage from "@/app/api/store-profile/image/route";
@@ -71,6 +72,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "POST", path: "/api/stock", handler: handler(stock.POST) },
   { method: "PATCH", path: "/api/stock", handler: handler(stock.PATCH) },
   { method: "DELETE", path: "/api/stock", handler: handler(stock.DELETE) },
+  { method: "POST", path: "/api/stock/migrations/cw", handler: handler(cwStockMigration.POST) },
   { method: "GET", path: "/api/store-pos-settings", handler: handler(storePosSettings.GET) },
   { method: "PATCH", path: "/api/store-pos-settings", handler: handler(storePosSettings.PATCH) },
   { method: "GET", path: "/api/store-profile", handler: handler(storeProfile.GET) },

@@ -20,6 +20,7 @@ type PackagingRow = {
   childQuantity: string;
   childUnit: string;
   barcode: string;
+  sellPrice: string;
 };
 
 type StockEntryFormProps = {
@@ -53,6 +54,7 @@ function createPackagingRow(): PackagingRow {
     childQuantity: "",
     childUnit: "blister",
     barcode: "",
+    sellPrice: "",
   };
 }
 
@@ -252,7 +254,9 @@ export function StockEntryForm({
     [preferences.locale],
   );
   const [photoUrl, setPhotoUrl] = useState(initialItem?.photoUrl ?? "");
-  const [barcode, setBarcode] = useState(initialItem?.barcode ?? "");
+  const [barcode, setBarcode] = useState(
+    [initialItem?.barcode, ...(initialItem?.barcodes ?? [])].filter(Boolean).join(", "),
+  );
   const [itemName, setItemName] = useState(initialItem?.itemName ?? "");
   const [location, setLocation] = useState(initialItem?.location ?? "");
   const [manufacturer, setManufacturer] = useState(initialItem?.manufacturer ?? "");
@@ -276,6 +280,8 @@ export function StockEntryForm({
   const [packagingRows, setPackagingRows] = useState<PackagingRow[]>(() => {
     const rows = initialItem?.packagingRows.map((row, index) => ({
       ...row,
+      barcode: [row.barcode, ...(row.barcodes ?? [])].filter(Boolean).join(", "),
+      sellPrice: row.sellPrice ?? "",
       id: `package-${index + 1}`,
     })) ?? [];
     return rows.length > 0 ? rows : [createPackagingRow()];
@@ -348,6 +354,7 @@ export function StockEntryForm({
     if (!canSave) return;
 
     onSave?.({
+      productId: initialItem?.productId,
       photoUrl,
       barcode,
       itemName,
@@ -475,19 +482,21 @@ export function StockEntryForm({
           </label>
 
           <label className={styles.field} data-stock-flow="barcode" onKeyDown={handleFlowEnter}>
-            <span>{t("stockForm.barcode")}</span>
+            <span>{t("stockForm.barcodes")}</span>
             <span className={styles.inlineField}>
               <input
                 type="text"
                 value={barcode}
-                readOnly={isEditing}
                 onChange={(event) => setBarcode(event.target.value)}
+                placeholder={t("stockForm.barcodesPlaceholder")}
               />
-              {!isEditing && (
-                <button type="button" onClick={() => setBarcode(generateBarcode())} title={t("stockForm.generateBarcode")}>
-                  <Wand2 size={15} />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setBarcode((current) => [current.trim(), generateBarcode()].filter(Boolean).join(", "))}
+                title={t("stockForm.generateBarcode")}
+              >
+                <Wand2 size={15} />
+              </button>
             </span>
           </label>
         </section>
@@ -660,13 +669,30 @@ export function StockEntryForm({
               </label>
 
               <label className={styles.field}>
-                <span>{t("stockForm.barcode")}</span>
+                <span>{t("stockForm.unitSellPrice")}</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={row.sellPrice}
+                  onChange={(event) => updatePackagingRow(row.id, { sellPrice: handleNumberText(event.target.value) })}
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span>{t("stockForm.barcodes")}</span>
                 <span className={styles.inlineField}>
                   <input
                     value={row.barcode}
                     onChange={(event) => updatePackagingRow(row.id, { barcode: event.target.value })}
+                    placeholder={t("stockForm.barcodesPlaceholder")}
                   />
-                  <button type="button" onClick={() => updatePackagingRow(row.id, { barcode: generateBarcode() })} title={t("stockForm.generateBarcode")}>
+                  <button
+                    type="button"
+                    onClick={() => updatePackagingRow(row.id, {
+                      barcode: [row.barcode.trim(), generateBarcode()].filter(Boolean).join(", "),
+                    })}
+                    title={t("stockForm.generateBarcode")}
+                  >
                     <Wand2 size={15} />
                   </button>
                 </span>

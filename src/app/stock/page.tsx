@@ -18,7 +18,7 @@ import { shouldCloseDropdown } from "@/app/dropdownInteraction";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { buildStockCategoryOptions, getStockCategoryLabel } from "./stockCategoryFilter";
 import { getStockFilterOptionLabel } from "./stockFilterLabels";
-import { invalidateStockCatalog, loadStockCatalog, updateStockCatalog } from "./stockCatalogClient";
+import { invalidateStockCatalog, loadStockPage } from "./stockCatalogClient";
 import { StockFilterDropdown, StockRangeFilter } from "./StockFilterDropdown";
 import {
   buildFilterOptions,
@@ -42,6 +42,7 @@ type StockState = "normal" | "low" | "overstock";
 
 interface StockItem {
   id: string;
+  barcodes: string[];
   name: string;
   brand: string;
   manufacturer: string;
@@ -69,6 +70,12 @@ function productToStockItem(product: SalesProduct): StockItem {
 
   return {
     id: product.barcode,
+    barcodes: [
+      product.barcode,
+      ...(product.externalProductCode ? [product.externalProductCode] : []),
+      ...(product.barcodes ?? []),
+      ...product.parentPacks.flatMap((pack) => pack.barcodes ?? []),
+    ],
     name: product.itemName,
     brand: product.brandName,
     manufacturer: product.manufacturerName,
@@ -92,8 +99,9 @@ function productToStockItemInput(product: SalesProduct): StockItemInput {
   const firstBatch = product.batches[0];
 
   return {
+    productId: product.id,
     photoUrl: product.imageUrl,
-    barcode: product.barcode,
+    barcode: [product.barcode, ...(product.barcodes ?? [])].join(", "),
     itemName: product.itemName,
     lotNo: firstBatch?.batchNo ?? "",
     expiryDate: firstBatch?.expiryDate ?? "",
@@ -109,7 +117,8 @@ function productToStockItemInput(product: SalesProduct): StockItemInput {
       parentUnit: pack.packUnit,
       childQuantity: String(pack.childPackQuantity),
       childUnit: pack.childPackUnit,
-      barcode: "",
+      barcode: (pack.barcodes ?? []).join(", "),
+      sellPrice: pack.sellPriceThb === undefined ? "" : String(pack.sellPriceThb),
     })),
   };
 }
@@ -117,6 +126,7 @@ function productToStockItemInput(product: SalesProduct): StockItemInput {
 const SIDEBAR_MIN_WIDTH = 230;
 const SIDEBAR_MAX_WIDTH = 360;
 const SIDEBAR_DEFAULT_WIDTH = 270;
+const STOCK_PAGE_SIZE = 50;
 
 function formatPercent(value: number): string {
   return `${value}%`;
@@ -210,17 +220,44 @@ export default function StockPage() {
   const [adjustmentSuccess, setAdjustmentSuccess] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [products, setProducts] = useState<SalesProduct[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [hasMoreProducts, setHasMoreProducts] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [stockRefreshVersion, setStockRefreshVersion] = useState(0);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const filterListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setPage(1);
+    const timeout = window.setTimeout(() => setDebouncedQuery(query.trim()), query.trim() ? 180 : 0);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadProducts() {
+      setIsLoadingProducts(true);
       try {
-        const nextProducts = await loadStockCatalog();
-        if (!cancelled) setProducts(nextProducts);
+        const result = await loadStockPage({
+          page,
+          pageSize: STOCK_PAGE_SIZE,
+          query: debouncedQuery,
+          sort: "name",
+        });
+        if (cancelled) return;
+        if (result.products.length === 0 && result.total > 0 && page > 1) {
+          setPage(Math.max(1, Math.ceil(result.total / STOCK_PAGE_SIZE)));
+          return;
+        }
+        setProducts(result.products);
+        setTotalProducts(result.total);
+        setHasMoreProducts(result.hasMore);
       } catch (error) {
         console.error(error);
+      } finally {
+        if (!cancelled) setIsLoadingProducts(false);
       }
     }
 
@@ -228,7 +265,7 @@ export default function StockPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [debouncedQuery, page, stockRefreshVersion]);
 
   useEffect(() => {
     if (!adjustmentSuccess) return;
@@ -259,16 +296,23 @@ export default function StockPage() {
     return filteredItems
       .map((item) => {
         const itemName = item.name.toLowerCase();
+        const brand = item.brand.toLowerCase();
         const manufacturer = item.manufacturer.toLowerCase();
-        const priority = itemName.startsWith(q)
+        const priority = item.barcodes.some((barcode) => barcode.toLowerCase().includes(q))
           ? 0
-          : itemName.includes(q)
-            ? 1
-            : manufacturer.startsWith(q)
-              ? 2
-              : manufacturer.includes(q)
-                ? 3
-                : null;
+          : itemName.startsWith(q)
+            ? 0
+            : itemName.includes(q)
+              ? 1
+              : brand.startsWith(q)
+                ? 2
+                : brand.includes(q)
+                  ? 3
+                  : manufacturer.startsWith(q)
+                    ? 4
+                    : manufacturer.includes(q)
+                      ? 5
+                      : null;
         return { item, priority };
       })
       .filter((result): result is { item: StockItem; priority: number } => result.priority !== null)
@@ -322,9 +366,17 @@ export default function StockPage() {
     const product = products.find((candidate) => candidate.barcode === barcode);
     if (product) setDetailProduct(product);
   };
-  const handleItemDetailSaved = (nextProducts: SalesProduct[]) => {
-    updateStockCatalog(nextProducts);
-    setProducts(nextProducts);
+  const replaceVisibleProduct = (nextProduct: SalesProduct) => {
+    setProducts((currentProducts) => {
+      const exists = currentProducts.some((product) => product.id === nextProduct.id);
+      return exists
+        ? currentProducts.map((product) => product.id === nextProduct.id ? nextProduct : product)
+        : [nextProduct, ...currentProducts].slice(0, STOCK_PAGE_SIZE);
+    });
+  };
+  const handleItemDetailSaved = (nextProduct: SalesProduct) => {
+    replaceVisibleProduct(nextProduct);
+    invalidateStockCatalog();
     setDetailProduct(null);
   };
   const handleStockAdjustmentUpdated = (
@@ -339,14 +391,10 @@ export default function StockPage() {
         availableStock: quantityByBatch.get(batch.batchNo) ?? batch.availableStock,
       }) : batch),
     }));
-    updateStockCatalog(nextProducts);
     setProducts(nextProducts);
     setAdjustmentProduct(null);
     setAdjustmentSuccess(true);
     invalidateStockCatalog();
-    void loadStockCatalog()
-      .then((refreshedProducts) => setProducts(refreshedProducts))
-      .catch((error) => console.error(error));
   };
   const closeAddStock = () => {
     setStockWindowOpen(false);
@@ -434,12 +482,11 @@ export default function StockPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(item),
       });
-      if (!response.ok) throw new Error("Unable to save stock item.");
-      const data = await response.json() as { products?: SalesProduct[] };
-      if (Array.isArray(data.products)) {
-        updateStockCatalog(data.products);
-        setProducts(data.products);
-      }
+      const data = await response.json() as { product?: SalesProduct; error?: string };
+      if (!response.ok || !data.product) throw new Error(data.error || "Unable to save stock item.");
+      replaceVisibleProduct(data.product);
+      invalidateStockCatalog();
+      setStockRefreshVersion((version) => version + 1);
       closeAddStock();
     } catch (error) {
       console.error(error);
@@ -452,13 +499,15 @@ export default function StockPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ productId: editingProduct.id }),
     });
-    const data = await response.json() as { products?: SalesProduct[]; error?: string };
-    if (!response.ok || !Array.isArray(data.products)) {
+    const data = await response.json() as { deletedProductId?: string; error?: string };
+    if (!response.ok || data.deletedProductId !== editingProduct.id) {
       throw new Error(data.error || "Unable to delete stock item.");
     }
 
-    updateStockCatalog(data.products);
-    setProducts(data.products);
+    setProducts((currentProducts) => currentProducts.filter((product) => product.id !== data.deletedProductId));
+    setTotalProducts((total) => Math.max(0, total - 1));
+    invalidateStockCatalog();
+    setStockRefreshVersion((version) => version + 1);
     closeAddStock();
   };
 
@@ -666,7 +715,7 @@ export default function StockPage() {
           <div className={styles.tableHeader}>
             <div>
               <h2>{t("stock.items")}</h2>
-              <p>{t("stock.found", { count: visibleItems.length })}</p>
+              <p>{t("stock.found", { count: totalProducts })}</p>
             </div>
             <div className={styles.tableSummary}>
               <span>{t("stock.lowCount", { count: stockItems.filter((item) => item.state === "low").length })}</span>
@@ -782,12 +831,37 @@ export default function StockPage() {
               </tbody>
             </table>
 
-            {visibleItems.length === 0 && (
+            {visibleItems.length === 0 && !isLoadingProducts && (
               <div className={styles.emptyState}>
                 <strong>{t("stock.none")}</strong>
                 <span>{t("stock.noneHint")}</span>
               </div>
             )}
+          </div>
+          <div className={styles.pagination} aria-label={t("stock.pages")}>
+            <span>
+              {isLoadingProducts
+                ? t("common.loading")
+                : t("stock.pageOf", { page, pages: Math.max(1, Math.ceil(totalProducts / STOCK_PAGE_SIZE)) })}
+            </span>
+            <div className={styles.paginationButtons}>
+              <button
+                type="button"
+                onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                disabled={page === 1 || isLoadingProducts}
+                aria-label={t("stock.previousPage")}
+              >
+                {t("common.previous")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((currentPage) => currentPage + 1)}
+                disabled={!hasMoreProducts || isLoadingProducts}
+                aria-label={t("stock.nextPage")}
+              >
+                {t("common.next")}
+              </button>
+            </div>
           </div>
         </div>
       </section>

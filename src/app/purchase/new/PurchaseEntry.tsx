@@ -22,7 +22,7 @@ import {
 import { DateField } from "@/features/events/components/purchase/DateField";
 import { DistributorField } from "@/features/events/components/purchase/DistributorField";
 import type { SalesProduct } from "@/server/db/types";
-import { invalidateStockCatalog, loadStockCatalog } from "@/app/stock/stockCatalogClient";
+import { invalidateStockCatalog, loadStockProductsByIds, searchStockCatalog } from "@/app/stock/stockCatalogClient";
 import { PurchaseUnitDropdown } from "./PurchaseUnitDropdown";
 import { PurchaseWorkflowBar } from "./PurchaseWorkflowBar";
 import { PurchaseCorrectionDialog } from "./PurchaseCorrectionDialog";
@@ -100,15 +100,31 @@ function getItemSearchPriority(product: SalesProduct, rawQuery: string): number 
   const query = rawQuery.trim().toLowerCase();
   if (!query) return null;
 
-  if (/^\d{5,}$/.test(query)) return product.barcode.includes(query) ? 0 : null;
+  if (/^\d{5,}$/.test(query)) {
+    const barcodes = [
+      product.barcode,
+      ...(product.externalProductCode ? [product.externalProductCode] : []),
+      ...(product.barcodes ?? []),
+      ...product.parentPacks.flatMap((pack) => pack.barcodes ?? []),
+    ];
+    return barcodes.some((barcode) => barcode.includes(query)) ? 0 : null;
+  }
 
   const itemName = product.itemName.toLowerCase();
+  const brand = product.brandName.toLowerCase();
   const manufacturer = product.manufacturerName.toLowerCase();
   if (itemName.startsWith(query)) return 1;
   if (itemName.includes(query)) return 2;
-  if (manufacturer.startsWith(query)) return 3;
-  if (manufacturer.includes(query)) return 4;
+  if (brand.startsWith(query)) return 3;
+  if (brand.includes(query)) return 4;
+  if (manufacturer.startsWith(query)) return 5;
+  if (manufacturer.includes(query)) return 6;
   return null;
+}
+
+function mergeCatalogProducts(current: SalesProduct[], incoming: SalesProduct[]): SalesProduct[] {
+  const incomingIds = new Set(incoming.map((product) => product.id));
+  return [...incoming, ...current.filter((product) => !incomingIds.has(product.id))].slice(0, 200);
 }
 
 export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
@@ -120,7 +136,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   const [billNo, setBillNo] = useState("");
   const [manualItem, setManualItem] = useState("");
   const [catalog, setCatalog] = useState<SalesProduct[]>([]);
-  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [itemSearchLoading, setItemSearchLoading] = useState(false);
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(0);
   const [selectedItem, setSelectedItem] = useState<SalesProduct | null>(null);
@@ -201,8 +217,10 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   const showScanCarousel = manualItem.trim().length === 0 && !hasLineDraft && purchaseLines.length === 0;
   const selectedUnitOptions = useMemo(() => {
     if (!selectedItem) return [];
-    return [selectedItem.pack.packUnit, ...selectedItem.parentPacks.map(pack => pack.packUnit)]
-      .filter((option, index, options) => option && options.indexOf(option) === index);
+    return [
+      `${selectedItem.pack.packUnit}[1]`,
+      ...selectedItem.parentPacks.map((pack) => `${pack.packUnit}[${pack.childPackQuantity}]`),
+    ];
   }, [selectedItem]);
   const canAddPurchaseLine = Boolean(
     selectedItem &&
@@ -233,8 +251,10 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   const workflowStep = editingBillStatus === "received" ? 2 : editingBillStatus === "partial" ? 1 : 0;
 
   const getUnitMultiplier = (product: SalesProduct, packUnit: string) => {
-    if (product.pack.packUnit === packUnit) return 1;
-    return product.parentPacks.find(pack => pack.packUnit === packUnit)?.priceMultiplier ?? 1;
+    if (packUnit === product.pack.packUnit || packUnit === `${product.pack.packUnit}[1]`) return 1;
+    return product.parentPacks.find((pack) => (
+      `${pack.packUnit}[${pack.childPackQuantity}]` === packUnit
+    ))?.childPackQuantity ?? 1;
   };
 
   useEffect(() => {
@@ -252,8 +272,13 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
     return () => document.removeEventListener("mousedown", closeDropdownsOnOutsideClick);
   }, []);
 
-  const openPurchaseLine = useCallback((product: SalesProduct) => {
-    const defaultUnit = product.pack.packUnit || "Blister";
+  const openPurchaseLine = useCallback((product: SalesProduct, matchedBarcode?: string) => {
+    const matchedPack = matchedBarcode
+      ? product.parentPacks.find((pack) => (pack.barcodes ?? []).includes(matchedBarcode))
+      : undefined;
+    const defaultUnit = matchedPack
+      ? `${matchedPack.packUnit}[${matchedPack.childPackQuantity}]`
+      : `${product.pack.packUnit || "Blister"}[1]`;
     const firstBatch = product.batches[0];
     setSelectedItem(product);
     setManualItem(product.barcode);
@@ -475,16 +500,6 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadCatalog() {
-      try {
-        const products = await loadStockCatalog();
-        if (!cancelled) setCatalog(products);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        if (!cancelled) setCatalogLoaded(true);
-      }
-    }
 
     async function loadDistributors() {
       try {
@@ -510,7 +525,6 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
       }
     }
 
-    void loadCatalog();
     void loadDistributors();
     void loadCurrentUser();
     return () => {
@@ -519,7 +533,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   }, []);
 
   useEffect(() => {
-    if (!activePurchaseId || !catalogLoaded) return;
+    if (!activePurchaseId) return;
     let cancelled = false;
 
     async function loadPurchaseBill() {
@@ -530,7 +544,10 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
         if (!response.ok) throw new Error("Unable to load this purchase bill.");
         const data = await response.json() as { bill?: EditablePurchaseBill };
         if (!data.bill) throw new Error("Purchase bill was not found.");
+        const billProducts = await loadStockProductsByIds(data.bill.lines.map((line) => line.productId));
         if (cancelled) return;
+        const billProductById = new Map(billProducts.map((product) => [product.id, product]));
+        setCatalog((currentCatalog) => mergeCatalogProducts(currentCatalog, billProducts));
 
         setBillNo(data.bill.invoiceNo === "Manual" ? "" : data.bill.invoiceNo);
         setDistributor(data.bill.distributor === "Unknown distributor" ? "" : data.bill.distributor);
@@ -539,7 +556,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
           id: line.id,
           productId: line.productId,
           barcode: line.barcode,
-          imageUrl: catalog.find(product => product.id === line.productId)?.imageUrl ?? "",
+          imageUrl: billProductById.get(line.productId)?.imageUrl ?? "",
           itemName: line.itemName,
           unit: line.unit,
           unitMultiplier: line.unitMultiplier,
@@ -563,7 +580,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [activePurchaseId, catalog, catalogLoaded]);
+  }, [activePurchaseId]);
 
   useEffect(() => {
     if (!activePurchaseId || editingBillStatus !== "received") {
@@ -593,12 +610,37 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   }, [activePurchaseId, editingBillStatus]);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      setItemSearchLoading(true);
+      try {
+        const products = await searchStockCatalog(manualItem);
+        if (!cancelled) setCatalog((currentCatalog) => mergeCatalogProducts(currentCatalog, products));
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (!cancelled) setItemSearchLoading(false);
+      }
+    }, manualItem.trim() ? 150 : 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [manualItem]);
+
+  useEffect(() => {
     if (selectedItem) return;
     const barcode = manualItem.trim();
-    if (!/^\d{13}$/.test(barcode)) return;
+    if (!/^\d{5,18}$/.test(barcode)) return;
 
-    const exactMatch = catalog.find(product => product.barcode === barcode);
-    if (exactMatch) openPurchaseLine(exactMatch);
+    const exactMatch = catalog.find((product) => [
+      product.barcode,
+      ...(product.externalProductCode ? [product.externalProductCode] : []),
+      ...(product.barcodes ?? []),
+      ...product.parentPacks.flatMap((pack) => pack.barcodes ?? []),
+    ].includes(barcode));
+    if (exactMatch) openPurchaseLine(exactMatch, barcode);
   }, [catalog, manualItem, openPurchaseLine, selectedItem]);
 
   useEffect(() => {
@@ -760,7 +802,11 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
               />
               {itemDropdownOpen && manualItem.trim().length > 0 && !selectedItem && (
                 <div className={styles.itemDropdownPanel}>
-                  {itemMatches.length === 0 && <div className={styles.dropdownEmpty}>{t("newSale.noItem")}</div>}
+                  {itemMatches.length === 0 && (
+                    <div className={styles.dropdownEmpty}>
+                      {itemSearchLoading ? "Loading…" : t("newSale.noItem")}
+                    </div>
+                  )}
                   {itemMatches.map((product, index) => {
                     const nearestBatch = product.batches[0];
                     const stockCount = product.batches.reduce((sum, batch) => sum + batch.availableStock, 0);

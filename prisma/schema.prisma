@@ -118,6 +118,7 @@ model Manufacturer {
 
 model Product {
   id                   String                    @id
+  externalProductCode  String?                   @unique
   barcode              String                    @unique
   itemName             String
   brandName            String
@@ -150,6 +151,7 @@ model Product {
   manufacturer         Manufacturer              @relation(fields: [manufacturerId], references: [id])
   category             Category                  @relation(fields: [categoryId], references: [id])
   parentPacks          ProductParentPack[]
+  barcodeAliases       ProductBarcodeAlias[]
   batches              ProductBatch[]
   favoriteCustomers    CustomerFavoriteProduct[]
   purchaseLines        PurchaseLine[]
@@ -160,6 +162,8 @@ model Product {
   @@index([categoryId])
   @@index([manufacturerId])
   @@index([itemName])
+  @@index([isActive, itemName, id])
+  @@index([isActive, weeklySold, itemName, id])
 }
 
 model Ingredient {
@@ -194,18 +198,31 @@ model ProductIngredient {
 }
 
 model ProductParentPack {
-  id                String  @id @default(cuid())
+  id                String                @id @default(cuid())
   productId         String
   packUnit          String
   childPackUnit     String
-  childPackQuantity Decimal @db.Decimal(14, 3)
+  childPackQuantity Decimal               @db.Decimal(14, 3)
   label             String
-  priceMultiplier   Decimal @db.Decimal(14, 3)
-  barcode           String? @unique
-  product           Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceMultiplier   Decimal               @db.Decimal(14, 3)
+  sellPriceThb      Decimal?              @db.Decimal(14, 2)
+  barcode           String?               @unique
+  product           Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  barcodeAliases    ProductBarcodeAlias[]
 
-  @@unique([productId, packUnit])
+  @@unique([productId, packUnit, childPackQuantity])
   @@index([productId])
+}
+
+model ProductBarcodeAlias {
+  barcode      String             @id
+  productId    String
+  parentPackId String?
+  product      Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  parentPack   ProductParentPack? @relation(fields: [parentPackId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([parentPackId])
 }
 
 model ProductBatch {
@@ -221,6 +238,7 @@ model ProductBatch {
 
   @@unique([productId, batchNo])
   @@index([productId])
+  @@index([productId, expiryDate])
   @@index([expiryDate])
 }
 
@@ -334,6 +352,7 @@ model PurchaseBill {
   stockAdjustments   StockAdjustment[]
 
   @@index([purchasedAt])
+  @@index([purchasedAt, createdAt])
   @@index([distributorId])
 }
 
@@ -405,6 +424,7 @@ model PurchaseLine {
 
   @@index([purchaseBillId])
   @@index([productId])
+  @@index([productId, batchNo])
 }
 
 model Sale {
@@ -451,6 +471,7 @@ model SaleLine {
   batchNo        String
   expiryDate     String
   sellPriceThb   Decimal @db.Decimal(14, 2)
+  unitPriceThb   Decimal? @db.Decimal(14, 2)
   quantity       Decimal @db.Decimal(14, 3)
   position       Int     @default(0)
   sale           Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)

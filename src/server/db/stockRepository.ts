@@ -1,8 +1,10 @@
 import { Prisma } from "@/generated/prisma/client";
 import type { SalesProduct, StockItemInput } from "./types";
+import type { StockReadQuery } from "./stockReadQuery";
 import { prisma } from "./prisma";
 import {
   createSavedStockItem,
+  normalizeBarcodeValues,
   relatedLineUpdates,
   savedStockToSalesProduct,
 } from "./stockItemMapper";
@@ -34,7 +36,14 @@ export type SoldStockLineInput = {
 const productGraph = {
   category: true,
   manufacturer: true,
-  parentPacks: { orderBy: { packUnit: "asc" as const } },
+  barcodeAliases: true,
+  parentPacks: {
+    include: { barcodeAliases: true },
+    orderBy: [
+      { packUnit: "asc" as const },
+      { childPackQuantity: "asc" as const },
+    ],
+  },
   batches: { orderBy: [{ expiryDate: "asc" as const }, { batchNo: "asc" as const }] },
   activeIngredients: {
     orderBy: { ingredient: { canonicalName: "asc" as const } },
@@ -50,6 +59,7 @@ function productRowToSalesProduct(
 ): SalesProduct {
   return {
     id: product.id,
+    ...(product.externalProductCode ? { externalProductCode: product.externalProductCode } : {}),
     itemName: product.itemName,
     brandName: product.brandName,
     manufacturerName: product.manufacturer.name,
@@ -60,11 +70,17 @@ function productRowToSalesProduct(
       label: product.packLabel,
     },
     parentPacks: product.parentPacks.map((pack) => ({
+      id: pack.id,
       packUnit: pack.packUnit,
       childPackUnit: pack.childPackUnit,
       childPackQuantity: Number(pack.childPackQuantity),
       label: pack.label,
       priceMultiplier: Number(pack.priceMultiplier),
+      ...(pack.sellPriceThb === null ? {} : { sellPriceThb: Number(pack.sellPriceThb) }),
+      barcodes: [
+        ...(pack.barcode ? [pack.barcode] : []),
+        ...pack.barcodeAliases.map((alias) => alias.barcode),
+      ],
     })),
     location: product.location,
     minimumStock: product.minimumStock,
@@ -80,6 +96,9 @@ function productRowToSalesProduct(
     ],
     tagName: product.tagName,
     barcode: product.barcode,
+    barcodes: product.barcodeAliases
+      .filter((alias) => alias.parentPackId === null)
+      .map((alias) => alias.barcode),
     category: product.category.name,
     imageUrl: product.imageUrl,
     weeklySold: product.weeklySold,
@@ -102,17 +121,53 @@ function productRowToSalesProduct(
   };
 }
 
-async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInput) {
-  const barcode = input.barcode.trim();
+async function assertBarcodesAvailable(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  barcodes: string[],
+) {
+  if (barcodes.length !== new Set(barcodes).size) {
+    throw new Error("Each barcode can only be assigned to one unit of an item.");
+  }
+  if (barcodes.length === 0) return;
+
+  const [productConflict, packConflict, aliasConflict] = await Promise.all([
+    tx.product.findFirst({
+      where: { barcode: { in: barcodes }, id: { not: productId } },
+      select: { barcode: true },
+    }),
+    tx.productParentPack.findFirst({
+      where: { barcode: { in: barcodes }, productId: { not: productId } },
+      select: { barcode: true },
+    }),
+    tx.productBarcodeAlias.findFirst({
+      where: { barcode: { in: barcodes }, productId: { not: productId } },
+      select: { barcode: true },
+    }),
+  ]);
+  const conflict = productConflict?.barcode ?? packConflict?.barcode ?? aliasConflict?.barcode;
+  if (conflict) throw new Error(`Barcode ${conflict} is already assigned to another item.`);
+}
+
+async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInput): Promise<string> {
+  const savedItem = createSavedStockItem(input);
+  const barcode = savedItem.barcode;
   const itemName = input.itemName.trim();
   if (!barcode || !itemName) throw new Error("Barcode and item name are required.");
 
-  const current = await tx.product.findUnique({ where: { barcode } });
-  const savedItem = createSavedStockItem(input);
+  const current = input.productId?.trim()
+    ? await tx.product.findUnique({ where: { id: input.productId.trim() } })
+    : await tx.product.findUnique({ where: { barcode } });
   const mapped = savedStockToSalesProduct({
     ...savedItem,
     id: current?.id ?? savedItem.id,
   });
+  const requestedBarcodes = [
+    mapped.barcode,
+    ...(mapped.barcodes ?? []),
+    ...mapped.parentPacks.flatMap((pack) => pack.barcodes ?? []),
+  ];
+  await assertBarcodesAvailable(tx, mapped.id, requestedBarcodes);
   const [category, manufacturer] = await Promise.all([
     tx.category.upsert({
       where: { name: mapped.category || "Uncategorized" },
@@ -181,19 +236,39 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
     tx.saleLine.updateMany(lineUpdates.saleLines),
   ]);
 
+  await tx.productBarcodeAlias.deleteMany({ where: { productId: mapped.id } });
   await tx.productParentPack.deleteMany({ where: { productId: mapped.id } });
-  if (mapped.parentPacks.length > 0) {
-    await tx.productParentPack.createMany({
-      data: mapped.parentPacks.map((pack, index) => ({
+
+  const baseAliases = normalizeBarcodeValues("", mapped.barcodes);
+  if (baseAliases.length > 0) {
+    await tx.productBarcodeAlias.createMany({
+      data: baseAliases.map((alias) => ({ productId: mapped.id, barcode: alias })),
+    });
+  }
+
+  for (const pack of mapped.parentPacks) {
+    const packBarcodes = normalizeBarcodeValues("", pack.barcodes);
+    const parentPack = await tx.productParentPack.create({
+      data: {
         productId: mapped.id,
         packUnit: pack.packUnit,
         childPackUnit: pack.childPackUnit,
         childPackQuantity: pack.childPackQuantity,
         label: pack.label,
         priceMultiplier: pack.priceMultiplier,
-        barcode: input.packagingRows[index]?.barcode.trim() || null,
-      })),
+        sellPriceThb: pack.sellPriceThb ?? null,
+        barcode: packBarcodes[0] ?? null,
+      },
     });
+    if (packBarcodes.length > 1) {
+      await tx.productBarcodeAlias.createMany({
+        data: packBarcodes.slice(1).map((alias) => ({
+          productId: mapped.id,
+          parentPackId: parentPack.id,
+          barcode: alias,
+        })),
+      });
+    }
   }
 
   const batch = mapped.batches[0];
@@ -210,50 +285,123 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
       },
     });
   }
+  return mapped.id;
 }
 
-export async function readStockProducts(): Promise<SalesProduct[]> {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    include: productGraph,
-    orderBy: { itemName: "asc" },
-  });
-  const purchaseLines = products.length === 0
-    ? []
-    : await prisma.$queryRaw<Array<{ productId: string; batchNo: string; cost: unknown }>>(Prisma.sql`
-        SELECT DISTINCT ON (line."productId", line."batchNo")
-          line."productId",
-          line."batchNo",
-          line."cost"
-        FROM "PurchaseLine" line
-        INNER JOIN "PurchaseBill" bill ON bill."id" = line."purchaseBillId"
-        WHERE line."productId" IN (${Prisma.join(products.map((product) => product.id))})
-        ORDER BY line."productId", line."batchNo", bill."purchasedAt" DESC, bill."createdAt" DESC
-      `);
+export type StockProductPage = {
+  products: SalesProduct[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+};
+
+function stockProductWhere(input: StockReadQuery): Prisma.ProductWhereInput {
+  if (input.productIds.length > 0) {
+    return { isActive: true, id: { in: input.productIds } };
+  }
+  if (!input.query) return { isActive: true };
+
+  const text = { contains: input.query, mode: "insensitive" as const };
+  return {
+    isActive: true,
+    OR: [
+      { itemName: text },
+      { brandName: text },
+      { barcode: text },
+      { externalProductCode: text },
+      { manufacturer: { is: { name: text } } },
+      { barcodeAliases: { some: { barcode: text } } },
+      {
+        parentPacks: {
+          some: {
+            OR: [
+              { barcode: text },
+              { barcodeAliases: { some: { barcode: text } } },
+            ],
+          },
+        },
+      },
+    ],
+  };
+}
+
+async function readBatchCosts(productIds: string[]): Promise<ReadonlyMap<string, number>> {
+  if (productIds.length === 0) return new Map();
+  const purchaseLines = await prisma.$queryRaw<Array<{ productId: string; batchNo: string; cost: unknown }>>(Prisma.sql`
+    SELECT DISTINCT ON (line."productId", line."batchNo")
+      line."productId",
+      line."batchNo",
+      line."cost"
+    FROM "PurchaseLine" line
+    INNER JOIN "PurchaseBill" bill ON bill."id" = line."purchaseBillId"
+    WHERE line."productId" IN (${Prisma.join(productIds)})
+    ORDER BY line."productId", line."batchNo", bill."purchasedAt" DESC, bill."createdAt" DESC
+  `);
   const batchCosts = new Map<string, number>();
   for (const line of purchaseLines) {
-    const key = `${line.productId}::${line.batchNo}`;
-    if (!batchCosts.has(key)) batchCosts.set(key, Number(line.cost));
+    batchCosts.set(`${line.productId}::${line.batchNo}`, Number(line.cost));
   }
+  return batchCosts;
+}
+
+async function rowsToSalesProducts(products: StockProductRow[]): Promise<SalesProduct[]> {
+  const batchCosts = await readBatchCosts(products.map((product) => product.id));
   return products.map((product) => productRowToSalesProduct(product, batchCosts));
 }
 
-export async function saveStockItem(input: StockItemInput): Promise<SalesProduct[]> {
-  await prisma.$transaction((tx) => upsertStockItem(tx, input));
-  return readStockProducts();
+export async function readStockProduct(productId: string): Promise<SalesProduct | null> {
+  const product = await prisma.product.findFirst({
+    where: { id: productId, isActive: true },
+    include: productGraph,
+  });
+  if (!product) return null;
+  return (await rowsToSalesProducts([product]))[0] ?? null;
 }
 
-export async function saveStockItems(inputs: StockItemInput[]): Promise<SalesProduct[]> {
+export async function readStockProducts(input: StockReadQuery): Promise<StockProductPage> {
+  const where = stockProductWhere(input);
+  const orderBy: Prisma.ProductOrderByWithRelationInput[] = input.sort === "weekly"
+    ? [{ weeklySold: "desc" }, { itemName: "asc" }, { id: "asc" }]
+    : [{ itemName: "asc" }, { id: "asc" }];
+  const [total, products] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      include: productGraph,
+      orderBy,
+      skip: (input.page - 1) * input.pageSize,
+      take: input.pageSize,
+    }),
+  ]);
+
+  return {
+    products: await rowsToSalesProducts(products),
+    page: input.page,
+    pageSize: input.pageSize,
+    total,
+    hasMore: input.page * input.pageSize < total,
+  };
+}
+
+export async function saveStockItem(input: StockItemInput): Promise<SalesProduct> {
+  const productId = await prisma.$transaction((tx) => upsertStockItem(tx, input));
+  const product = await readStockProduct(productId);
+  if (!product) throw new Error("Saved stock item could not be reloaded.");
+  return product;
+}
+
+export async function saveStockItems(inputs: StockItemInput[]): Promise<number> {
   await prisma.$transaction(async (tx) => {
     for (const input of inputs) await upsertStockItem(tx, input);
   });
-  return readStockProducts();
+  return inputs.length;
 }
 
 export async function updateStockItemDetail(
   input: StockItemDetailPatch,
   user: Pick<PharmUser, "role">,
-): Promise<SalesProduct[] | null> {
+): Promise<SalesProduct | null> {
   const updated = await prisma.$transaction(async (tx) => {
     const current = await tx.product.findUnique({ where: { id: input.productId } });
     if (!current || !current.isActive) return false;
@@ -286,16 +434,15 @@ export async function updateStockItemDetail(
     });
     return true;
   });
-  return updated ? readStockProducts() : null;
+  return updated ? readStockProduct(input.productId) : null;
 }
 
-export async function deleteStockItem(productId: string): Promise<SalesProduct[] | null> {
+export async function deleteStockItem(productId: string): Promise<string | null> {
   const result = await prisma.product.updateMany({
     where: { id: productId, isActive: true },
     data: { isActive: false },
   });
-  if (result.count === 0) return null;
-  return readStockProducts();
+  return result.count === 0 ? null : productId;
 }
 
 export async function receivePurchasedStock(

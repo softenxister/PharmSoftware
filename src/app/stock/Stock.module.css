@@ -2544,6 +2544,7 @@
     minmax(88px, 0.8fr)
     70px
     minmax(88px, 0.8fr)
+    minmax(86px, 0.65fr)
     minmax(116px, 1.35fr)
     34px;
   gap: 8px;
@@ -2636,7 +2637,7 @@
   }
 
   .packagingRow {
-    grid-template-columns: repeat(3, minmax(120px, 1fr)) 34px;
+    grid-template-columns: repeat(5, minmax(120px, 1fr)) 34px;
   }
 
   .stockFormPortrait .formBody {
@@ -2665,6 +2666,7 @@
       minmax(110px, 0.75fr)
       84px
       minmax(110px, 0.75fr)
+      minmax(100px, 0.65fr)
       minmax(180px, 1.6fr)
       34px;
   }
@@ -2679,4 +2681,47 @@
   .stockEntryWindow {
     min-height: 0;
   }
+}
+
+.pagination {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--stock-border-soft);
+  background: #fbfdfb;
+  color: var(--stock-muted);
+  font-size: 12px;
+  font-weight: 750;
+  padding: 8px 14px;
+}
+
+.paginationButtons {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.paginationButtons button {
+  min-width: 78px;
+  height: 32px;
+  border: 1px solid var(--stock-border);
+  border-radius: 6px;
+  background: var(--stock-surface);
+  color: var(--stock-primary-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 12px;
+}
+
+.paginationButtons button:hover:not(:disabled) {
+  border-color: var(--stock-primary);
+  background: #edf6f0;
+}
+
+.paginationButtons button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

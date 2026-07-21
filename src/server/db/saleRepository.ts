@@ -2,12 +2,10 @@ import { randomUUID } from "node:crypto";
 import { DiscountType, Prisma, SaleStatus } from "@/generated/prisma/client";
 import { calculateSalePricing } from "@/lib/salePricing";
 import { createReceiptSnapshot, type ReceiptStoreSnapshot } from "@/lib/receipt";
-import type { SalesProduct } from "./types";
 import { prisma } from "./prisma";
 import { readStoreProfile } from "./storeProfileRepository";
 import {
   dispenseSoldStock,
-  readStockProducts,
   type SoldStockLineInput,
 } from "./stockRepository";
 
@@ -17,6 +15,7 @@ export type SaleLineInput = {
   itemName: string;
   packLabel: string;
   packMultiplier: number;
+  unitPrice?: number;
   loc: string;
   batch: {
     batchId?: string;
@@ -54,7 +53,6 @@ export type SavedSaleResult = {
 
 export type SaveSaleResult = {
   sale: SavedSaleResult;
-  products: SalesProduct[] | null;
 };
 
 export type SavedSale = {
@@ -78,6 +76,13 @@ export type SavedSale = {
 };
 
 const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+function resolvedLineUnitPrice(line: SaleLineInput): number {
+  const explicitPrice = Number(line.unitPrice);
+  return line.unitPrice !== undefined && Number.isFinite(explicitPrice)
+    ? explicitPrice
+    : Number(line.batch.sellPrice) * Number(line.packMultiplier);
+}
 
 function createBillIdentity(input: SaleInput, now: Date) {
   const randomSuffix = randomUUID();
@@ -112,6 +117,8 @@ export function validateSale(input: SaleInput) {
     || Number(line.packMultiplier) <= 0
     || !Number.isFinite(Number(line.batch.sellPrice))
     || Number(line.batch.sellPrice) < 0
+    || !Number.isFinite(resolvedLineUnitPrice(line))
+    || resolvedLineUnitPrice(line) < 0
   ));
   if (hasInvalidLine) throw new Error("One or more sale items are invalid.");
   if (input.status === "paid") {
@@ -190,7 +197,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
     const discountByProduct = new Map(pricedProducts.map((product) => [product.id, product.discountPercent]));
     const pricing = calculateSalePricing(input.lines.map((line) => ({
       quantity: Number(line.qty),
-      unitPrice: Number(line.batch.sellPrice) * Number(line.packMultiplier),
+      unitPrice: resolvedLineUnitPrice(line),
       discountPercent: discountByProduct.get(line.itemId.trim()) ?? 0,
     })), input.discount ?? null);
     validateSale({
@@ -230,7 +237,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
         position,
         itemName: line.itemName,
         quantity: Number(line.qty),
-        originalUnitPrice: Number(line.batch.sellPrice) * Number(line.packMultiplier),
+        originalUnitPrice: resolvedLineUnitPrice(line),
         discountPercent: discountByProduct.get(line.itemId.trim()) ?? 0,
       })),
     }) : null;
@@ -285,6 +292,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
           batchNo: line.batch.batchNo,
           expiryDate: line.batch.exp,
           sellPriceThb: line.batch.sellPrice,
+          unitPriceThb: resolvedLineUnitPrice(line),
           quantity: line.qty,
           position,
         })) },
@@ -302,6 +310,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
           batchNo: line.batch.batchNo,
           expiryDate: line.batch.exp,
           sellPriceThb: line.batch.sellPrice,
+          unitPriceThb: resolvedLineUnitPrice(line),
           quantity: line.qty,
           position,
         })) },
@@ -316,7 +325,6 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
       date: sale.soldAt.toISOString(),
       status: sale.status === SaleStatus.PAID ? "paid" : "pending",
     },
-    products: input.status === "paid" ? await readStockProducts() : null,
   };
 }
 
@@ -359,6 +367,7 @@ export async function readSales(): Promise<SavedSale[]> {
       itemName: line.itemName,
       packLabel: line.packLabel,
       packMultiplier: Number(line.packMultiplier),
+      unitPrice: Number(line.unitPriceThb ?? Number(line.sellPriceThb) * Number(line.packMultiplier)),
       loc: line.location,
       batch: {
         batchId: `${line.productId}-${line.batchNo}`,

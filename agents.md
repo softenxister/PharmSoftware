@@ -39,8 +39,6 @@ Use these project rules for all future edits in this pharmacy retail software.
 
 - Do not use native browser or OS dropdown styling for pharmacy app forms.
 - Use custom searchable dropdown components like the pattern in `/sales/new`, especially for item, unit, packaging, category, manufacturer, and similar selectable fields.
-- Every dropdown, searchable select, autocomplete panel, and popover menu must close when the user clicks or taps outside its trigger and panel.
-- Interacting inside a dropdown must keep it open, while opening another dropdown must close the previously open dropdown.
 
 ## Verification
 
@@ -50,6 +48,6 @@ Use these project rules for all future edits in this pharmacy retail software.
 - Visually verify changed screens at desktop and tablet widths, exercise the affected interactions, inspect the accessibility tree, and confirm the browser console has no errors or warnings.
 - If browser verification is unavailable, say so explicitly and do not claim that the UI was visually verified.
 
-## Symbol
+## Symbols
 
-- Do not over use symbol & icon vector in header too much just use it properly
+- Don't over use logo in header

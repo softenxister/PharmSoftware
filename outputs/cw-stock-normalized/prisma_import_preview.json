@@ -1,0 +1,2811 @@
+[
+  {
+    "product": {
+      "id": "cw-p-11627",
+      "externalProductCode": "P-11627",
+      "barcode": "8851467045002",
+      "itemName": "(ฺฺBox) BURAPHA Topamine syrup grape 60ml",
+      "brandName": "BURAPHA",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 50,
+      "availableStock": 3
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 17
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-415",
+      "externalProductCode": "P-415",
+      "barcode": "8856093034109",
+      "itemName": "1.BIOTHYMUS-M LT.100ML.",
+      "brandName": "BIOTHYMUS",
+      "manufacturerName": "D-MEDA PHARMA (THAILAND) CO.,LTD.",
+      "categoryName": "Uncategorized",
+      "packUnit": "ขวด",
+      "childUnit": "ขวด",
+      "childQuantity": 1,
+      "packLabel": "1 ขวด",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 552,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-12234",
+      "externalProductCode": "P-12234",
+      "barcode": "8853986004249",
+      "itemName": "100% Silicone stomuch no.16",
+      "brandName": "Unspecified",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "เส้น",
+      "childUnit": "เส้น",
+      "childQuantity": 1,
+      "packLabel": "1 เส้น",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 260,
+      "availableStock": 2
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 200
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-2",
+      "externalProductCode": "P-2",
+      "barcode": "8858797410012",
+      "itemName": "123 10'S.",
+      "brandName": "123",
+      "manufacturerName": "หจก.ห้างขายยาจอมทอง",
+      "categoryName": "ยาแผนโบราณ*",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "แพ็ค",
+        "childPackUnit": "กล่อง",
+        "childPackQuantity": 10,
+        "label": "1 แพ็ค = 10 กล่อง",
+        "priceMultiplier": 10,
+        "barcode": "8858797410029",
+        "sellPriceThb": 578
+      }
+    ],
+    "barcodeAliases": [
+      {
+        "barcode": "18858797410019",
+        "unitName": "แพ็ค",
+        "quantityInBaseUnit": 10
+      }
+    ],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 60,
+      "availableStock": 2
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "ข.ย.9",
+      "lastCostThb": 47.5
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-3",
+      "externalProductCode": "P-3",
+      "barcode": "8856093031030",
+      "itemName": "246 รักษาเกลื้อน",
+      "brandName": "246",
+      "manufacturerName": "KPS*",
+      "categoryName": "ยาใช้เฉพาะที่*",
+      "packUnit": "ขวด",
+      "childUnit": "ขวด",
+      "childQuantity": 1,
+      "packLabel": "1 ขวด",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 13,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "Sodium Thiosulfate",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-8676",
+      "externalProductCode": "P-8676",
+      "barcode": "2010576150030",
+      "itemName": "28 ACTIVE INGREDIENTS 30 TAB",
+      "brandName": "Unspecified",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "DIETARY SUPPLEMENT",
+      "packUnit": "ก้อน",
+      "childUnit": "ก้อน",
+      "childQuantity": 1,
+      "packLabel": "1 ก้อน",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 155,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 150
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-7784",
+      "externalProductCode": "P-7784",
+      "barcode": "8856093047741",
+      "itemName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(L)",
+      "brandName": "ซากุระโค่ย",
+      "manufacturerName": "บริษัท พีซีเอ็น มาร์เก็ตติ้ง แอนด์ ดิสทริบิวชั่น จำกัด",
+      "categoryName": "Uncategorized",
+      "packUnit": "ถุง",
+      "childUnit": "ถุง",
+      "childQuantity": 1,
+      "packLabel": "1 ถุง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 205,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-7783",
+      "externalProductCode": "P-7783",
+      "barcode": "8856093047734",
+      "itemName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(M)",
+      "brandName": "ซากุระโค่ย",
+      "manufacturerName": "บริษัท พีซีเอ็น มาร์เก็ตติ้ง แอนด์ ดิสทริบิวชั่น จำกัด",
+      "categoryName": "Uncategorized",
+      "packUnit": "ถุง",
+      "childUnit": "ถุง",
+      "childQuantity": 1,
+      "packLabel": "1 ถุง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 205,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-7782",
+      "externalProductCode": "P-7782",
+      "barcode": "8856093047727",
+      "itemName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(S)",
+      "brandName": "ซากุระโค่ย",
+      "manufacturerName": "บริษัท พีซีเอ็น มาร์เก็ตติ้ง แอนด์ ดิสทริบิวชั่น จำกัด",
+      "categoryName": "Uncategorized",
+      "packUnit": "ถุง",
+      "childUnit": "ถุง",
+      "childQuantity": 1,
+      "packLabel": "1 ถุง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 205,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6509",
+      "externalProductCode": "P-6509",
+      "barcode": "8857124582446",
+      "itemName": "2P OH MY BLUSH V2-01 ALMOND 5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "ตลับ",
+      "childUnit": "ตลับ",
+      "childQuantity": 1,
+      "packLabel": "1 ตลับ",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 146,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6510",
+      "externalProductCode": "P-6510",
+      "barcode": "8857124582453",
+      "itemName": "2P OH MY BLUSH V2-02 BRICK BROWN 5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "ตลับ",
+      "childUnit": "ตลับ",
+      "childQuantity": 1,
+      "packLabel": "1 ตลับ",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 146,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6511",
+      "externalProductCode": "P-6511",
+      "barcode": "8857124582460",
+      "itemName": "2P OH MY BLUSH V2-03 SALMON 5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "ตลับ",
+      "childUnit": "ตลับ",
+      "childQuantity": 1,
+      "packLabel": "1 ตลับ",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 146,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6512",
+      "externalProductCode": "P-6512",
+      "barcode": "8857124582507",
+      "itemName": "2P OH MY BLUSH V2-07 BLOSSOM 5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "ตลับ",
+      "childUnit": "ตลับ",
+      "childQuantity": 1,
+      "packLabel": "1 ตลับ",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 146,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6513",
+      "externalProductCode": "P-6513",
+      "barcode": "8857124582514",
+      "itemName": "2P OH MY BLUSH V2-08 RUBY 5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "ตลับ",
+      "childUnit": "ตลับ",
+      "childQuantity": 1,
+      "packLabel": "1 ตลับ",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 146,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6514",
+      "externalProductCode": "P-6514",
+      "barcode": "8856093044603",
+      "itemName": "2P OH MY BLUSH V2-09 MAROON 5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "ตลับ",
+      "childUnit": "ตลับ",
+      "childQuantity": 1,
+      "packLabel": "1 ตลับ",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 146,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6515",
+      "externalProductCode": "P-6515",
+      "barcode": "8856093044610",
+      "itemName": "2P OH MY TINT-01 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6516",
+      "externalProductCode": "P-6516",
+      "barcode": "8856093044627",
+      "itemName": "2P OH MY TINT-02 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6517",
+      "externalProductCode": "P-6517",
+      "barcode": "8856093044634",
+      "itemName": "2P OH MY TINT-03 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6518",
+      "externalProductCode": "P-6518",
+      "barcode": "8857124582330",
+      "itemName": "2P OH MY TINT-04 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6519",
+      "externalProductCode": "P-6519",
+      "barcode": "8856093044641",
+      "itemName": "2P OH MY TINT-05 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6520",
+      "externalProductCode": "P-6520",
+      "barcode": "8857124582354",
+      "itemName": "2P OH MY TINT-06 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6521",
+      "externalProductCode": "P-6521",
+      "barcode": "8856093044658",
+      "itemName": "2P OH MY TINT-07 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6522",
+      "externalProductCode": "P-6522",
+      "barcode": "8857124582378",
+      "itemName": "2P OH MY TINT-08 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6523",
+      "externalProductCode": "P-6523",
+      "barcode": "8856093044665",
+      "itemName": "2P OH MY TINT-09 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6524",
+      "externalProductCode": "P-6524",
+      "barcode": "8857124582392",
+      "itemName": "2P OH MY TINT-10 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6525",
+      "externalProductCode": "P-6525",
+      "barcode": "8857124582408",
+      "itemName": "2P OH MY TINT-11 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6526",
+      "externalProductCode": "P-6526",
+      "barcode": "8856093044672",
+      "itemName": "2P OH MY TINT-12 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6527",
+      "externalProductCode": "P-6527",
+      "barcode": "8856093044689",
+      "itemName": "2P OH MY TINT-13 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6528",
+      "externalProductCode": "P-6528",
+      "barcode": "8856093044696",
+      "itemName": "2P OH MY TINT-14 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6589",
+      "externalProductCode": "P-6589",
+      "barcode": "8857124582552",
+      "itemName": "2P OH MY TINT-15 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6590",
+      "externalProductCode": "P-6590",
+      "barcode": "8857124582569",
+      "itemName": "2P OH MY TINT-16 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6591",
+      "externalProductCode": "P-6591",
+      "barcode": "8856093044917",
+      "itemName": "2P OH MY TINT-17 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6592",
+      "externalProductCode": "P-6592",
+      "barcode": "8857124582583",
+      "itemName": "2P OH MY TINT-18 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6593",
+      "externalProductCode": "P-6593",
+      "barcode": "8856093044924",
+      "itemName": "2P OH MY TINT-19 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6594",
+      "externalProductCode": "P-6594",
+      "barcode": "8857124582606",
+      "itemName": "2P OH MY TINT-20 3ML.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 104,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6700",
+      "externalProductCode": "P-6700",
+      "barcode": "8857124582620",
+      "itemName": "2P TINT STICK-01 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6701",
+      "externalProductCode": "P-6701",
+      "barcode": "8857124582637",
+      "itemName": "2P TINT STICK-02 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6702",
+      "externalProductCode": "P-6702",
+      "barcode": "8857124582644",
+      "itemName": "2P TINT STICK-03 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6703",
+      "externalProductCode": "P-6703",
+      "barcode": "8857124582651",
+      "itemName": "2P TINT STICK-04 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6704",
+      "externalProductCode": "P-6704",
+      "barcode": "8857124582668",
+      "itemName": "2P TINT STICK-05 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6705",
+      "externalProductCode": "P-6705",
+      "barcode": "8857124582675",
+      "itemName": "2P TINT STICK-06 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6706",
+      "externalProductCode": "P-6706",
+      "barcode": "8857124582682",
+      "itemName": "2P TINT STICK-07 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6707",
+      "externalProductCode": "P-6707",
+      "barcode": "8857124582699",
+      "itemName": "2P TINT STICK-08 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6708",
+      "externalProductCode": "P-6708",
+      "barcode": "8857124582705",
+      "itemName": "2P TINT STICK-09 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6709",
+      "externalProductCode": "P-6709",
+      "barcode": "8857124582712",
+      "itemName": "2P TINT STICK-10 3.5G.",
+      "brandName": "2P",
+      "manufacturerName": "2P ORIGINAL CO.,LTD.*",
+      "categoryName": "2P*",
+      "packUnit": "แท่ง",
+      "childUnit": "แท่ง",
+      "childQuantity": 1,
+      "packLabel": "1 แท่ง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 157,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-5994",
+      "externalProductCode": "P-5994",
+      "barcode": "8856093040889",
+      "itemName": "365 BRAIN BOOST 10CAP.",
+      "brandName": "365",
+      "manufacturerName": "MP ENTREPRENEUR CO.,LTD.",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 620,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9547",
+      "externalProductCode": "P-9547",
+      "barcode": "8853984002759",
+      "itemName": "3D KID FACE MASK/10ชิ้น",
+      "brandName": "Unspecified",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "ห่อ",
+      "childUnit": "ห่อ",
+      "childQuantity": 1,
+      "packLabel": "1 ห่อ",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 35,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 15
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-8922",
+      "externalProductCode": "P-8922",
+      "barcode": "8853984001448",
+      "itemName": "3D MASK 95% แพ็คสีขาว",
+      "brandName": "Unspecified",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "แพ็ค",
+      "childUnit": "แพ็ค",
+      "childQuantity": 1,
+      "packLabel": "1 แพ็ค",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 45,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9430",
+      "externalProductCode": "P-9430",
+      "barcode": "4903111962273",
+      "itemName": "3D MASK unicharm ซองชมพูสำหรับเด็ก",
+      "brandName": "Unicharm",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "ยาทั่วไป*",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 149,
+      "availableStock": 2
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 111
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-7219",
+      "externalProductCode": "P-7219",
+      "barcode": "8851111643011",
+      "itemName": "3D MASK หน้ากากป้องกันPM2.5 (สำหรับผู้ใหญ่ ไซด์ L) 4ชิ้น",
+      "brandName": "Unspecified",
+      "manufacturerName": "KASPA PHARMACEUTICAL (THAILAND) CO.,LTD.",
+      "categoryName": "Uncategorized",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "แพ็ค",
+        "childPackUnit": "ซอง",
+        "childPackQuantity": 4,
+        "label": "1 แพ็ค = 4 ซอง",
+        "priceMultiplier": 4,
+        "barcode": "8851111643028",
+        "sellPriceThb": 129
+      },
+      {
+        "packUnit": "ลัง",
+        "childPackUnit": "ซอง",
+        "childPackQuantity": 24,
+        "label": "1 ลัง = 24 ซอง",
+        "priceMultiplier": 24,
+        "barcode": "68851111643013",
+        "sellPriceThb": 2520
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 105,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6349",
+      "externalProductCode": "P-6349",
+      "barcode": "4903111905676",
+      "itemName": "3D MASK หน้ากากป้องกันPM2.5 (สำหรับผู้ใหญ่) 4ชิ้น",
+      "brandName": "Unspecified",
+      "manufacturerName": "KASPA PHARMACEUTICAL (THAILAND) CO.,LTD.",
+      "categoryName": "Uncategorized",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "แพ็ค",
+        "childPackUnit": "ซอง",
+        "childPackQuantity": 4,
+        "label": "1 แพ็ค = 4 ซอง",
+        "priceMultiplier": 4,
+        "barcode": "8851111639014",
+        "sellPriceThb": 420
+      },
+      {
+        "packUnit": "ลัง",
+        "childPackUnit": "ซอง",
+        "childPackQuantity": 24,
+        "label": "1 ลัง = 24 ซอง",
+        "priceMultiplier": 24,
+        "barcode": "68851111639016",
+        "sellPriceThb": 2520
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 105,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-6350",
+      "externalProductCode": "P-6350",
+      "barcode": "4903111961900",
+      "itemName": "3D MASK หน้ากากป้องกันPM2.5 5ชิ้น (สำหรับเด็ก)",
+      "brandName": "Unspecified",
+      "manufacturerName": "KASPA PHARMACEUTICAL (THAILAND) CO.,LTD.",
+      "categoryName": "Uncategorized",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "แพ็ค",
+        "childPackUnit": "ซอง",
+        "childPackQuantity": 4,
+        "label": "1 แพ็ค = 4 ซอง",
+        "priceMultiplier": 4,
+        "barcode": "8851111641017",
+        "sellPriceThb": 504
+      },
+      {
+        "packUnit": "ลัง",
+        "childPackUnit": "ซอง",
+        "childPackQuantity": 24,
+        "label": "1 ลัง = 24 ซอง",
+        "priceMultiplier": 24,
+        "barcode": "68851111641019",
+        "sellPriceThb": 0
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 149,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 111
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-11460",
+      "externalProductCode": "P-11460",
+      "barcode": "8859375700648",
+      "itemName": "3D ผงกำมะถัน 250G",
+      "brandName": "Unspecified",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กระปุก",
+      "childUnit": "กระปุก",
+      "childQuantity": 1,
+      "packLabel": "1 กระปุก",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 80,
+      "availableStock": 2
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 42
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-4638",
+      "externalProductCode": "P-4638",
+      "barcode": "8856093035496",
+      "itemName": "3M COOLING FEVER AGB.6ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 116,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-10872",
+      "externalProductCode": "P-10872",
+      "barcode": "8992806200420",
+      "itemName": "3M Daily Kids Mask4's",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "แพ็ค",
+      "childUnit": "แพ็ค",
+      "childQuantity": 1,
+      "packLabel": "1 แพ็ค",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 30,
+      "availableStock": 4
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 17.45
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-11571",
+      "externalProductCode": "P-11571",
+      "barcode": "8992806200406",
+      "itemName": "3M Daily Mask WHITE 3D 3's",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 20,
+      "availableStock": 1
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 12
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-4639",
+      "externalProductCode": "P-4639",
+      "barcode": "8856093035502",
+      "itemName": "3M EARLOOP MASKS หน้ากากอนามัย BIRDS 2ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 21,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-4640",
+      "externalProductCode": "P-4640",
+      "barcode": "8856093035519",
+      "itemName": "3M EARLOOP MASKS หน้ากากอนามัย PIGS 2ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 27,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-8933",
+      "externalProductCode": "P-8933",
+      "barcode": "078371920500",
+      "itemName": "3M EARPLUGS 1ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 90,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-12062",
+      "externalProductCode": "P-12062",
+      "barcode": "4710367278504",
+      "itemName": "3M Fine Slide Flosser 30's",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "ถุง",
+      "childUnit": "ถุง",
+      "childQuantity": 1,
+      "packLabel": "1 ถุง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 0,
+      "availableStock": 3
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0.1
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9727",
+      "externalProductCode": "P-9727",
+      "barcode": "8850304090229",
+      "itemName": "3M Liquid Soap สบู่เหลวล้างมือ/400ml",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "ขวด",
+      "childUnit": "ขวด",
+      "childQuantity": 1,
+      "packLabel": "1 ขวด",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 75,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 1
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9062",
+      "externalProductCode": "P-9062",
+      "barcode": "8850304221579",
+      "itemName": "3M NEOPLAST SOFT PAD 5ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 45,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9063",
+      "externalProductCode": "P-9063",
+      "barcode": "8850304221586",
+      "itemName": "3M NEOPLAST SOFT PAD ผ้าก๊อซปิดแผล 4ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 50,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9065",
+      "externalProductCode": "P-9065",
+      "barcode": "8850304221159",
+      "itemName": "3M NEOPLAST TRANSPARENT WATERPROOF S 10x12/2ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 50,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 50
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9064",
+      "externalProductCode": "P-9064",
+      "barcode": "8850304221135",
+      "itemName": "3M NEOPLAST TRANSPARENT WATERPROOF S 6X7/3ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 45,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-4",
+      "externalProductCode": "P-4",
+      "barcode": "8850304017936",
+      "itemName": "3M NEXCARE COLD HOT MINI",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 120,
+      "availableStock": 1
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 67
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-5",
+      "externalProductCode": "P-5",
+      "barcode": "8850304015079",
+      "itemName": "3M NEXCARE COLD HOT PACK (10x25CM.)",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 195,
+      "availableStock": 2
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 127
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-8936",
+      "externalProductCode": "P-8936",
+      "barcode": "8850304018766",
+      "itemName": "3M NEXCARE COLD HOT PACK (30x20CM.)",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 320,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 320
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-11796",
+      "externalProductCode": "P-11796",
+      "barcode": "8711428070255",
+      "itemName": "3M Nexcare Coldhot Therapy Pack",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 190,
+      "availableStock": 2
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-4794",
+      "externalProductCode": "P-4794",
+      "barcode": "8850304089551",
+      "itemName": "3M NEXCARE COOLING FEVER ผู้ใหญ่ 6ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 158,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-8",
+      "externalProductCode": "P-8",
+      "barcode": "8850304089568",
+      "itemName": "3M NEXCARE COOLING FEVER สำหรับเด็กเล็ก 6ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 137,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-8650",
+      "externalProductCode": "P-8650",
+      "barcode": "8850304013204",
+      "itemName": "3M NEXCARE MICROPORE 1/2นิ้วx10หลา",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "ยาทั่วไป*",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 40,
+      "availableStock": 23
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 23.3333
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-14",
+      "externalProductCode": "P-14",
+      "barcode": "8850304002635",
+      "itemName": "3M NEXCARE MICROPORE 1/2นิ้วx5.5หลา",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ม้วน",
+      "childUnit": "ม้วน",
+      "childQuantity": 1,
+      "packLabel": "1 ม้วน",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "โหล",
+        "childPackUnit": "ม้วน",
+        "childPackQuantity": 12,
+        "label": "1 โหล = 12 ม้วน",
+        "priceMultiplier": 12,
+        "barcode": "38850304002636",
+        "sellPriceThb": 378
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 35,
+      "availableStock": 3
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 19
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-9225",
+      "externalProductCode": "P-9225",
+      "barcode": "8850304013211",
+      "itemName": "3M NEXCARE MICROPORE 1นิ้วx10หลา",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "ม้วน",
+      "childUnit": "ม้วน",
+      "childQuantity": 1,
+      "packLabel": "1 ม้วน",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "แพ็คx12",
+        "childPackUnit": "ม้วน",
+        "childPackQuantity": 12,
+        "label": "1 แพ็คx12 = 12 ม้วน",
+        "priceMultiplier": 12,
+        "barcode": "38850304013212",
+        "sellPriceThb": 0
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 65,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 44
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-15",
+      "externalProductCode": "P-15",
+      "barcode": "8850304002642",
+      "itemName": "3M NEXCARE MICROPORE 1นิ้วx5.5หลา",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ม้วน",
+      "childUnit": "ม้วน",
+      "childQuantity": 1,
+      "packLabel": "1 ม้วน",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "กล่อง",
+        "childPackUnit": "ม้วน",
+        "childPackQuantity": 6,
+        "label": "1 กล่อง = 6 ม้วน",
+        "priceMultiplier": 6,
+        "barcode": "38850304002643",
+        "sellPriceThb": 378
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 60,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 39.5
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-7777",
+      "externalProductCode": "P-7777",
+      "barcode": "8853984001677",
+      "itemName": "3M NEXCARE OPTICLUDE EYE PATCH 20ชิ้น (สำหรับเด็ก)",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "แผ่น",
+      "childUnit": "แผ่น",
+      "childQuantity": 1,
+      "packLabel": "1 แผ่น",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "กล่อง",
+        "childPackUnit": "แผ่น",
+        "childPackQuantity": 20,
+        "label": "1 กล่อง = 20 แผ่น",
+        "priceMultiplier": 20,
+        "barcode": "051131000223",
+        "sellPriceThb": 200
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 10,
+      "availableStock": 20
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 5.15
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-17",
+      "externalProductCode": "P-17",
+      "barcode": "8853986002016",
+      "itemName": "3M NEXCARE OPTICLUDE EYE PATCH 20ชิ้น (สำหรับผู้ใหญ่)",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ชิ้น",
+      "childUnit": "ชิ้น",
+      "childQuantity": 1,
+      "packLabel": "1 ชิ้น",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "กล่อง",
+        "childPackUnit": "ชิ้น",
+        "childPackQuantity": 20,
+        "label": "1 กล่อง = 20 ชิ้น",
+        "priceMultiplier": 20,
+        "barcode": "051131000230",
+        "sellPriceThb": 190
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 12,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 6.75
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-5661",
+      "externalProductCode": "P-5661",
+      "barcode": "8856093039579",
+      "itemName": "3M NEXCARE POKEMON COOLING FEVER 6ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 126,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-18",
+      "externalProductCode": "P-18",
+      "barcode": "8850304095569",
+      "itemName": "3M NEXCARE SOFT CLOTH 2นิ้วx5.5หลา",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ม้วน",
+      "childUnit": "ม้วน",
+      "childQuantity": 1,
+      "packLabel": "1 ม้วน",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 105,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-20",
+      "externalProductCode": "P-20",
+      "barcode": "8850304019619",
+      "itemName": "3M NEXCARE TEGADERM 2IN1 5x7CM.3ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 63,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-21",
+      "externalProductCode": "P-21",
+      "barcode": "8856093027743",
+      "itemName": "3M NEXCARE TEGADERM 2IN1 MAXI 6x10CM.2ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ซอง",
+      "childUnit": "ซอง",
+      "childQuantity": 1,
+      "packLabel": "1 ซอง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 84,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-22",
+      "externalProductCode": "P-22",
+      "barcode": "8850304005865",
+      "itemName": "3M NEXCARE TEGADERM 6x7CM.5ชิ้น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 84,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-23",
+      "externalProductCode": "P-23",
+      "barcode": "8856093028092",
+      "itemName": "3M NEXCARE TEGADERM A2 (10x12CM.) 5แผ่น",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 168,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 0
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-11021",
+      "externalProductCode": "P-11021",
+      "barcode": "8850304234173",
+      "itemName": "3M Nexcare Transparent พลาสเตอร์ใส ขนาด 25x72 มม.",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "Uncategorized",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 40,
+      "availableStock": 7
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 25.5
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-8647",
+      "externalProductCode": "P-8647",
+      "barcode": "8850304013181",
+      "itemName": "3M NEXCARE TRANSPORE 0.5นิ้วx10หลา",
+      "brandName": "3M",
+      "manufacturerName": "Unknown manufacturer",
+      "categoryName": "ยาทั่วไป*",
+      "packUnit": "กล่อง",
+      "childUnit": "กล่อง",
+      "childQuantity": 1,
+      "packLabel": "1 กล่อง",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "กล่องใหญ่",
+        "childPackUnit": "กล่อง",
+        "childPackQuantity": 24,
+        "label": "1 กล่องใหญ่ = 24 กล่อง",
+        "priceMultiplier": 24,
+        "barcode": "38850304013182",
+        "sellPriceThb": 0
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 40,
+      "availableStock": 20
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 22.0833
+    }
+  },
+  {
+    "product": {
+      "id": "cw-p-24",
+      "externalProductCode": "P-24",
+      "barcode": "8850304002604",
+      "itemName": "3M NEXCARE TRANSPORE 0.5นิ้วx5หลา",
+      "brandName": "3M",
+      "manufacturerName": "MONTANA",
+      "categoryName": "Uncategorized",
+      "packUnit": "ม้วน",
+      "childUnit": "ม้วน",
+      "childQuantity": 1,
+      "packLabel": "1 ม้วน",
+      "location": "-",
+      "imageUrl": "",
+      "isActive": true
+    },
+    "parentPacks": [
+      {
+        "packUnit": "โหล",
+        "childPackUnit": "ม้วน",
+        "childPackQuantity": 12,
+        "label": "1 โหล = 12 ม้วน",
+        "priceMultiplier": 12,
+        "barcode": "38850304002605",
+        "sellPriceThb": 315
+      }
+    ],
+    "barcodeAliases": [],
+    "batch": {
+      "batchNo": "CW-IMPORT",
+      "expiryDate": "",
+      "sellPriceThb": 35,
+      "availableStock": 0
+    },
+    "source": {
+      "genericName": "",
+      "licenseGroup": "",
+      "lastCostThb": 16.3333
+    }
+  }
+]

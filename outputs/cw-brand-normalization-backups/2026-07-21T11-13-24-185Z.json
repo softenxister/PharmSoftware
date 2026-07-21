@@ -1,0 +1,528 @@
+{
+  "createdAt": "2026-07-21T11:13:24.186Z",
+  "summary": {
+    "scannedCount": 86,
+    "changedCount": 8,
+    "highConfidenceCount": 0,
+    "mediumConfidenceCount": 0,
+    "reviewCount": 8
+  },
+  "products": [
+    {
+      "id": "cw-p-10872-316b74fe",
+      "externalProductCode": "P-10872",
+      "itemName": "3M Daily Kids Mask4's",
+      "brandName": "3M Daily Kids Mask4's"
+    },
+    {
+      "id": "cw-p-11021-06617d25",
+      "externalProductCode": "P-11021",
+      "itemName": "3M Nexcare Transparent พลาสเตอร์ใส ขนาด 25x72 มม.",
+      "brandName": "3M Nexcare Transparent พลาสเตอร์ใส ขนาด 25x72 มม."
+    },
+    {
+      "id": "cw-p-11460-d31a6e5b",
+      "externalProductCode": "P-11460",
+      "itemName": "3D ผงกำมะถัน 250G",
+      "brandName": "3D ผงกำมะถัน 250G"
+    },
+    {
+      "id": "cw-p-11571-95e8f914",
+      "externalProductCode": "P-11571",
+      "itemName": "3M Daily Mask WHITE 3D 3's",
+      "brandName": "3M Daily Mask WHITE 3D 3's"
+    },
+    {
+      "id": "cw-p-11627-04fc50ee",
+      "externalProductCode": "P-11627",
+      "itemName": "(ฺฺBox) BURAPHA Topamine syrup grape 60ml",
+      "brandName": "(ฺฺBox) BURAPHA Topamine syrup grape 60ml"
+    },
+    {
+      "id": "cw-p-11796-627405c4",
+      "externalProductCode": "P-11796",
+      "itemName": "3M Nexcare Coldhot Therapy Pack",
+      "brandName": "3M Nexcare Coldhot Therapy Pack"
+    },
+    {
+      "id": "cw-p-12062-566349f6",
+      "externalProductCode": "P-12062",
+      "itemName": "3M Fine Slide Flosser 30's",
+      "brandName": "3M Fine Slide Flosser 30's"
+    },
+    {
+      "id": "cw-p-12234-64399d1f",
+      "externalProductCode": "P-12234",
+      "itemName": "100% Silicone stomuch no.16",
+      "brandName": "100% Silicone stomuch no.16"
+    },
+    {
+      "id": "cw-p-14-d3647d74",
+      "externalProductCode": "P-14",
+      "itemName": "3M NEXCARE MICROPORE 1/2นิ้วx5.5หลา",
+      "brandName": "3M NEXCARE MICROPORE 1/2นิ้วx5.5หลา"
+    },
+    {
+      "id": "cw-p-15-5a28ae08",
+      "externalProductCode": "P-15",
+      "itemName": "3M NEXCARE MICROPORE 1นิ้วx5.5หลา",
+      "brandName": "3M NEXCARE MICROPORE 1นิ้วx5.5หลา"
+    },
+    {
+      "id": "cw-p-17-18909d4c",
+      "externalProductCode": "P-17",
+      "itemName": "3M NEXCARE OPTICLUDE EYE PATCH 20ชิ้น (สำหรับผู้ใหญ่)",
+      "brandName": "3M NEXCARE OPTICLUDE EYE PATCH 20ชิ้น (สำหรับผู้ใหญ่)"
+    },
+    {
+      "id": "cw-p-18-df987eb3",
+      "externalProductCode": "P-18",
+      "itemName": "3M NEXCARE SOFT CLOTH 2นิ้วx5.5หลา",
+      "brandName": "3M NEXCARE SOFT CLOTH 2นิ้วx5.5หลา"
+    },
+    {
+      "id": "cw-p-2-c5d75b01",
+      "externalProductCode": "P-2",
+      "itemName": "123 10'S.",
+      "brandName": "123 10'S."
+    },
+    {
+      "id": "cw-p-20-e429b417",
+      "externalProductCode": "P-20",
+      "itemName": "3M NEXCARE TEGADERM 2IN1 5x7CM.3ชิ้น",
+      "brandName": "3M NEXCARE TEGADERM 2IN1 5x7CM.3ชิ้น"
+    },
+    {
+      "id": "cw-p-21-61e6d89b",
+      "externalProductCode": "P-21",
+      "itemName": "3M NEXCARE TEGADERM 2IN1 MAXI 6x10CM.2ชิ้น",
+      "brandName": "3M NEXCARE TEGADERM 2IN1 MAXI 6x10CM.2ชิ้น"
+    },
+    {
+      "id": "cw-p-22-107dd9ab",
+      "externalProductCode": "P-22",
+      "itemName": "3M NEXCARE TEGADERM 6x7CM.5ชิ้น",
+      "brandName": "3M NEXCARE TEGADERM 6x7CM.5ชิ้น"
+    },
+    {
+      "id": "cw-p-23-68151312",
+      "externalProductCode": "P-23",
+      "itemName": "3M NEXCARE TEGADERM A2 (10x12CM.) 5แผ่น",
+      "brandName": "3M NEXCARE TEGADERM A2 (10x12CM.) 5แผ่น"
+    },
+    {
+      "id": "cw-p-24-10d6adae",
+      "externalProductCode": "P-24",
+      "itemName": "3M NEXCARE TRANSPORE 0.5นิ้วx5หลา",
+      "brandName": "3M NEXCARE TRANSPORE 0.5นิ้วx5หลา"
+    },
+    {
+      "id": "cw-p-3-233a00cc",
+      "externalProductCode": "P-3",
+      "itemName": "246 รักษาเกลื้อน",
+      "brandName": "246 รักษาเกลื้อน"
+    },
+    {
+      "id": "cw-p-4-87f1df83",
+      "externalProductCode": "P-4",
+      "itemName": "3M NEXCARE COLD HOT MINI",
+      "brandName": "3M NEXCARE COLD HOT MINI"
+    },
+    {
+      "id": "cw-p-415-6082f955",
+      "externalProductCode": "P-415",
+      "itemName": "1.BIOTHYMUS-M LT.100ML.",
+      "brandName": "1.BIOTHYMUS-M LT.100ML."
+    },
+    {
+      "id": "cw-p-4638-7c7371de",
+      "externalProductCode": "P-4638",
+      "itemName": "3M COOLING FEVER AGB.6ชิ้น",
+      "brandName": "3M COOLING FEVER AGB.6ชิ้น"
+    },
+    {
+      "id": "cw-p-4639-fb560c99",
+      "externalProductCode": "P-4639",
+      "itemName": "3M EARLOOP MASKS หน้ากากอนามัย BIRDS 2ชิ้น",
+      "brandName": "3M EARLOOP MASKS หน้ากากอนามัย BIRDS 2ชิ้น"
+    },
+    {
+      "id": "cw-p-4640-7014e2a5",
+      "externalProductCode": "P-4640",
+      "itemName": "3M EARLOOP MASKS หน้ากากอนามัย PIGS 2ชิ้น",
+      "brandName": "3M EARLOOP MASKS หน้ากากอนามัย PIGS 2ชิ้น"
+    },
+    {
+      "id": "cw-p-4794-532a15cf",
+      "externalProductCode": "P-4794",
+      "itemName": "3M NEXCARE COOLING FEVER ผู้ใหญ่ 6ชิ้น",
+      "brandName": "3M NEXCARE COOLING FEVER ผู้ใหญ่ 6ชิ้น"
+    },
+    {
+      "id": "cw-p-5-7af07fa3",
+      "externalProductCode": "P-5",
+      "itemName": "3M NEXCARE COLD HOT PACK (10x25CM.)",
+      "brandName": "3M NEXCARE COLD HOT PACK (10x25CM.)"
+    },
+    {
+      "id": "cw-p-5661-6b4a6fc9",
+      "externalProductCode": "P-5661",
+      "itemName": "3M NEXCARE POKEMON COOLING FEVER 6ชิ้น",
+      "brandName": "3M NEXCARE POKEMON COOLING FEVER 6ชิ้น"
+    },
+    {
+      "id": "cw-p-5994-07268246",
+      "externalProductCode": "P-5994",
+      "itemName": "365 BRAIN BOOST 10CAP.",
+      "brandName": "365 BRAIN BOOST 10CAP."
+    },
+    {
+      "id": "cw-p-6349-ce890226",
+      "externalProductCode": "P-6349",
+      "itemName": "3D MASK หน้ากากป้องกันPM2.5 (สำหรับผู้ใหญ่) 4ชิ้น",
+      "brandName": "3D MASK หน้ากากป้องกันPM2.5 (สำหรับผู้ใหญ่) 4ชิ้น"
+    },
+    {
+      "id": "cw-p-6350-633d0d12",
+      "externalProductCode": "P-6350",
+      "itemName": "3D MASK หน้ากากป้องกันPM2.5 5ชิ้น (สำหรับเด็ก)",
+      "brandName": "3D MASK หน้ากากป้องกันPM2.5 5ชิ้น (สำหรับเด็ก)"
+    },
+    {
+      "id": "cw-p-6509-1f04468d",
+      "externalProductCode": "P-6509",
+      "itemName": "2P OH MY BLUSH V2-01 ALMOND 5G.",
+      "brandName": "2P OH MY BLUSH V2-01 ALMOND 5G."
+    },
+    {
+      "id": "cw-p-6510-681a2f49",
+      "externalProductCode": "P-6510",
+      "itemName": "2P OH MY BLUSH V2-02 BRICK BROWN 5G.",
+      "brandName": "2P OH MY BLUSH V2-02 BRICK BROWN 5G."
+    },
+    {
+      "id": "cw-p-6511-6b69bd60",
+      "externalProductCode": "P-6511",
+      "itemName": "2P OH MY BLUSH V2-03 SALMON 5G.",
+      "brandName": "2P OH MY BLUSH V2-03 SALMON 5G."
+    },
+    {
+      "id": "cw-p-6512-5558c419",
+      "externalProductCode": "P-6512",
+      "itemName": "2P OH MY BLUSH V2-07 BLOSSOM 5G.",
+      "brandName": "2P OH MY BLUSH V2-07 BLOSSOM 5G."
+    },
+    {
+      "id": "cw-p-6513-019d615f",
+      "externalProductCode": "P-6513",
+      "itemName": "2P OH MY BLUSH V2-08 RUBY 5G.",
+      "brandName": "2P OH MY BLUSH V2-08 RUBY 5G."
+    },
+    {
+      "id": "cw-p-6514-72938364",
+      "externalProductCode": "P-6514",
+      "itemName": "2P OH MY BLUSH V2-09 MAROON 5G.",
+      "brandName": "2P OH MY BLUSH V2-09 MAROON 5G."
+    },
+    {
+      "id": "cw-p-6515-363ea911",
+      "externalProductCode": "P-6515",
+      "itemName": "2P OH MY TINT-01 3ML.",
+      "brandName": "2P OH MY TINT-01 3ML."
+    },
+    {
+      "id": "cw-p-6516-df027e44",
+      "externalProductCode": "P-6516",
+      "itemName": "2P OH MY TINT-02 3ML.",
+      "brandName": "2P OH MY TINT-02 3ML."
+    },
+    {
+      "id": "cw-p-6517-110003b2",
+      "externalProductCode": "P-6517",
+      "itemName": "2P OH MY TINT-03 3ML.",
+      "brandName": "2P OH MY TINT-03 3ML."
+    },
+    {
+      "id": "cw-p-6518-c92a1816",
+      "externalProductCode": "P-6518",
+      "itemName": "2P OH MY TINT-04 3ML.",
+      "brandName": "2P OH MY TINT-04 3ML."
+    },
+    {
+      "id": "cw-p-6519-a5ab290b",
+      "externalProductCode": "P-6519",
+      "itemName": "2P OH MY TINT-05 3ML.",
+      "brandName": "2P OH MY TINT-05 3ML."
+    },
+    {
+      "id": "cw-p-6520-88ae0d08",
+      "externalProductCode": "P-6520",
+      "itemName": "2P OH MY TINT-06 3ML.",
+      "brandName": "2P OH MY TINT-06 3ML."
+    },
+    {
+      "id": "cw-p-6521-5c23b3ed",
+      "externalProductCode": "P-6521",
+      "itemName": "2P OH MY TINT-07 3ML.",
+      "brandName": "2P OH MY TINT-07 3ML."
+    },
+    {
+      "id": "cw-p-6522-6746eb02",
+      "externalProductCode": "P-6522",
+      "itemName": "2P OH MY TINT-08 3ML.",
+      "brandName": "2P OH MY TINT-08 3ML."
+    },
+    {
+      "id": "cw-p-6523-73e057e8",
+      "externalProductCode": "P-6523",
+      "itemName": "2P OH MY TINT-09 3ML.",
+      "brandName": "2P OH MY TINT-09 3ML."
+    },
+    {
+      "id": "cw-p-6524-5d8bf9f4",
+      "externalProductCode": "P-6524",
+      "itemName": "2P OH MY TINT-10 3ML.",
+      "brandName": "2P OH MY TINT-10 3ML."
+    },
+    {
+      "id": "cw-p-6525-d522f265",
+      "externalProductCode": "P-6525",
+      "itemName": "2P OH MY TINT-11 3ML.",
+      "brandName": "2P OH MY TINT-11 3ML."
+    },
+    {
+      "id": "cw-p-6526-a34fdb7c",
+      "externalProductCode": "P-6526",
+      "itemName": "2P OH MY TINT-12 3ML.",
+      "brandName": "2P OH MY TINT-12 3ML."
+    },
+    {
+      "id": "cw-p-6527-0a96e183",
+      "externalProductCode": "P-6527",
+      "itemName": "2P OH MY TINT-13 3ML.",
+      "brandName": "2P OH MY TINT-13 3ML."
+    },
+    {
+      "id": "cw-p-6528-260090c0",
+      "externalProductCode": "P-6528",
+      "itemName": "2P OH MY TINT-14 3ML.",
+      "brandName": "2P OH MY TINT-14 3ML."
+    },
+    {
+      "id": "cw-p-6589-36d9b0eb",
+      "externalProductCode": "P-6589",
+      "itemName": "2P OH MY TINT-15 3ML.",
+      "brandName": "2P OH MY TINT-15 3ML."
+    },
+    {
+      "id": "cw-p-6590-c4577c7d",
+      "externalProductCode": "P-6590",
+      "itemName": "2P OH MY TINT-16 3ML.",
+      "brandName": "2P OH MY TINT-16 3ML."
+    },
+    {
+      "id": "cw-p-6591-5ee1c236",
+      "externalProductCode": "P-6591",
+      "itemName": "2P OH MY TINT-17 3ML.",
+      "brandName": "2P OH MY TINT-17 3ML."
+    },
+    {
+      "id": "cw-p-6592-89958bee",
+      "externalProductCode": "P-6592",
+      "itemName": "2P OH MY TINT-18 3ML.",
+      "brandName": "2P OH MY TINT-18 3ML."
+    },
+    {
+      "id": "cw-p-6593-1c1d6c80",
+      "externalProductCode": "P-6593",
+      "itemName": "2P OH MY TINT-19 3ML.",
+      "brandName": "2P OH MY TINT-19 3ML."
+    },
+    {
+      "id": "cw-p-6594-77cd98a4",
+      "externalProductCode": "P-6594",
+      "itemName": "2P OH MY TINT-20 3ML.",
+      "brandName": "2P OH MY TINT-20 3ML."
+    },
+    {
+      "id": "cw-p-6700-3b3f31e7",
+      "externalProductCode": "P-6700",
+      "itemName": "2P TINT STICK-01 3.5G.",
+      "brandName": "2P TINT STICK-01 3.5G."
+    },
+    {
+      "id": "cw-p-6701-7d706700",
+      "externalProductCode": "P-6701",
+      "itemName": "2P TINT STICK-02 3.5G.",
+      "brandName": "2P TINT STICK-02 3.5G."
+    },
+    {
+      "id": "cw-p-6702-b27d7887",
+      "externalProductCode": "P-6702",
+      "itemName": "2P TINT STICK-03 3.5G.",
+      "brandName": "2P TINT STICK-03 3.5G."
+    },
+    {
+      "id": "cw-p-6703-f8dfe211",
+      "externalProductCode": "P-6703",
+      "itemName": "2P TINT STICK-04 3.5G.",
+      "brandName": "2P TINT STICK-04 3.5G."
+    },
+    {
+      "id": "cw-p-6704-aba81fce",
+      "externalProductCode": "P-6704",
+      "itemName": "2P TINT STICK-05 3.5G.",
+      "brandName": "2P TINT STICK-05 3.5G."
+    },
+    {
+      "id": "cw-p-6705-9a789d85",
+      "externalProductCode": "P-6705",
+      "itemName": "2P TINT STICK-06 3.5G.",
+      "brandName": "2P TINT STICK-06 3.5G."
+    },
+    {
+      "id": "cw-p-6706-a746073c",
+      "externalProductCode": "P-6706",
+      "itemName": "2P TINT STICK-07 3.5G.",
+      "brandName": "2P TINT STICK-07 3.5G."
+    },
+    {
+      "id": "cw-p-6707-f0983472",
+      "externalProductCode": "P-6707",
+      "itemName": "2P TINT STICK-08 3.5G.",
+      "brandName": "2P TINT STICK-08 3.5G."
+    },
+    {
+      "id": "cw-p-6708-fa6720a6",
+      "externalProductCode": "P-6708",
+      "itemName": "2P TINT STICK-09 3.5G.",
+      "brandName": "2P TINT STICK-09 3.5G."
+    },
+    {
+      "id": "cw-p-6709-9d0c1ff4",
+      "externalProductCode": "P-6709",
+      "itemName": "2P TINT STICK-10 3.5G.",
+      "brandName": "2P TINT STICK-10 3.5G."
+    },
+    {
+      "id": "cw-p-7219-52b7fcba",
+      "externalProductCode": "P-7219",
+      "itemName": "3D MASK หน้ากากป้องกันPM2.5 (สำหรับผู้ใหญ่ ไซด์ L) 4ชิ้น",
+      "brandName": "3D MASK หน้ากากป้องกันPM2.5 (สำหรับผู้ใหญ่ ไซด์ L) 4ชิ้น"
+    },
+    {
+      "id": "cw-p-7777-e08dad7c",
+      "externalProductCode": "P-7777",
+      "itemName": "3M NEXCARE OPTICLUDE EYE PATCH 20ชิ้น (สำหรับเด็ก)",
+      "brandName": "3M NEXCARE OPTICLUDE EYE PATCH 20ชิ้น (สำหรับเด็ก)"
+    },
+    {
+      "id": "cw-p-7782-425021e2",
+      "externalProductCode": "P-7782",
+      "itemName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(S)",
+      "brandName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(S)"
+    },
+    {
+      "id": "cw-p-7783-66fafdab",
+      "externalProductCode": "P-7783",
+      "itemName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(M)",
+      "brandName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(M)"
+    },
+    {
+      "id": "cw-p-7784-48cc92d9",
+      "externalProductCode": "P-7784",
+      "itemName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(L)",
+      "brandName": "2IN1 ซากุระโค่ย สูตรเร่งโต-เร่งสี 1.25KG.(L)"
+    },
+    {
+      "id": "cw-p-8-1bcdfc99",
+      "externalProductCode": "P-8",
+      "itemName": "3M NEXCARE COOLING FEVER สำหรับเด็กเล็ก 6ชิ้น",
+      "brandName": "3M NEXCARE COOLING FEVER สำหรับเด็กเล็ก 6ชิ้น"
+    },
+    {
+      "id": "cw-p-8647-abaee6c9",
+      "externalProductCode": "P-8647",
+      "itemName": "3M NEXCARE TRANSPORE 0.5นิ้วx10หลา",
+      "brandName": "3M NEXCARE TRANSPORE 0.5นิ้วx10หลา"
+    },
+    {
+      "id": "cw-p-8650-7df8f597",
+      "externalProductCode": "P-8650",
+      "itemName": "3M NEXCARE MICROPORE 1/2นิ้วx10หลา",
+      "brandName": "3M NEXCARE MICROPORE 1/2นิ้วx10หลา"
+    },
+    {
+      "id": "cw-p-8676-deede0ee",
+      "externalProductCode": "P-8676",
+      "itemName": "28 ACTIVE INGREDIENTS 30 TAB",
+      "brandName": "28 ACTIVE INGREDIENTS 30 TAB"
+    },
+    {
+      "id": "cw-p-8922-f780f3f4",
+      "externalProductCode": "P-8922",
+      "itemName": "3D MASK 95% แพ็คสีขาว",
+      "brandName": "3D MASK 95% แพ็คสีขาว"
+    },
+    {
+      "id": "cw-p-8933-5e213746",
+      "externalProductCode": "P-8933",
+      "itemName": "3M EARPLUGS 1ชิ้น",
+      "brandName": "3M EARPLUGS 1ชิ้น"
+    },
+    {
+      "id": "cw-p-8936-4fb4d19b",
+      "externalProductCode": "P-8936",
+      "itemName": "3M NEXCARE COLD HOT PACK (30x20CM.)",
+      "brandName": "3M NEXCARE COLD HOT PACK (30x20CM.)"
+    },
+    {
+      "id": "cw-p-9062-94b8c7b3",
+      "externalProductCode": "P-9062",
+      "itemName": "3M NEOPLAST SOFT PAD 5ชิ้น",
+      "brandName": "3M NEOPLAST SOFT PAD 5ชิ้น"
+    },
+    {
+      "id": "cw-p-9063-cc378ae0",
+      "externalProductCode": "P-9063",
+      "itemName": "3M NEOPLAST SOFT PAD ผ้าก๊อซปิดแผล 4ชิ้น",
+      "brandName": "3M NEOPLAST SOFT PAD ผ้าก๊อซปิดแผล 4ชิ้น"
+    },
+    {
+      "id": "cw-p-9064-e0ac0232",
+      "externalProductCode": "P-9064",
+      "itemName": "3M NEOPLAST TRANSPARENT WATERPROOF S 6X7/3ชิ้น",
+      "brandName": "3M NEOPLAST TRANSPARENT WATERPROOF S 6X7/3ชิ้น"
+    },
+    {
+      "id": "cw-p-9065-4127cbce",
+      "externalProductCode": "P-9065",
+      "itemName": "3M NEOPLAST TRANSPARENT WATERPROOF S 10x12/2ชิ้น",
+      "brandName": "3M NEOPLAST TRANSPARENT WATERPROOF S 10x12/2ชิ้น"
+    },
+    {
+      "id": "cw-p-9225-67f541c1",
+      "externalProductCode": "P-9225",
+      "itemName": "3M NEXCARE MICROPORE 1นิ้วx10หลา",
+      "brandName": "3M NEXCARE MICROPORE 1นิ้วx10หลา"
+    },
+    {
+      "id": "cw-p-9430-938a2529",
+      "externalProductCode": "P-9430",
+      "itemName": "3D MASK unicharm ซองชมพูสำหรับเด็ก",
+      "brandName": "3D MASK unicharm ซองชมพูสำหรับเด็ก"
+    },
+    {
+      "id": "cw-p-9547-1189ac2b",
+      "externalProductCode": "P-9547",
+      "itemName": "3D KID FACE MASK/10ชิ้น",
+      "brandName": "3D KID FACE MASK/10ชิ้น"
+    },
+    {
+      "id": "cw-p-9727-872827ac",
+      "externalProductCode": "P-9727",
+      "itemName": "3M Liquid Soap สบู่เหลวล้างมือ/400ml",
+      "brandName": "3M Liquid Soap สบู่เหลวล้างมือ/400ml"
+    }
+  ]
+}

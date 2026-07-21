@@ -38,15 +38,19 @@ export type ProductPack = {
 };
 
 export type ParentPack = {
+  id?: string;
   packUnit: string;
   childPackUnit: string;
   childPackQuantity: number;
   label: string;
   priceMultiplier: number;
+  sellPriceThb?: number;
+  barcodes?: string[];
 };
 
 export type SalesProduct = {
   id: string;
+  externalProductCode?: string;
   itemName: string;
   brandName: string;
   manufacturerName: string;
@@ -61,6 +65,7 @@ export type SalesProduct = {
   defaultDosage?: [number, number, number, number];
   tagName?: string;
   barcode: string;
+  barcodes?: string[];
   category: string;
   imageUrl: string;
   weeklySold: number;
@@ -87,11 +92,15 @@ export type StockPackagingInput = {
   childQuantity: string;
   childUnit: string;
   barcode: string;
+  barcodes?: string[];
+  sellPrice?: string;
 };
 
 export type StockItemInput = {
+  productId?: string;
   photoUrl: string;
   barcode: string;
+  barcodes?: string[];
   itemName: string;
   lotNo: string;
   expiryDate: string;
