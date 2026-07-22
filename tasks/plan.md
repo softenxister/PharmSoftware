@@ -173,3 +173,117 @@ Add a compact, persisted Set Item Detail workflow to `/stock` while preserving t
 ## Open Questions
 
 - None. The user approved each behavior during the grilling session and explicitly requested implementation.
+
+---
+
+# Implementation Plan: Member Data Migration
+
+## Overview
+
+Add an owner-only UTF-8 member CSV workflow to `/stock/migration`, preserving the stock importer while adding row-level preview, validation, conflict blocking, and idempotent upserts by member code.
+
+## Architecture Decisions
+
+- Keep CSV parsing and reconciliation pure; the repository reads existing identities and re-runs reconciliation inside a serializable transaction.
+- Use member code as the only update key. Phone may repeat and is never an automatic merge key.
+- Preserve raw phone text in preview and normalize only the stored value; invalid phone formats become null without blocking the member.
+- Keep the destructive cleanup one-time in the additive member-field migration, never in the import endpoint.
+
+## Task List
+
+### Phase 1: Import Contract
+
+- [x] Add failing parser, normalization, reconciliation, and UTF-8 upload tests.
+- [x] Implement the pure member migration contract and make focused tests pass.
+
+### Checkpoint: Contract
+
+- [x] Required fields, phone rules, duplicate handling, and confirmation tokens pass focused tests.
+
+### Phase 2: Persistence and API
+
+- [x] Add transactional member upserts that skip blocked rows and preserve internal member state.
+- [x] Register the owner-only member migration endpoint and verify its API contract.
+- [x] Add the approved one-time dummy-member deletion to the member-field migration.
+
+### Phase 3: Migration UI
+
+- [x] Enable the Member data card with upload, raw-value preview, confirmation, and result states.
+- [ ] Verify dense desktop/tablet layout, accessibility, interactions, network behavior, and console output where browser tooling is available.
+
+### Checkpoint: Complete
+
+- [x] Focused tests, Prisma validation, TypeScript, API registry, production builds, and diff checks pass.
+- [x] Every confirmed import behavior is represented in code and tests.
+
+### Deployment Note
+
+- [x] Apply the approved stock-index and member migrations to Neon; verify the member columns and indexes exist and the live member count is zero.
+- [ ] Visually verify desktop/tablet behavior when Chrome DevTools MCP is available.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| A member code appears between preview and confirmation | High | Re-read member-code identities and regenerate the reconciliation token inside a serializable transaction. |
+| A partial CSV deletes legitimate members | High | Keep deletion only in the one-time schema migration; normal imports only upsert present rows. |
+| Spreadsheet phone formatting loses leading zeroes | High | Normalize 8-digit Bangkok, 9-digit mobile, and `66` forms only on import while previewing exact source text. |
+| Long names or addresses destabilize the table | Medium | Use bounded columns, `min-width: 0`, wrapping/truncation, and a horizontally scrollable table. |
+
+## Open Questions
+
+- None. The interview intent was explicitly confirmed before implementation.
+
+---
+
+# Implementation Plan: Distributor Data Migration
+
+## Overview
+
+Add the third owner-only CW dataset to `/stock/migration`, accepting the original distributor XLSX export or equivalent UTF-8 CSV and importing only distributor code/name.
+
+## Architecture Decisions
+
+- Prefer original XLSX in the UI while accepting CSV; both normalize into one pure `DistributorSourceRow` contract.
+- Parse bounded OOXML/ZIP data with Node built-ins so deployment needs no new package; formulas and macros are never evaluated.
+- Reconcile by code first, then exact trimmed name, preserving every unrelated distributor field and purchase relationship.
+- Keep preview/import confirmation state-sensitive and re-run reconciliation inside a serializable transaction.
+
+## Task List
+
+### Phase 1: Source Contract
+
+- [x] Add failing XLSX/CSV extraction, upload-boundary, validation, and reconciliation tests.
+- [x] Implement the bounded source parser and make contract tests pass.
+
+### Checkpoint: Source Contract
+
+- [x] The supplied workbook yields 471 code/name records and ignores column G details.
+
+### Phase 2: Persistence and API
+
+- [x] Add optional unique distributor code and its additive migration.
+- [x] Implement transaction-time reconciliation, bulk writes, owner-only endpoint, and API registry entry.
+
+### Phase 3: Migration UI
+
+- [x] Replace Distributor “Coming soon” with XLSX/CSV upload, preview, confirmation, and result states.
+- [ ] Verify dense desktop/tablet behavior when browser tooling is available (Chrome DevTools/browser control unavailable in this session).
+
+### Checkpoint: Complete
+
+- [x] Focused tests, Prisma validation/client generation, TypeScript, builds, and diff checks pass.
+- [x] Apply the additive live schema migration and verify code exists without distributor deletion.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Malformed or hostile XLSX consumes excessive memory | High | Enforce compressed upload, entry, total-expanded-size, and supported-compression limits. |
+| Existing name and code point to different distributors | High | Block that row and show the ambiguity in Preview. |
+| Import overwrites operational distributor details | High | Build writes from code/name only and regression-test preservation. |
+| Manual CSV conversion corrupts Thai text or codes | Medium | Prefer direct original XLSX and require strict UTF-8 for CSV. |
+
+## Open Questions
+
+- None. The supplied CW workbook establishes the source layout and the user restricted mapping to `รหัส` and `ชื่อ`.

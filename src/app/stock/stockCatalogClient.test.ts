@@ -99,3 +99,22 @@ test("product id hydration deduplicates ids and never requests an unbounded cata
   assert.equal(requestCount, 1);
   assert.equal(requestedUrl, "/api/stock?page=1&pageSize=2&sort=name&ids=p-test%2Cp-other");
 });
+
+test("stock page loads request descending item-name order", async () => {
+  invalidateStockCatalog();
+  let requestedUrl = "";
+  const fetcher: typeof fetch = async (input) => {
+    requestedUrl = String(input);
+    return new Response(JSON.stringify({
+      products: [product],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      hasMore: false,
+    }), { status: 200 });
+  };
+
+  await loadStockPage({ sort: "name", sortDirection: "desc" }, fetcher);
+
+  assert.equal(requestedUrl, "/api/stock?page=1&pageSize=50&sort=name&direction=desc");
+});

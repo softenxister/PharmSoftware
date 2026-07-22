@@ -9,13 +9,13 @@ import {
   FileSpreadsheet,
   LockKeyhole,
   PackageSearch,
-  Store,
   UploadCloud,
-  Users,
 } from "lucide-react";
 import { useAuth } from "@/app/AuthProvider";
 import { invalidateStockCatalog } from "@/app/stock/stockCatalogClient";
 import { MigrationPreviewPanel } from "./MigrationPreviewPanel";
+import { MemberDataMigrationCard } from "./MemberDataMigrationCard";
+import { DistributorDataMigrationCard } from "./DistributorDataMigrationCard";
 import {
   submitCwMigration,
   type MigrationPreview,
@@ -40,6 +40,7 @@ export default function StockMigrationPage() {
   const [busy, setBusy] = useState<"preview" | "import" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const canImport = Boolean(user?.canManageStock);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export default function StockMigrationPage() {
     setResult(null);
     setConfirmed(false);
     setError(null);
+    setActiveStep(1);
   }
 
   function dropFile(event: DragEvent<HTMLDivElement>) {
@@ -68,6 +70,7 @@ export default function StockMigrationPage() {
     try {
       setPreview(await submitCwMigration<MigrationPreview>("preview", file));
       setConfirmed(false);
+      setActiveStep(2);
     } catch (requestError) {
       setPreview(null);
       setError(requestError instanceof Error ? requestError.message : "Unable to preview this file.");
@@ -84,6 +87,7 @@ export default function StockMigrationPage() {
       const imported = await submitCwMigration<MigrationResult>("import", file, preview.confirmationToken);
       invalidateStockCatalog();
       setResult(imported);
+      setActiveStep(3);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to import this file.");
     } finally {
@@ -91,15 +95,13 @@ export default function StockMigrationPage() {
     }
   }
 
-  const activeStep = result ? 3 : preview ? 2 : 1;
-
   return (
     <section className={styles.page} aria-labelledby="migration-title">
       <header className={styles.pageHeader}>
         <div>
           <div className={styles.breadcrumb}><span>Stock</span><ChevronRight size={13} /><span>Data migration</span></div>
           <h1 id="migration-title">Move your pharmacy data safely</h1>
-          <p>Preview matches, units, barcodes, and stock quantities before they reach your inventory.</p>
+          <p>Preview product, member, and distributor records before they reach your pharmacy database.</p>
         </div>
         <div className={styles.secureBadge}><LockKeyhole size={15} /><span>Owner-only import</span></div>
       </header>
@@ -116,7 +118,7 @@ export default function StockMigrationPage() {
           <div className={styles.sourceBar}>
             <span className={styles.sourceLogo}>CW</span>
             <div><p className={styles.eyebrow}>Selected source</p><h2>CW pharmacy software</h2></div>
-            <span className={styles.readyBadge}>Stock import ready</span>
+            <span className={styles.readyBadge}>All CW imports ready</span>
           </div>
 
           {!canImport && (
@@ -124,7 +126,7 @@ export default function StockMigrationPage() {
           )}
 
           <section className={styles.datasetSection} aria-labelledby="available-data-title">
-            <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>CW datasets</p><h2 id="available-data-title">Choose what to migrate</h2></div><span>1 of 3 available</span></div>
+            <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>CW datasets</p><h2 id="available-data-title">Choose what to migrate</h2></div><span>3 of 3 available</span></div>
 
             <article className={styles.activeDataset}>
               <div className={styles.datasetHeader}>
@@ -158,20 +160,14 @@ export default function StockMigrationPage() {
               )}
             </article>
 
-            <div className={styles.comingSoonGrid}>
-              <article className={styles.disabledDataset} aria-disabled="true">
-                <span className={styles.datasetIcon}><Users size={20} /></span><div><h3>Member data</h3><p>Member details · item purchase history</p></div><span>Coming soon</span>
-              </article>
-              <article className={styles.disabledDataset} aria-disabled="true">
-                <span className={styles.datasetIcon}><Store size={20} /></span><div><h3>Distributor data</h3><p>Distributor details · purchase history</p></div><span>Coming soon</span>
-              </article>
-            </div>
+            <MemberDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
+            <DistributorDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
           </section>
 
           {error && <div ref={errorRef} className={styles.errorNotice} role="alert"><ArchiveRestore size={18} /><span><strong>Import did not complete.</strong>{error}</span></div>}
           {preview && <MigrationPreviewPanel preview={preview} result={result} confirmed={confirmed} busy={busy === "import"} onConfirmedChange={setConfirmed} onImport={handleImport} />}
 
-          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>The first import checks every barcode. Later CW imports use the saved CW product code first. A barcode linked to more than one product is blocked for review.</p></div></aside>
+          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>Stock uses CW product codes and barcodes. Members update by member code, with duplicate phones shown as warnings. Distributors match by CW code first, then exact name to attach a missing code.</p></div></aside>
         </div>
       </div>
     </section>

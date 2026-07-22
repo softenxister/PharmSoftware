@@ -12,10 +12,10 @@ import {
   type MemberSort,
 } from "./memberData";
 import {
-  formatThaiPhoneInput,
-  formatThaiPhoneNumber,
-  isValidThaiPhoneNumber,
-  shouldShowThaiPhoneValidationError,
+  formatThaiPhoneNumberList,
+  formatThaiPhoneNumberListInput,
+  isValidThaiPhoneNumberList,
+  shouldShowThaiPhoneNumberListValidationError,
 } from "@/lib/thaiPhoneNumber";
 import { MemberAvatar } from "./MemberAvatarView";
 import styles from "./MemberDirectory.module.css";
@@ -49,8 +49,8 @@ export function MemberDirectory() {
   );
   const totalMemberPurchase = members.reduce((sum, member) => sum + member.totalPurchase, 0);
   const membersWithoutPurchases = members.filter((member) => !member.lastOrderAt).length;
-  const mobileValid = isValidThaiPhoneNumber(mobile);
-  const showMobileError = shouldShowThaiPhoneValidationError(mobile);
+  const mobileValid = isValidThaiPhoneNumberList(mobile);
+  const showMobileError = shouldShowThaiPhoneNumberListValidationError(mobile);
 
   useEffect(() => {
     let cancelled = false;
@@ -228,7 +228,7 @@ export function MemberDirectory() {
                         <span className={styles.customerName} title={member.name}>{member.name}</span>
                       </div>
                     </td>
-                    <td><span className={styles.mobileValue}>{formatThaiPhoneNumber(member.mobile)}</span></td>
+                    <td><span className={styles.mobileValue}>{formatThaiPhoneNumberList(member.mobile)}</span></td>
                     <td><time dateTime={member.registeredAt}>{formatDate(member.registeredAt)}</time></td>
                     <td>{member.lastOrderAt
                       ? <time dateTime={member.lastOrderAt}>{formatDate(member.lastOrderAt)}</time>
@@ -283,11 +283,11 @@ export function MemberDirectory() {
                 <span>{t("member.mobile")}</span>
                 <input
                   value={mobile}
-                  onChange={(event) => setMobile(formatThaiPhoneInput(event.target.value))}
-                  inputMode="numeric"
+                  onChange={(event) => setMobile(formatThaiPhoneNumberListInput(event.target.value))}
+                  inputMode="tel"
                   autoComplete="tel"
-                  maxLength={12}
-                  placeholder="081-234-5678"
+                  maxLength={200}
+                  placeholder="081-234-5678,089-123-4567"
                   aria-describedby={showMobileError ? "create-member-mobile-error" : undefined}
                   aria-invalid={showMobileError}
                   required

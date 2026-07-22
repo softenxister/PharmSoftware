@@ -2,14 +2,9 @@ import "dotenv/config";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
-import {
-  PrismaClient,
-  PurchaseBillStatus,
-  SaleStatus,
-} from "../src/generated/prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client";
 import {
   customers,
-  recentSales,
   salesProducts,
 } from "./seedData";
 import type { SavedStockItem } from "../src/server/db/types";
@@ -17,7 +12,6 @@ import {
   mergeStockSeedData,
   type StockProductOverride,
 } from "../src/server/db/stockDataMapper";
-import type { SavedPurchaseBill } from "../src/server/db/purchaseRepository";
 import { normalizePostgresConnectionString } from "../src/server/db/postgresConnection";
 
 const connectionString = process.env.DATABASE_URL;
@@ -28,35 +22,6 @@ const prisma = new PrismaClient({
 });
 
 const seedDataDirectory = path.join(process.cwd(), "prisma/seed-data");
-
-const distributorSeeds = [
-  "PharmaCo Ltd.",
-  "MediSupply Co.",
-  "HealthDist Inc.",
-  "BioPharm Group",
-  "GenericMeds Ltd.",
-  "Siam Medical Supply",
-  "Bangkok Pharma Distribution",
-  "Greenline Healthcare",
-  "Nova Drug Wholesale",
-  "Wellcare Logistics",
-  "TPD Thanom Pharma Distribution",
-  "Buymed Thailand",
-  "VORAMIT DRUG CENTER",
-];
-
-const counterCustomers = [
-  { id: "c1", name: "Suchada Wong", mobile: "081-234-5566", registeredAt: "2023-08-14", points: 4280, rank: "Platinum", products: ["p-sara", "p-tiffy", "p-airx", "p-gaviscon", "p-betadine"] },
-  { id: "c2", name: "Kridsada Phan", mobile: "089-771-2201", registeredAt: "2024-02-21", points: 2150, rank: "Gold", products: ["p-blackmores-c", "p-natc", "p-nivea-sun", "p-dentiste", "p-nexcare"] },
-  { id: "c3", name: "Areeya Somboon", mobile: "086-005-9981", registeredAt: "2025-01-08", points: 980, rank: "Silver", products: ["p-zyrtec", "p-tylenol", "p-ors", "p-smooth-e"] },
-  { id: "c4", name: "Natthapong Lee", mobile: "090-441-7723", registeredAt: "2024-11-19", points: 310, rank: "Regular", products: ["p-gaviscon", "p-sara", "p-durex"] },
-  { id: "c5", name: "Pimchanok Saelim", mobile: "082-636-1044", registeredAt: "2023-05-02", points: 0, rank: "Regular", products: [] },
-  { id: "c6", name: "Chayut Rattanakul", mobile: "095-218-6730", registeredAt: "2025-09-27", points: 0, rank: "Regular", products: [] },
-  { id: "c7", name: "Nicha Kittisak", mobile: "084-903-2258", registeredAt: "2026-01-16", points: 0, rank: "Regular", products: [] },
-  { id: "c8", name: "Warut Charoen", mobile: "088-514-9072", registeredAt: "2024-06-30", points: 0, rank: "Regular", products: [] },
-  { id: "c9", name: "Kanokwan Meechai", mobile: "092-775-4306", registeredAt: "2025-04-11", points: 0, rank: "Regular", products: [] },
-  { id: "c10", name: "Thana Pongsawat", mobile: "063-184-6629", registeredAt: "2023-12-05", points: 0, rank: "Regular", products: [] },
-];
 
 const owners = [
   { id: "o1", name: "Sukhumvit Branch - K. Anong" },
@@ -73,16 +38,6 @@ const pharmacists = [
 async function readJsonFile<T>(fileName: string): Promise<T> {
   const raw = await fs.readFile(path.join(seedDataDirectory, fileName), "utf8");
   return JSON.parse(raw) as T;
-}
-
-function saleDate(value: string): Date {
-  return new Date(`${value.replace(" ", "T")}:00+07:00`);
-}
-
-function purchaseStatus(value: SavedPurchaseBill["status"]): PurchaseBillStatus {
-  if (value === "draft") return PurchaseBillStatus.DRAFT;
-  if (value === "partial") return PurchaseBillStatus.PARTIAL;
-  return PurchaseBillStatus.RECEIVED;
 }
 
 async function seedProducts() {
@@ -199,7 +154,7 @@ async function seedPeople(productIds: Set<string>) {
     });
   }
 
-  for (const customer of customers) {
+  for (const customer of customers.filter((customer) => !customer.isMember)) {
     await prisma.customer.upsert({
       where: { id: customer.id },
       update: {
@@ -226,131 +181,11 @@ async function seedPeople(productIds: Set<string>) {
     }
   }
 
-  for (const customer of counterCustomers) {
-    await prisma.customer.upsert({
-      where: { id: customer.id },
-      update: { name: customer.name, mobile: customer.mobile, isMember: true, points: customer.points, membershipRank: customer.rank },
-      create: {
-        id: customer.id,
-        name: customer.name,
-        mobile: customer.mobile,
-        isMember: true,
-        points: customer.points,
-        membershipRank: customer.rank,
-        createdAt: new Date(`${customer.registeredAt}T00:00:00+07:00`),
-      },
-    });
-
-    const favorites = customer.products.filter((productId) => productIds.has(productId));
-    if (favorites.length > 0) {
-      await prisma.customerFavoriteProduct.createMany({
-        data: favorites.map((productId) => ({ customerId: customer.id, productId })),
-        skipDuplicates: true,
-      });
-    }
-  }
-}
-
-async function seedDistributors(purchaseBills: SavedPurchaseBill[]) {
-  const names = new Set([
-    ...distributorSeeds,
-    ...purchaseBills.map((bill) => bill.distributor).filter(Boolean),
-  ]);
-
-  for (const name of names) {
-    await prisma.distributor.upsert({ where: { name }, update: {}, create: { name } });
-  }
-}
-
-async function seedPurchases(purchaseBills: SavedPurchaseBill[]) {
-  for (const bill of purchaseBills) {
-    const distributor = await prisma.distributor.findUnique({ where: { name: bill.distributor } });
-    await prisma.purchaseBill.upsert({
-      where: { id: bill.id },
-      update: {
-        billNo: bill.billNo,
-        invoiceNo: bill.invoiceNo,
-        purchasedAt: new Date(bill.date),
-        distributorId: distributor?.id ?? null,
-        distributorName: bill.distributor,
-        itemCount: bill.itemCount,
-        totalQty: bill.totalQty,
-        netTotal: bill.netTotal,
-        status: purchaseStatus(bill.status),
-      },
-      create: {
-        id: bill.id,
-        billNo: bill.billNo,
-        invoiceNo: bill.invoiceNo,
-        purchasedAt: new Date(bill.date),
-        distributorId: distributor?.id ?? null,
-        distributorName: bill.distributor,
-        itemCount: bill.itemCount,
-        totalQty: bill.totalQty,
-        netTotal: bill.netTotal,
-        status: purchaseStatus(bill.status),
-        lines: {
-          create: bill.lines.map((line) => ({
-            id: line.id,
-            productId: line.productId,
-            barcode: line.barcode,
-            itemName: line.itemName,
-            unit: line.unit,
-            unitMultiplier: line.unitMultiplier,
-            quantity: line.quantity,
-            cost: line.cost,
-            freeUnit: line.freeUnit,
-            freeUnitMultiplier: line.freeUnitMultiplier,
-            freeQuantity: line.freeQuantity,
-            batchNo: line.batchNo,
-            expiryDate: line.expiryDate,
-          })),
-        },
-      },
-    });
-  }
-}
-
-async function seedRecentSales() {
-  const customerRows = await prisma.customer.findMany({ select: { id: true, name: true, isMember: true } });
-
-  for (const sale of recentSales) {
-    const customer = customerRows.find((row) => row.name === sale.customerName);
-    const status = sale.status === "Paid"
-      ? SaleStatus.PAID
-      : sale.status === "Voided"
-        ? SaleStatus.VOIDED
-        : SaleStatus.PENDING;
-
-    await prisma.sale.upsert({
-      where: { id: sale.id },
-      update: {},
-      create: {
-        id: sale.id,
-        billNo: sale.billNo,
-        soldAt: saleDate(sale.billDate),
-        customerId: customer?.id ?? null,
-        customerName: sale.customerName,
-        isMember: customer?.isMember ?? false,
-        itemCount: sale.uniqueItems,
-        totalQuantity: sale.totalQuantity,
-        paymentMethod: sale.paymentMethod,
-        purchaseMethod: "pickup",
-        subtotal: sale.netPayableThb,
-        netTotal: sale.netPayableThb,
-        status,
-      },
-    });
-  }
 }
 
 async function main() {
-  const purchaseBills = await readJsonFile<SavedPurchaseBill[]>("purchase-bills.json");
   const productIds = await seedProducts();
   await seedPeople(productIds);
-  await seedDistributors(purchaseBills);
-  await seedPurchases(purchaseBills);
-  await seedRecentSales();
 
   const [productCount, batchCount, purchaseCount, saleCount] = await Promise.all([
     prisma.product.count(),

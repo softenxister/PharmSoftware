@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Member details are invalid." }, { status: 400 });
   }
   const input = parseMemberProfileInput(body);
-  if (!input) return Response.json({ error: "Enter a valid name and Thai phone number." }, { status: 400 });
+  if (!input) return Response.json({ error: "Enter a valid name and comma-separated Thai phone numbers." }, { status: 400 });
   if (input.allergyIngredientIds && !await ingredientIdsExist(input.allergyIngredientIds)) {
     return Response.json({ error: "One or more allergy ingredients are invalid." }, { status: 400 });
   }

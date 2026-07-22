@@ -1,4 +1,4 @@
-import { formatThaiPhoneNumber, isValidThaiPhoneNumber } from "@/lib/thaiPhoneNumber";
+import { formatThaiPhoneNumberList, isValidThaiPhoneNumberList } from "@/lib/thaiPhoneNumber";
 import { validateAvatarDataUrl } from "@/server/auth/accountValidation";
 
 export type MemberProfileInput = {
@@ -27,7 +27,7 @@ export function parseMemberProfileInput(value: unknown): MemberProfileInput | nu
 
   const name = candidate.name.trim();
   const mobile = candidate.mobile.trim();
-  if (name.length < 2 || name.length > 100 || !isValidThaiPhoneNumber(mobile)) return null;
+  if (name.length < 2 || name.length > 100 || mobile.length > 200 || !isValidThaiPhoneNumberList(mobile)) return null;
 
   const allergyIngredientIds = allergyValues?.flatMap((value) => (
     typeof value === "string" && value.trim().length > 0 && value.trim().length <= 200
@@ -42,7 +42,7 @@ export function parseMemberProfileInput(value: unknown): MemberProfileInput | nu
 
   return {
     name,
-    mobile: formatThaiPhoneNumber(mobile),
+    mobile: formatThaiPhoneNumberList(mobile),
     ...(avatarUrl !== undefined ? { avatarUrl } : {}),
     ...(allergyIngredientIds ? { allergyIngredientIds } : {}),
   };

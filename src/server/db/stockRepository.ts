@@ -364,7 +364,7 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
   const where = stockProductWhere(input);
   const orderBy: Prisma.ProductOrderByWithRelationInput[] = input.sort === "weekly"
     ? [{ weeklySold: "desc" }, { itemName: "asc" }, { id: "asc" }]
-    : [{ itemName: "asc" }, { id: "asc" }];
+    : [{ itemName: input.sortDirection }, { id: input.sortDirection }];
   const [total, products] = await Promise.all([
     prisma.product.count({ where }),
     prisma.product.findMany({

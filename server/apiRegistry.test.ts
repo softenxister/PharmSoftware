@@ -42,6 +42,8 @@ test("the Node server registers every migrated API method and path once", () => 
     "PATCH /api/stock",
     "DELETE /api/stock",
     "POST /api/stock/migrations/cw",
+    "POST /api/stock/migrations/distributors",
+    "POST /api/stock/migrations/members",
     "GET /api/store-pos-settings",
     "PATCH /api/store-pos-settings",
     "GET /api/store-profile",

@@ -19,7 +19,7 @@ export function normalizeBrandSearchText(value: string): string {
     .normalize("NFKC")
     .toLocaleLowerCase("th-TH")
     .replace(/&/g, " and ")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, " ")
     .trim()
     .replace(/\s+/g, " ");
 }
@@ -29,10 +29,19 @@ const aliasIndex = THAI_PHARMACY_BRAND_RULES
     brandName: rule.brandName,
     alias,
     normalizedAlias: normalizeBrandSearchText(alias),
+    normalizedEmbeddedExclusions: (rule.embeddedExclusions ?? []).map(normalizeBrandSearchText),
   })))
   .sort((left, right) => right.normalizedAlias.length - left.normalizedAlias.length);
 
-function containsAlias(searchText: string, alias: string): boolean {
+function containsAlias(
+  searchText: string,
+  alias: string,
+  embeddedExclusions: readonly string[],
+): boolean {
+  if (/\p{Script=Thai}/u.test(alias)) {
+    return searchText.includes(alias)
+      && !embeddedExclusions.some((excludedPhrase) => searchText.includes(excludedPhrase));
+  }
   return (` ${searchText} `).includes(` ${alias} `);
 }
 
@@ -72,7 +81,11 @@ function leadingFallback(itemName: string): BrandExtractionResult {
 
 export function extractThaiPharmacyBrand(itemName: string): BrandExtractionResult {
   const searchText = normalizeBrandSearchText(itemName);
-  const match = aliasIndex.find((candidate) => containsAlias(searchText, candidate.normalizedAlias));
+  const match = aliasIndex.find((candidate) => containsAlias(
+    searchText,
+    candidate.normalizedAlias,
+    candidate.normalizedEmbeddedExclusions,
+  ));
   if (match) {
     return {
       brandName: match.brandName,

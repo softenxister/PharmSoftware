@@ -40,3 +40,30 @@ export function formatThaiPhoneNumber(value: string): string {
   const digits = normalizeThaiPhoneNumber(value);
   return formatDigits(digits, digits.length === 9);
 }
+
+function phoneNumberListParts(value: string): string[] {
+  return value.split(",").map((part) => part.trim());
+}
+
+export function isValidThaiPhoneNumberList(value: string): boolean {
+  const parts = phoneNumberListParts(value);
+  return parts.length > 0 && parts.every((part) => part.length > 0 && isValidThaiPhoneNumber(part));
+}
+
+export function formatThaiPhoneNumberList(value: string): string {
+  return phoneNumberListParts(value).map(formatThaiPhoneNumber).join(",");
+}
+
+export function formatThaiPhoneNumberListInput(value: string): string {
+  return value.split(",").map(formatThaiPhoneInput).join(",");
+}
+
+export function shouldShowThaiPhoneNumberListValidationError(value: string): boolean {
+  if (!value.trim()) return false;
+  const parts = phoneNumberListParts(value);
+  return parts.some((part, index) => {
+    if (!part) return index < parts.length - 1;
+    if (!PHONE_INPUT_CHARACTERS.test(part)) return true;
+    return shouldShowThaiPhoneValidationError(part);
+  });
+}

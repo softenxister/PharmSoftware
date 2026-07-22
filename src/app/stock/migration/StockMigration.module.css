@@ -68,6 +68,7 @@
 
 .activeDataset, .previewPanel, .successPanel { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .activeDataset { overflow: hidden; }
+.memberDataset { margin-top: 10px; }
 .datasetHeader { display: flex; align-items: center; gap: 12px; padding: 17px 18px 14px; }
 .datasetIcon, .fileIcon, .successIcon { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; background: var(--green-soft); color: var(--green-dark); }
 .datasetIcon { width: 38px; height: 38px; border-radius: 8px; }
@@ -139,6 +140,27 @@
 .brandhigh { color: var(--green) !important; }
 .brandmedium { color: #80601e !important; }
 .brandreview { color: var(--red) !important; font-weight: 700; }
+.memberTable { min-width: 1040px; table-layout: fixed; }
+.memberTable th:nth-child(1) { width: 104px; }
+.memberTable th:nth-child(2) { width: 58px; }
+.memberTable th:nth-child(3) { width: 120px; }
+.memberTable th:nth-child(4) { width: 150px; }
+.memberTable th:nth-child(5) { width: 220px; }
+.memberTable th:nth-child(6) { width: 150px; }
+.memberTable th:nth-child(7) { width: 112px; }
+.memberTable th:nth-child(8) { width: 220px; }
+.memberName, .memberAddress, .memberIssue { min-width: 0; overflow-wrap: anywhere; }
+.memberAddress { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; line-height: 1.4; }
+.rawPhone, .memberDate { white-space: pre-wrap; }
+.phoneWarning { color: var(--amber) !important; font-weight: 700; line-height: 1.35; }
+.memberIssue { display: block; line-height: 1.4; }
+.distributorTable { min-width: 760px; table-layout: fixed; }
+.distributorTable th:nth-child(1) { width: 118px; }
+.distributorTable th:nth-child(2) { width: 58px; }
+.distributorTable th:nth-child(3) { width: 120px; }
+.distributorTable th:nth-child(4) { width: 230px; }
+.distributorTable th:nth-child(5) { width: 90px; }
+.distributorTable th:nth-child(6) { width: 240px; }
 .confirmRow { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 18px; }
 .confirmRow label { display: flex; align-items: flex-start; gap: 8px; color: #49584f; font-size: 12px; line-height: 1.4; cursor: pointer; }
 .confirmRow input { width: 15px; height: 15px; margin: 1px 0 0; accent-color: var(--green); }

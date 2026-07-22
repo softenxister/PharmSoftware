@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   CheckCircle2,
   ChevronDown,
-  ChevronsUpDown,
   Edit3,
   MapPin,
   PackagePlus,
@@ -18,7 +19,11 @@ import { shouldCloseDropdown } from "@/app/dropdownInteraction";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { buildStockCategoryOptions, getStockCategoryLabel } from "./stockCategoryFilter";
 import { getStockFilterOptionLabel } from "./stockFilterLabels";
-import { invalidateStockCatalog, loadStockPage } from "./stockCatalogClient";
+import {
+  invalidateStockCatalog,
+  loadStockPage,
+  type StockSortDirection,
+} from "./stockCatalogClient";
 import { StockFilterDropdown, StockRangeFilter } from "./StockFilterDropdown";
 import {
   buildFilterOptions,
@@ -220,6 +225,7 @@ export default function StockPage() {
   const [adjustmentSuccess, setAdjustmentSuccess] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [products, setProducts] = useState<SalesProduct[]>([]);
+  const [nameSortDirection, setNameSortDirection] = useState<StockSortDirection>("asc");
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [hasMoreProducts, setHasMoreProducts] = useState(false);
@@ -245,6 +251,7 @@ export default function StockPage() {
           pageSize: STOCK_PAGE_SIZE,
           query: debouncedQuery,
           sort: "name",
+          sortDirection: nameSortDirection,
         });
         if (cancelled) return;
         if (result.products.length === 0 && result.total > 0 && page > 1) {
@@ -265,7 +272,7 @@ export default function StockPage() {
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, page, stockRefreshVersion]);
+  }, [debouncedQuery, nameSortDirection, page, stockRefreshVersion]);
 
   useEffect(() => {
     if (!adjustmentSuccess) return;
@@ -316,9 +323,12 @@ export default function StockPage() {
         return { item, priority };
       })
       .filter((result): result is { item: StockItem; priority: number } => result.priority !== null)
-      .sort((a, b) => a.priority - b.priority || a.item.name.localeCompare(b.item.name))
+      .sort((a, b) => (
+        a.priority - b.priority
+        || a.item.name.localeCompare(b.item.name) * (nameSortDirection === "asc" ? 1 : -1)
+      ))
       .map(({ item }) => item);
-  }, [appliedFilters, query, stockItems]);
+  }, [appliedFilters, nameSortDirection, query, stockItems]);
 
   const stockCategoryFilterOptions = useMemo(
     () => buildStockCategoryOptions(),
@@ -348,6 +358,10 @@ export default function StockPage() {
   const openAddStock = () => {
     setEditingProduct(null);
     setStockWindowOpen(true);
+  };
+  const toggleNameSortDirection = () => {
+    setPage(1);
+    setNameSortDirection((currentDirection) => currentDirection === "asc" ? "desc" : "asc");
   };
   const openEditStock = (product: SalesProduct) => {
     setEditingProduct(product);
@@ -727,10 +741,21 @@ export default function StockPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th className={styles.itemCol}>
-                    <span className={styles.headerCell}>
-                      {t("stock.itemName")} <ChevronsUpDown size={14} />
-                    </span>
+                  <th
+                    className={styles.itemCol}
+                    aria-sort={nameSortDirection === "asc" ? "ascending" : "descending"}
+                  >
+                    <button
+                      type="button"
+                      className={`${styles.headerCell} ${styles.sortButton}`}
+                      onClick={toggleNameSortDirection}
+                      aria-label={t("member.sortBy", { label: t("stock.itemName") })}
+                    >
+                      <span>{t("stock.itemName")}</span>
+                      {nameSortDirection === "asc"
+                        ? <ArrowUp size={14} aria-hidden="true" />
+                        : <ArrowDown size={14} aria-hidden="true" />}
+                    </button>
                   </th>
                   <th>{t("stock.minimumShort")}</th>
                   <th>{t("stock.maximumShort")}</th>

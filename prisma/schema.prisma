@@ -244,6 +244,7 @@ model ProductBatch {
 
 model Distributor {
   id            String         @id @default(cuid())
+  code          String?        @unique
   name          String         @unique
   phone         String?
   email         String?
@@ -254,8 +255,10 @@ model Distributor {
 
 model Customer {
   id                  String                      @id
+  memberCode          String?                     @unique
   name                String
-  mobile              String?                     @unique
+  mobile              String?
+  address             String?
   avatarUrl           String?
   isMember            Boolean                     @default(false)
   points              Int                         @default(0)
@@ -265,6 +268,8 @@ model Customer {
   ingredientAllergies CustomerIngredientAllergy[]
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
+
+  @@index([mobile])
 }
 
 model CustomerIngredientAllergy {

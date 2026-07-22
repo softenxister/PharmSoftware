@@ -8,6 +8,23 @@ import {
 } from "../src/server/import/thaiBrandExtractor";
 
 const shouldApply = process.argv.includes("--apply");
+const requestedBrandName = process.argv
+  .find((argument) => argument.startsWith("--brand="))
+  ?.slice("--brand=".length)
+  .trim();
+const requestedConfidence = process.argv
+  .find((argument) => argument.startsWith("--confidence="))
+  ?.slice("--confidence=".length)
+  .trim();
+const onlyUnspecified = process.argv.includes("--only-unspecified");
+
+if (process.argv.some((argument) => argument.startsWith("--brand=")) && !requestedBrandName) {
+  throw new Error("--brand requires a non-empty brand name.");
+}
+if (requestedConfidence && !["high", "medium", "review"].includes(requestedConfidence)) {
+  throw new Error("--confidence must be high, medium, or review.");
+}
+
 const products = await prisma.product.findMany({
   where: { externalProductCode: { not: null } },
   orderBy: { externalProductCode: "asc" },
@@ -34,7 +51,11 @@ const changes = products.map((product) => {
     ...extraction,
     nextBrandName,
   };
-}).filter((product) => product.previousBrandName !== product.nextBrandName);
+})
+  .filter((product) => product.previousBrandName !== product.nextBrandName)
+  .filter((product) => !requestedBrandName || product.nextBrandName === requestedBrandName)
+  .filter((product) => !requestedConfidence || product.confidence === requestedConfidence)
+  .filter((product) => !onlyUnspecified || product.previousBrandName === "Unspecified");
 
 const summary = {
   scannedCount: products.length,
@@ -47,6 +68,9 @@ const summary = {
 if (!shouldApply) {
   console.log(JSON.stringify({
     mode: "preview",
+    requestedBrandName: requestedBrandName ?? null,
+    requestedConfidence: requestedConfidence ?? null,
+    onlyUnspecified,
     summary,
     changes: changes.map((change) => ({
       externalProductCode: change.externalProductCode,
@@ -78,6 +102,13 @@ if (!shouldApply) {
     timeout: 120_000,
   });
 
-  console.log(JSON.stringify({ mode: "applied", summary, backupPath }, null, 2));
+  console.log(JSON.stringify({
+    mode: "applied",
+    requestedBrandName: requestedBrandName ?? null,
+    requestedConfidence: requestedConfidence ?? null,
+    onlyUnspecified,
+    summary,
+    backupPath,
+  }, null, 2));
   await prisma.$disconnect();
 }

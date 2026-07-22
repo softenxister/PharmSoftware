@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatThaiPhoneInput,
+  formatThaiPhoneNumberList,
+  formatThaiPhoneNumberListInput,
   formatThaiPhoneNumber,
+  isValidThaiPhoneNumberList,
   isValidThaiPhoneNumber,
   normalizeThaiPhoneNumber,
+  shouldShowThaiPhoneNumberListValidationError,
   shouldShowThaiPhoneValidationError,
 } from "./thaiPhoneNumber";
 
@@ -31,6 +35,14 @@ test("accepts Thai 02 fixed lines and 06, 08, or 09 ten-digit numbers", () => {
   assert.equal(isValidThaiPhoneNumber("061-234-5678"), true);
   assert.equal(isValidThaiPhoneNumber("0812345678"), true);
   assert.equal(isValidThaiPhoneNumber("091-234-5678"), true);
+});
+
+test("accepts, formats, and progressively edits comma-separated Thai phone numbers", () => {
+  assert.equal(isValidThaiPhoneNumberList("095-8382352,081-4362858"), true);
+  assert.equal(formatThaiPhoneNumberList("095-8382352, 0814362858"), "095-838-2352,081-436-2858");
+  assert.equal(formatThaiPhoneNumberListInput("0958382352,081436"), "095-838-2352,081-436");
+  assert.equal(shouldShowThaiPhoneNumberListValidationError("095-838-2352,071-234-5678"), true);
+  assert.equal(isValidThaiPhoneNumberList("095-838-2352,071-234-5678"), false);
 });
 
 test("rejects invalid Thai phone lengths and prefixes", () => {

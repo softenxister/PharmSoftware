@@ -797,6 +797,29 @@
   gap: 6px;
 }
 
+.sortButton {
+  height: 30px;
+  margin-left: -7px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-transform: inherit;
+}
+
+.sortButton:hover {
+  background: var(--app-accent-soft);
+  color: var(--app-highlight-ink);
+}
+
+.sortButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 35%, transparent);
+  outline-offset: 0;
+}
+
 .itemCell {
   display: flex;
   width: 100%;

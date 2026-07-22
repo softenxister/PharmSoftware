@@ -8,8 +8,16 @@ test("stock reads default to the first bounded page", () => {
     pageSize: 50,
     query: "",
     sort: "name",
+    sortDirection: "asc",
     productIds: [],
   });
+});
+
+test("stock reads accept descending item-name order", () => {
+  assert.equal(
+    parseStockReadQuery("http://pharm.test/api/stock?sort=name&direction=desc").sortDirection,
+    "desc",
+  );
 });
 
 test("stock read limits are clamped and search input is normalized", () => {
@@ -20,6 +28,7 @@ test("stock read limits are clamped and search input is normalized", () => {
     pageSize: 100,
     query: "Paracetamol",
     sort: "weekly",
+    sortDirection: "asc",
     productIds: [],
   });
 });

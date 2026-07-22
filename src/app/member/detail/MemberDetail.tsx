@@ -19,7 +19,11 @@ import {
 import { useNavigate, useParams } from "react-router";
 import { shouldCloseDropdown } from "@/app/dropdownInteraction";
 import { usePreferences } from "@/app/PreferencesProvider";
-import { formatThaiPhoneInput, formatThaiPhoneNumber, isValidThaiPhoneNumber } from "@/lib/thaiPhoneNumber";
+import {
+  formatThaiPhoneNumberList,
+  formatThaiPhoneNumberListInput,
+  isValidThaiPhoneNumberList,
+} from "@/lib/thaiPhoneNumber";
 import { isAllowedMemberAvatarFile } from "../memberAvatar";
 import { MemberAvatar } from "../MemberAvatarView";
 import type { MemberRecord } from "../memberData";
@@ -91,7 +95,7 @@ export function MemberDetail() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const ingredientDropdownRef = useRef<HTMLDivElement>(null);
-  const mobileValid = isValidThaiPhoneNumber(mobile);
+  const mobileValid = isValidThaiPhoneNumberList(mobile);
 
   useEffect(() => {
     if (!editing) return;
@@ -146,7 +150,7 @@ export function MemberDetail() {
         if (!cancelled) {
           setMember(data.member);
           setName(data.member.name);
-          setMobile(formatThaiPhoneNumber(data.member.mobile));
+          setMobile(formatThaiPhoneNumberList(data.member.mobile));
           setAvatarUrl(data.member.avatarUrl ?? null);
         }
       } catch (error) {
@@ -172,7 +176,7 @@ export function MemberDetail() {
   const beginEdit = () => {
     if (!member) return;
     setName(member.name);
-    setMobile(formatThaiPhoneNumber(member.mobile));
+    setMobile(formatThaiPhoneNumberList(member.mobile));
     setAvatarUrl(member.avatarUrl ?? null);
     setAvatarChanged(false);
     setAvatarError("");
@@ -262,7 +266,7 @@ export function MemberDetail() {
   );
 
   const profileUnchanged = name.trim() === member.name
-    && formatThaiPhoneNumber(mobile) === formatThaiPhoneNumber(member.mobile)
+    && formatThaiPhoneNumberList(mobile) === formatThaiPhoneNumberList(member.mobile)
     && avatarUrl === (member.avatarUrl ?? null)
     && selectedAllergies.map((ingredient) => ingredient.id).sort().join("|")
       === member.allergies.map((ingredient) => ingredient.id).sort().join("|");
@@ -285,7 +289,7 @@ export function MemberDetail() {
             <div className={styles.identityText}>
               <p>{t("member.profile")}</p>
               <h1 title={member.name}>{member.name}</h1>
-              <span>{formatThaiPhoneNumber(member.mobile)} · {t("member.memberId")}: {member.id}</span>
+              <span>{formatThaiPhoneNumberList(member.mobile)} · {t("member.memberId")}: {member.id}</span>
             </div>
           </div>
           <button type="button" className={styles.editButton} onClick={beginEdit}>
@@ -446,11 +450,11 @@ export function MemberDetail() {
                 <span>{t("member.mobile")}</span>
                 <input
                   value={mobile}
-                  onChange={(event) => setMobile(formatThaiPhoneInput(event.target.value))}
-                  inputMode="numeric"
+                  onChange={(event) => setMobile(formatThaiPhoneNumberListInput(event.target.value))}
+                  inputMode="tel"
                   autoComplete="tel"
-                  maxLength={12}
-                  placeholder="081-234-5678"
+                  maxLength={200}
+                  placeholder="081-234-5678,089-123-4567"
                   aria-describedby="edit-member-mobile-hint"
                   aria-invalid={mobile.length > 0 && !mobileValid}
                   required

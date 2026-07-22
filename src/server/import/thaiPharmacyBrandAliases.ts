@@ -1,6 +1,7 @@
 export type ThaiPharmacyBrandRule = {
   brandName: string;
   aliases: readonly string[];
+  embeddedExclusions?: readonly string[];
 };
 
 /**
@@ -27,7 +28,11 @@ export const THAI_PHARMACY_BRAND_RULES: readonly ThaiPharmacyBrandRule[] = [
   { brandName: "ซากุระโค่ย", aliases: ["ซากุระโค่ย", "sakura koi"] },
   { brandName: "BIOTHYMUS", aliases: ["biothymus", "biothymus-m"] },
   { brandName: "Zambuk", aliases: ["zambuk", "แซมบัค", "แซมบั๊ค"] },
-  { brandName: "Tiger Balm", aliases: ["tiger balm", "ยาหม่องตราเสือ", "ตราเสือ"] },
+  {
+    brandName: "Tiger Balm",
+    aliases: ["tiger balm", "ยาหม่องตราเสือ", "ตราเสือ"],
+    embeddedExclusions: ["ตราเสือดาว", "ตราเสือดำ", "ตราเสือ11ตัว", "ตราเสือ 11 ตัว"],
+  },
   { brandName: "Counterpain", aliases: ["counterpain", "เคาน์เตอร์เพน"] },
   { brandName: "Vicks", aliases: ["vicks", "วิคส์"] },
   { brandName: "Durex", aliases: ["durex", "ดูเร็กซ์"] },
@@ -82,7 +87,11 @@ export const THAI_PHARMACY_BRAND_RULES: readonly ThaiPharmacyBrandRule[] = [
   { brandName: "Centrum", aliases: ["centrum", "เซนทรัม"] },
   { brandName: "Berocca", aliases: ["berocca", "เบอรอคค่า"] },
   { brandName: "BRAND'S", aliases: ["brand's", "brands", "แบรนด์"] },
-  { brandName: "Scott's", aliases: ["scott's", "scotts", "สก๊อต"] },
+  {
+    brandName: "Scott's",
+    aliases: ["scott's", "scotts", "สก๊อต"],
+    embeddedExclusions: ["ลายสก๊อต", "สก๊อตไบรต์"],
+  },
   { brandName: "Ensure", aliases: ["ensure", "เอนชัวร์"] },
   { brandName: "Glucerna", aliases: ["glucerna", "กลูเซอร์นา"] },
 ] as const;

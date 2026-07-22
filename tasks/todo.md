@@ -94,3 +94,46 @@
 - [x] Final verification
   - Acceptance: no unrelated worktree changes are overwritten and all agreed behavior is represented in code and tests.
   - Verify: focused tests, direct TypeScript check, `git diff --check`, and browser verification if available.
+
+---
+
+# Member Data Migration
+
+- [x] Member CSV contract
+  - Acceptance: UTF-8 CSV rows parse safely; required data, dates, phone normalization, and conflicts match the confirmed rules.
+  - Verify: focused tests fail before implementation and pass afterward.
+  - Files: `src/server/import/memberDataMigration.ts`, upload module, colocated tests.
+
+- [x] Transactional member import API
+  - Acceptance: owner-only preview/import rechecks the confirmation token, upserts valid rows by member code, preserves internal fields, and skips blocked rows.
+  - Verify: repository tests where pure, API registry test, Prisma validation, TypeScript.
+  - Files: member migration repository, API route, server registry, Prisma migration.
+
+- [x] Member migration UI
+  - Acceptance: the page accepts a CSV, previews exact source phone values and row status, confirms import, and reports created/updated/blocked totals.
+  - Verify: type check and browser interaction at desktop/tablet widths where tooling is available.
+  - Files: migration client, member card/preview components, migration page, scoped styles.
+
+- [x] Final verification
+  - Acceptance: no npm commands or unrelated edits; all agreed behavior is tested and import controls are guarded while invalid or busy.
+  - Verify: focused direct Node tests, installed TypeScript/Prisma binaries, builds, and `git diff --check` passed; the approved stock-index/member migrations were applied and the live member count is zero. Browser tooling is unavailable.
+
+---
+
+# Distributor Data Migration
+
+- [x] XLSX/CSV distributor contract
+  - Acceptance: bounded parsers discover `รหัส` and `ชื่อ`, ignore every other field, and reconcile by code then exact name.
+  - Verify: focused parser/upload tests fail before implementation and pass afterward using a real minimal XLSX fixture.
+
+- [x] Transactional distributor import API
+  - Acceptance: owner-only preview/import adds or updates code/name while preserving phone, email, and purchase history.
+  - Verify: repository tests, API registry test, Prisma validation, and TypeScript.
+
+- [x] Distributor migration UI
+  - Acceptance: `/stock/migration` accepts XLSX/CSV, previews rows, guards confirmation, and reports created/updated/blocked totals.
+  - Verify: production client build and browser checks where tooling is available.
+
+- [x] Final verification and additive deployment
+  - Acceptance: the distributor-code migration is applied without deleting or rewriting existing distributor data.
+  - Verify: focused tests, schema/client checks, builds, `git diff --check`, and live read-only schema verification.

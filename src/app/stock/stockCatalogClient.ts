@@ -13,11 +13,14 @@ export type StockPage = {
   hasMore: boolean;
 };
 
+export type StockSortDirection = "asc" | "desc";
+
 export type StockPageOptions = {
   page?: number;
   pageSize?: number;
   query?: string;
   sort?: "name" | "weekly";
+  sortDirection?: StockSortDirection;
   productIds?: string[];
 };
 
@@ -43,6 +46,7 @@ function stockPageUrl(options: StockPageOptions): string {
   });
   const query = options.query?.trim();
   if (query) params.set("q", query);
+  if (options.sortDirection === "desc") params.set("direction", "desc");
   if (productIds.length > 0) params.set("ids", productIds.join(","));
   return `/api/stock?${params.toString()}`;
 }
