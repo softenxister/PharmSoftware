@@ -98,7 +98,7 @@ export function StaffPanel() {
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
         <div><h2 className={styles.panelTitle}>{t("settings.staff")}</h2><p className={styles.panelDescription}>{t("staff.description")}</p></div>
-        <button type="button" className={styles.primaryButton} onClick={() => { setError(""); setModal({ type: "add" }); }}><Plus size={15} />{t("staff.add")}</button>
+        <button type="button" className={`${styles.primaryButton} ${styles.createActionButton}`} onClick={() => { setError(""); setModal({ type: "add" }); }}><Plus size={15} />{t("staff.add")}</button>
       </div>
       <div className={styles.staffBody}>
         <div className={styles.ownerOnlyNotice}><ShieldCheck size={16} /><span><strong>{t("staff.ownerOnly")}</strong> {t("staff.ownerOnlyHint")}</span></div>
@@ -132,7 +132,7 @@ export function StaffPanel() {
               {modal.type === "reset" && <div className={styles.liveFormGrid}><label className={styles.liveField}><span>{t("staff.newTemporaryPassword")}</span><input name="password" type="password" minLength={10} maxLength={128} required autoFocus /></label><label className={styles.liveField}><span>{t("auth.confirmPassword")}</span><input name="confirmPassword" type="password" minLength={10} maxLength={128} required /></label></div>}
               {modal.type === "status" && <div className={styles.confirmBox}>{modal.staff.isActive ? t("staff.blockHint") : t("staff.restoreHint")}</div>}
               {error && <div className={styles.formError} role="alert">{error}</div>}
-              <div className={styles.modalActions}><button type="button" className={styles.secondaryActionButton} onClick={() => setModal(null)}>{t("staff.cancel")}</button><button type="submit" className={`${styles.primaryButton} ${modal.type === "status" && modal.staff.isActive ? styles.dangerButton : ""}`} disabled={submitting}>{submitting ? t("common.saving") : modal.type === "add" ? t("staff.createAccount") : modal.type === "reset" ? t("staff.resetPassword") : modal.staff.isActive ? t("staff.deactivate") : t("staff.activate")}</button></div>
+              <div className={styles.modalActions}><button type="button" className={styles.secondaryActionButton} onClick={() => setModal(null)}>{t("staff.cancel")}</button><button type="submit" className={`${styles.primaryButton} ${modal.type === "add" ? styles.createActionButton : ""} ${modal.type === "status" && modal.staff.isActive ? styles.dangerButton : ""}`} disabled={submitting}>{submitting ? t("common.saving") : modal.type === "add" ? t("staff.createAccount") : modal.type === "reset" ? t("staff.resetPassword") : modal.staff.isActive ? t("staff.deactivate") : t("staff.activate")}</button></div>
             </form>
           </div>
         </div>

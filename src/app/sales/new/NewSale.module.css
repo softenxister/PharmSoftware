@@ -1,18 +1,18 @@
 .page {
-  --bg: #F6F9F7;
-  --surface: #FFFFFF;
-  --border: #E1E8E4;
-  --ink: #142420;
-  --ink-muted: #5C6B65;
-  --primary: #0F6E5D;
-  --primary-dark: #0A4F41;
-  --primary-soft: #E4F2EE;
+  --bg: var(--app-page);
+  --surface: var(--app-surface);
+  --border: var(--app-border);
+  --ink: var(--app-ink);
+  --ink-muted: var(--app-muted);
+  --primary: var(--app-accent);
+  --primary-dark: var(--app-highlight-ink);
+  --primary-soft: var(--app-accent-soft);
   --danger: #C74A3F;
   --danger-soft: #FBE9E7;
   --amber: #B9791E;
   --amber-soft: #FBF1DD;
-  --summary-bg: #0B3B2E;
-  --summary-bg-light: #12523F;
+  --summary-bg: var(--app-header);
+  --summary-bg-light: var(--app-header-active);
 
   font-family: var(--app-font);
   color: var(--ink);
@@ -65,11 +65,11 @@
 }
 
 .breadcrumbLink:hover {
-  color: var(--primary);
+  color: var(--app-highlight-ink);
 }
 
 .breadcrumbSep {
-  color: var(--primary);
+  color: var(--app-highlight-ink);
   font-weight: 800;
 }
 
@@ -166,11 +166,11 @@
 .customSelectShortcut {
   min-width: 24px;
   flex: 0 0 auto;
-  border: 1px solid #ccd8d0;
-  border-bottom-color: #aebdb3;
+  border: 1px solid var(--app-border);
+  border-bottom-color: color-mix(in srgb, var(--app-border) 68%, var(--app-ink));
   border-radius: 4px;
-  background: #fff;
-  color: #42614d;
+  background: var(--app-surface);
+  color: var(--app-muted);
   font-family: inherit;
   font-size: 9px;
   font-weight: 800;
@@ -199,7 +199,7 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 9px;
-  background: #f5f8f6;
+  background: var(--app-page);
 }
 
 .paymentMethodToggleOption {
@@ -254,9 +254,9 @@
   justify-content: center;
   gap: 7px;
   min-height: 34px;
-  border: 1px solid #C9DCD5;
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: #F7FBF9;
+  background: var(--app-surface-muted);
   color: var(--primary-dark);
   cursor: pointer;
   font-family: inherit;
@@ -296,7 +296,7 @@
 }
 
 .fulfilmentToggle:hover {
-  background: #F7FAF8;
+  background: var(--app-surface-muted);
 }
 
 .fulfilmentToggle:focus-visible {
@@ -320,8 +320,8 @@
   height: 18px;
   flex-shrink: 0;
   border-radius: 999px;
-  background: #E5EAE7;
-  box-shadow: inset 0 0 0 1px #D2DAD5;
+  background: var(--app-border);
+  box-shadow: inset 0 0 0 1px var(--app-border);
 }
 
 .fulfilmentSwitchThumb {
@@ -331,7 +331,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #7B8780;
+  background: var(--app-muted);
   transition: transform 0.15s ease;
 }
 
@@ -356,7 +356,7 @@
   align-items: center;
   gap: 8px;
   border: none;
-  background: var(--primary);
+  background: var(--app-action);
   color: #fff;
   font-family: var(--app-font);
   font-weight: 700;
@@ -367,7 +367,7 @@
 }
 
 .saveMain:hover {
-  background: var(--primary-dark);
+  background: var(--app-action-dark);
 }
 
 .saveMain:disabled,
@@ -379,13 +379,13 @@
 
 .saveMain:disabled:hover,
 .saveChevron:disabled:hover {
-  background: var(--primary);
+  background: var(--app-action);
 }
 
 .saveChevron {
   border: none;
   border-left: 1px solid rgba(255, 255, 255, 0.25);
-  background: var(--primary);
+  background: var(--app-action);
   color: #fff;
   padding: 9px 10px;
   border-radius: 0 9px 9px 0;
@@ -395,7 +395,7 @@
 }
 
 .saveChevron:hover {
-  background: var(--primary-dark);
+  background: var(--app-action-dark);
 }
 
 .saveMenu {
@@ -449,7 +449,7 @@
 }
 
 .gearButton:hover {
-  color: var(--primary);
+  color: var(--app-icon-ink);
   border-color: var(--primary);
 }
 
@@ -603,7 +603,7 @@
   height: 4px;
   margin: 0 10px 2px 0;
   border-radius: 50%;
-  background: rgba(15, 110, 93, 0.45);
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
 }
 
 .clearChip {
@@ -716,7 +716,7 @@
   color: var(--ink-muted);
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
-  background: #FBFCFB;
+  background: var(--app-surface-muted);
 }
 
 .cartTable thead th:first-child,
@@ -834,7 +834,7 @@
   width: 28px;
   height: 30px;
   border: 0;
-  background: #F7FAF8;
+  background: var(--app-surface-muted);
   color: var(--primary-dark);
   cursor: pointer;
   font-size: 16px;
@@ -914,7 +914,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #6b7971;
+  color: var(--app-muted);
   font-size: 10px;
   pointer-events: none;
   white-space: nowrap;
@@ -922,11 +922,11 @@
 
 .keyboardHint kbd {
   min-width: 21px;
-  border: 1px solid #d4ddd7;
-  border-bottom-color: #bac7bf;
+  border: 1px solid var(--app-border);
+  border-bottom-color: var(--app-border);
   border-radius: 4px;
-  background: #f4f7f5;
-  color: #46564d;
+  background: var(--app-page);
+  color: var(--app-muted);
   font-family: inherit;
   font-size: 9px;
   font-weight: 700;
@@ -1168,7 +1168,7 @@
   width: calc(100% - 44px);
   height: 1px;
   margin-left: 44px;
-  background: rgba(15, 110, 93, 0.24);
+  background: color-mix(in srgb, var(--primary) 24%, transparent);
 }
 
 .editorSecondaryRow {
@@ -1241,7 +1241,7 @@
 .batchCard {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed rgba(15, 110, 93, 0.35);
+  border-top: 1px dashed color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 .batchCardLabel {
@@ -1316,7 +1316,7 @@
   justify-content: center;
   gap: 5px;
   border: none;
-  background: var(--primary);
+  background: var(--app-action);
   color: #fff;
   font-family: var(--app-font);
   font-weight: 700;
@@ -1338,7 +1338,7 @@
 }
 
 .addButton:hover {
-  background: var(--primary-dark);
+  background: var(--app-action-dark);
 }
 
 /* ── Top items rail ─────────────────────────────────────────────── */
@@ -1533,9 +1533,9 @@
 }
 
 .confirmCancel {
-  border: 1px solid #ccd6d0;
-  background: #fff;
-  color: #4c5b52;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-muted);
 }
 
 .confirmProceed {
@@ -1545,7 +1545,7 @@
 }
 
 .confirmCancel:hover {
-  background: #f5f8f6;
+  background: var(--app-page);
 }
 
 .confirmProceed:hover {
@@ -1554,7 +1554,7 @@
 
 .confirmCancel:focus-visible,
 .confirmProceed:focus-visible {
-  outline: 3px solid rgba(47, 124, 78, 0.2);
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, transparent);
   outline-offset: 1px;
 }
 
@@ -1565,7 +1565,7 @@
   display: flex;
   align-items: stretch;
   background: var(--summary-bg);
-  color: #EAF3EF;
+  color: var(--app-header-text-strong);
   min-height: 70px;
   padding: 0 20px;
 }
@@ -1585,7 +1585,7 @@
   text-transform: uppercase;
   font-family: var(--app-font);
   font-size-adjust: var(--app-uppercase-font-size-adjust);
-  color: rgba(234, 243, 239, 0.65);
+  color: var(--app-header-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1599,7 +1599,7 @@
 
 .summaryDivider {
   width: 1px;
-  background: rgba(234, 243, 239, 0.16);
+  background: var(--app-header-divider);
   margin: 12px 0;
 }
 
@@ -1620,7 +1620,7 @@
 }
 
 .netPayableCell:hover {
-  background: #17614A;
+  background: var(--app-header-hover);
 }
 
 .netPayableCell:disabled {
@@ -1900,7 +1900,7 @@
   margin-top: 10px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: var(--primary-soft);
+  background: var(--app-surface-soft);
   color: var(--primary-dark);
 }
 
@@ -1923,8 +1923,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 0 4px var(--primary-soft);
+  background: var(--app-action);
+  box-shadow: 0 0 0 4px var(--app-action-soft);
 }
 
 /* ── Pill reminder ──────────────────────────────────────────────── */
@@ -1957,7 +1957,7 @@
   color: var(--ink-muted);
   font-size: 13px;
   text-align: center;
-  background: #FBFCFB;
+  background: var(--app-surface-muted);
 }
 
 .reminderTableWrap {
@@ -1977,7 +1977,7 @@
 
 .reminderTable th,
 .reminderTable td {
-  border-bottom: 1px solid #c7d4cd;
+  border-bottom: 1px solid var(--app-border);
   padding: 9px 10px;
   vertical-align: middle;
 }
@@ -1987,7 +1987,7 @@
 }
 
 .reminderTable th {
-  background: #146137;
+  background: var(--app-accent-dark);
   color: rgba(255, 255, 255, 0.82);
   font-size: 11px;
   font-weight: 800;
@@ -1996,7 +1996,7 @@
 }
 
 .reminderTable td {
-  background: #e8f5ed;
+  background: var(--app-surface-soft);
 }
 
 .reminderTable th:first-child,
@@ -2089,7 +2089,7 @@
 
 .reminderDoseButton:hover {
   border-color: var(--primary);
-  background: #F7FBF9;
+  background: var(--app-surface-muted);
 }
 
 .reminderDoseButton:focus-visible,
@@ -2097,7 +2097,7 @@
   outline: none;
   border-color: var(--primary);
   background: var(--primary-soft);
-  box-shadow: 0 0 0 3px rgba(22, 149, 125, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
   color: var(--primary-dark);
 }
 
@@ -2126,7 +2126,7 @@
 
 .drawerPrimaryBtn {
   border: none;
-  background: var(--primary);
+  background: var(--app-action);
   color: #fff;
   font-weight: 700;
   font-size: 13px;
@@ -2137,13 +2137,26 @@
 }
 
 .drawerPrimaryBtn:hover {
-  background: var(--primary-dark);
+  background: var(--app-action-dark);
 }
 
 .drawerPrimaryBtn:disabled,
 .drawerPrimaryBtn:disabled:hover {
   cursor: not-allowed;
-  background: #8fb2a4;
+  background: color-mix(in srgb, var(--app-action) 48%, var(--app-surface));
+}
+
+.submitActionButton {
+  background: var(--app-create-action);
+}
+
+.submitActionButton:hover {
+  background: var(--app-create-action-dark);
+}
+
+.submitActionButton:disabled,
+.submitActionButton:disabled:hover {
+  background: color-mix(in srgb, var(--app-create-action) 48%, var(--app-surface));
 }
 
 .drawerError {
@@ -2206,8 +2219,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--app-action-soft);
+  color: var(--app-action);
 }
 
 .invoiceCreatedTitle {
@@ -2220,7 +2233,7 @@
 
 .invoiceCreatedSub {
   margin: 4px 0 20px;
-  color: #7c8b84;
+  color: var(--app-muted);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.35;
@@ -2252,7 +2265,7 @@
 }
 
 .invoiceCreatedRow .invoiceCreatedNo {
-  color: #256fc2;
+  color: var(--app-highlight-ink);
 }
 
 .invoiceCreatedRow .invoiceCreatedTime {
@@ -2279,12 +2292,12 @@
   justify-content: center;
   gap: 8px;
   border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--primary-dark);
+  background: var(--app-surface-soft);
+  color: var(--app-highlight-ink);
 }
 
 .printReceiptBtn:hover {
-  background: var(--bg);
+  background: var(--app-border-soft);
 }
 
 .newSaleBtn {
@@ -2294,15 +2307,15 @@
   gap: 6px;
   margin-top: 10px;
   border: none;
-  background: var(--primary-dark);
+  background: var(--app-create-action);
   color: #fff;
 }
 
 .newSaleBtn:hover,
 .newSaleBtn:focus-visible {
-  background: var(--primary);
+  background: var(--app-create-action-dark);
   outline: none;
-  box-shadow: 0 0 0 3px var(--primary-soft);
+  box-shadow: 0 0 0 3px var(--app-create-action-soft);
 }
 
 .newSaleBtnIcon {
@@ -2333,7 +2346,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 11px 12px;
-  background: #FBFCFB;
+  background: var(--app-surface-muted);
 }
 
 .settingsToggle input {
@@ -2356,7 +2369,7 @@
   gap: 3px;
   margin-top: 14px;
   border-radius: 10px;
-  background: var(--primary-soft);
+  background: var(--app-surface-soft);
   color: var(--primary-dark);
   padding: 12px;
   font-size: 12.5px;

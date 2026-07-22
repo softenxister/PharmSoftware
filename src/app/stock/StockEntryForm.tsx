@@ -735,7 +735,7 @@ export function StockEntryForm({
       </div>
 
       <div className={styles.formFooter}>
-        <button type="submit" className={styles.toolbarAddButton} disabled={!canSave || isDeleting}>
+        <button type="submit" className={`${styles.toolbarAddButton} ${!isEditing ? styles.createActionButton : ""}`} disabled={!canSave || isDeleting}>
           <PackagePlus size={17} />
           <span>{isEditing ? t("stockForm.saveChanges") : t("stockForm.create")}</span>
         </button>

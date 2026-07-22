@@ -6,8 +6,8 @@
   flex: 1;
   place-items: center;
   overflow: hidden;
-  background: #fff;
-  color: #1c2d22;
+  background: var(--app-surface);
+  color: var(--app-ink);
   padding: 32px;
 }
 
@@ -31,9 +31,9 @@
   position: absolute;
   width: 112px;
   height: 112px;
-  border: 1px solid #dcebe1;
+  border: 1px solid var(--app-border);
   border-radius: 50%;
-  background: #f1f7f3;
+  background: var(--app-surface-soft);
   content: "";
 }
 
@@ -41,7 +41,7 @@
   position: absolute;
   width: 144px;
   height: 144px;
-  border: 1px dashed #cfe1d5;
+  border: 1px dashed var(--app-border);
   border-radius: 50%;
 }
 
@@ -65,10 +65,10 @@
   display: inline-flex;
   min-height: 28px;
   align-items: center;
-  border: 1px solid #cde0d3;
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: #edf6f0;
-  color: #2d6845;
+  background: var(--app-surface-soft);
+  color: var(--app-highlight-ink);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -78,7 +78,7 @@
 
 .copy h1 {
   margin: 12px 0 0;
-  color: #1d2c22;
+  color: var(--app-ink);
   font-size: clamp(18px, 2.2vw, 22px);
   font-weight: 820;
   letter-spacing: -0.025em;

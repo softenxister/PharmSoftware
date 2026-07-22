@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Settings2 } from "lucide-react";
 import { usePreferences } from "@/app/PreferencesProvider";
 import type { PharmUser } from "@/server/auth/pharmUser";
 import { PosPreferencesPanel } from "./PosPreferencesPanel";
@@ -33,7 +32,6 @@ export function SettingsWorkspace({
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <div className={styles.pageTitleGroup}>
-          <span className={styles.pageTitleIcon}><Settings2 size={20} aria-hidden="true" /></span>
           <div className={styles.pageTitleCopy}>
             <h1>{t("nav.settings")}</h1>
           </div>

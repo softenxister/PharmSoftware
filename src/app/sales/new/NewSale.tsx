@@ -6,7 +6,7 @@ import { Settings } from 'lucide-react';
 import { usePreferences } from '@/app/PreferencesProvider';
 import { MemberAvatar } from '@/app/member/MemberAvatarView';
 import styles from './NewSale.module.css';
-import type { ParentPack, ProductPack, SalesProduct } from '@/server/db/types';
+import type { ProductPack, SalesProduct } from '@/server/db/types';
 import type { PharmUser } from '@/server/auth/pharmUser';
 import { invalidateStockCatalog, loadStockProductsByIds, searchStockCatalog } from '@/app/stock/stockCatalogClient';
 import { requiresPosConfirmation } from '@/app/settings/posPreferences';
@@ -21,9 +21,13 @@ import { useStorePosSettings } from '@/app/settings/useStorePosSettings';
 import { PosConfirmationDialog } from './PosConfirmationDialog';
 import {
   buildProductDescription,
+  buildSellPackOptions,
   calculateSalePricing,
   createReminderFromDefaultDosage,
+  displayPackUnit,
+  resolvePaidSaleNextStep,
   shouldUseSellPackDropdown,
+  type SellPackOption,
 } from './salesPresentation';
 import { resolveSaleShortcut, subscribeSaleShortcuts } from './salesShortcuts';
 import morningReminderIcon from '@/styles/vector/morning.png';
@@ -77,16 +81,7 @@ interface Batch {
   stock: number;
 }
 
-interface SellPack {
-  key: string;
-  unit: string;
-  label: string;
-  relationLabel: string;
-  displayLabel: string;
-  priceMultiplier: number;
-  sellPriceThb?: number;
-  barcodes: string[];
-}
+type SellPack = SellPackOption;
 
 interface CatalogItem {
   id: string;
@@ -218,16 +213,6 @@ function pluralChildUnit(unit: string, qty: number): string {
   return unit;
 }
 
-function displayPackUnit(unit: string): string {
-  if (unit === 'blisterpack') return 'blister packs';
-  return unit;
-}
-
-function sellPackButtonLabel(unit: string): string {
-  if (unit === 'blisterpack') return 'blister';
-  return unit;
-}
-
 function amountLabel(pack: ProductPack): string {
   return `${pack.childQuantity} ${pluralChildUnit(pack.childUnit, pack.childQuantity)}`;
 }
@@ -248,27 +233,11 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
     manufacturer: product.manufacturerName,
     packLabel: amountLabel(product.pack),
     packUnit: product.pack.packUnit,
-    sellPacks: [
-      {
-        key: `${product.pack.packUnit}-1`,
-        unit: product.pack.packUnit,
-        label: sellPackButtonLabel(product.pack.packUnit),
-        relationLabel: product.pack.label,
-        displayLabel: `${product.pack.childQuantity} / ${displayPackUnit(product.pack.packUnit)}`,
-        priceMultiplier: 1,
-        barcodes: [product.barcode, ...(product.barcodes ?? [])],
-      },
-      ...product.parentPacks.map((pack: ParentPack) => ({
-        key: pack.id ?? `${pack.packUnit}-${pack.childPackQuantity}`,
-        unit: pack.packUnit,
-        label: sellPackButtonLabel(pack.packUnit),
-        relationLabel: pack.label,
-        displayLabel: `${pack.childPackQuantity} / ${displayPackUnit(pack.packUnit)}`,
-        priceMultiplier: pack.childPackQuantity,
-        ...(pack.sellPriceThb === undefined ? {} : { sellPriceThb: pack.sellPriceThb }),
-        barcodes: pack.barcodes ?? [],
-      })),
-    ],
+    sellPacks: buildSellPackOptions(
+      product.pack,
+      product.parentPacks,
+      [product.barcode, ...(product.barcodes ?? [])],
+    ),
     loc: product.location,
     image: product.imageUrl,
     weeklySold: product.weeklySold,
@@ -684,7 +653,6 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const [billingDevice, setBillingDevice] = useState('Front Counter Thermal Printer');
   const [cashDrawerDevice, setCashDrawerDevice] = useState('Front Counter Cash Drawer');
   const [paperSize, setPaperSize] = useState(() => window.localStorage.getItem('pharm_receipt_paper_size') === '58' ? '58' : '80');
-  const [autoPrint, setAutoPrint] = useState(true);
   const [autoOpenCashDrawer, setAutoOpenCashDrawer] = useState(true);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const saleShortcutHandlerRef = useRef<(event: KeyboardEvent) => void>(() => undefined);
@@ -1332,8 +1300,6 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   async function submitInvoicePayment() {
     if (!canSaveSale || saleSubmitting) return;
-    const autoPreviewWindow = autoPrint ? window.open('', '_blank') : null;
-    if (autoPreviewWindow) autoPreviewWindow.opener = null;
     const nextDiscount = readDraftDiscount();
     const nextNetPayable = calculateSalePricing(pricingLines, nextDiscount).netPayable;
     const paid = parseFloat(customerPayInput);
@@ -1379,7 +1345,6 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       invalidateStockCatalog();
       savedSale = saleData.sale;
     } catch (error) {
-      autoPreviewWindow?.close();
       setSaleSubmitError(error instanceof Error ? error.message : 'Unable to update stock for this sale.');
       setSaleSubmitting(false);
       return;
@@ -1401,13 +1366,9 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     });
     setAppliedDiscount(nextDiscount);
     setDiscountOpen(false);
-    setInvoiceCreated(createdInvoice);
+    const nextStep = resolvePaidSaleNextStep('submit', createdInvoice.saleId);
+    if (nextStep.kind === 'invoice-preview') setInvoiceCreated(createdInvoice);
     setSaleSubmitting(false);
-    if (autoPrint) {
-      const receiptUrl = `/sales/receipt/${encodeURIComponent(createdInvoice.saleId)}`;
-      if (autoPreviewWindow && !autoPreviewWindow.closed) autoPreviewWindow.location.replace(receiptUrl);
-      else window.open(receiptUrl, '_blank', 'noopener,noreferrer');
-    }
   }
 
   function clearDiscount() {
@@ -2231,18 +2192,6 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
             <label className={styles.settingsToggle}>
               <span>
-                <span className={styles.settingsLabel}>{t('newSale.autoPrint')}</span>
-                <span className={styles.settingsHelp}>{t('newSale.autoPrintHint')}</span>
-              </span>
-              <input
-                type="checkbox"
-                checked={autoPrint}
-                onChange={(e) => setAutoPrint(e.target.checked)}
-              />
-            </label>
-
-            <label className={styles.settingsToggle}>
-              <span>
                 <span className={styles.settingsLabel}>{t('newSale.autoDrawer')}</span>
                 <span className={styles.settingsHelp}>{t('newSale.autoDrawerHint')}</span>
               </span>
@@ -2256,7 +2205,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             <div className={styles.devicePreview}>
               <span className={styles.muted}>{t('newSale.currentSetup')}</span>
               <strong>{billingDevice}</strong>
-              <span>{paperSize} mm thermal | {autoPrint ? t('pos.on') : t('pos.off')}</span>
+              <span>{paperSize} mm thermal</span>
               <span>{cashDrawerDevice} | {autoOpenCashDrawer ? t('pos.on') : t('pos.off')}</span>
             </div>
 
@@ -2397,7 +2346,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
               {appliedDiscount && (
                 <button type="button" className={styles.drawerSecondaryBtn} onClick={clearDiscount}>{t('newSale.removeDiscount')}</button>
               )}
-              <button type="button" className={styles.drawerPrimaryBtn} onClick={() => void submitInvoicePayment()} disabled={saleSubmitting}>
+              <button type="button" className={`${styles.drawerPrimaryBtn} ${styles.submitActionButton}`} onClick={() => void submitInvoicePayment()} disabled={saleSubmitting}>
                 {saleSubmitting ? t('newSale.submitting') : t('newSale.submit')}
               </button>
             </div>
@@ -2452,11 +2401,13 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
             <button
               type="button"
               className={styles.printReceiptBtn}
-              onClick={() => window.open(
-                `/sales/receipt/${encodeURIComponent(invoiceCreated.saleId)}`,
-                '_blank',
-                'noopener,noreferrer',
-              )}
+              onClick={() => {
+                const nextStep = resolvePaidSaleNextStep('print', invoiceCreated.saleId);
+                if (nextStep.kind === 'receipt-route') {
+                  window.open(nextStep.path, '_blank', 'noopener,noreferrer');
+                  if (nextStep.resetOriginalSale) resetForNewWalkIn();
+                }
+              }}
             >
               <IconPrint />
               {t('newSale.printReceipt')}

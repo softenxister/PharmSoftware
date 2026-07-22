@@ -231,7 +231,7 @@ export function StockBatchAdjustmentDialog({
           {error && <p className={styles.adjustmentError} role="alert">{error}</p>}
           <button
             type="button"
-            className={styles.adjustmentSubmitButton}
+            className={`${styles.adjustmentSubmitButton} ${styles.submitActionButton}`}
             onClick={() => void handleSubmit()}
             disabled={!calculation.isValid || !calculation.hasChanges || isSubmitting}
           >

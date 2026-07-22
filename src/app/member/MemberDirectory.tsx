@@ -302,7 +302,7 @@ export function MemberDirectory() {
               {createError && <p className={styles.formError} role="alert">{createError}</p>}
               <div className={styles.dialogActions}>
                 <button type="button" className={styles.cancelButton} onClick={closeCreate}>{t("member.cancel")}</button>
-                <button type="submit" className={styles.saveButton} disabled={!name.trim() || !mobileValid || creating}>
+                <button type="submit" className={`${styles.saveButton} ${styles.createActionButton}`} disabled={!name.trim() || !mobileValid || creating}>
                   {creating ? t("common.saving") : t("member.create")}
                 </button>
               </div>

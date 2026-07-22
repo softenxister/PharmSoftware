@@ -146,7 +146,7 @@ export function LoginScreen() {
                   <label><span>{t("auth.confirmPassword")}</span><input name="confirmPassword" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={10} maxLength={128} required /></label>
                 )}
                 {error && <div className={styles.error} role="alert">{error}</div>}
-                <button className={styles.submitButton} type="submit" disabled={submitting}>
+                <button className={`${styles.submitButton} ${mode === "setup" ? styles.createActionButton : ""}`} type="submit" disabled={submitting}>
                   {submitting ? t("auth.wait") : mode === "setup" ? t("auth.createOwner") : t("auth.signIn")}
                 </button>
               </form>

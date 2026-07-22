@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { Building2, Camera, Check, ImagePlus, Save } from "lucide-react";
+import { Camera, Check, ImagePlus, Save } from "lucide-react";
 import type { PharmUser } from "@/server/auth/pharmUser";
 import {
   EMPTY_STORE_PROFILE,
@@ -114,10 +114,7 @@ export function StoreProfilePanel({ user }: { user: PharmUser }) {
   return (
     <section className={styles.panel} aria-labelledby="store-profile-title">
       <div className={styles.panelHeader}>
-        <div className={styles.panelTitleGroup}>
-          <span className={styles.deviceIcon}><Building2 size={18} aria-hidden="true" /></span>
-          <div><h2 id="store-profile-title" className={styles.panelTitle}>Store Profile</h2><p className={styles.panelDescription}>Pharmacy identity, contact channels, and receipt details.</p></div>
-        </div>
+        <div><h2 id="store-profile-title" className={styles.panelTitle}>Store Profile</h2><p className={styles.panelDescription}>Pharmacy identity, contact channels, and receipt details.</p></div>
         {message && <span className={styles.savedBadge} role="status"><Check size={13} />{message}</span>}
       </div>
 

@@ -19,10 +19,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid #cbded2;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
-  background: #f1f6f3;
-  color: #658071;
+  background: var(--app-surface-soft);
+  color: var(--app-icon-ink);
 }
 
 .imagePreview img {
@@ -57,7 +57,7 @@
 }
 
 .imageButton:focus-within {
-  outline: 2px solid rgba(43, 101, 66, 0.35);
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 35%, transparent);
   outline-offset: 2px;
 }
 
@@ -86,11 +86,11 @@
   min-width: 0;
   min-height: 76px;
   resize: vertical;
-  border: 1px solid #cfd9d2;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
   outline: 0;
-  background: #fff;
-  color: #233129;
+  background: var(--app-surface);
+  color: var(--app-ink);
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1.4;
@@ -99,10 +99,10 @@
 
 .addressInput:focus {
   border-color: var(--settings-green);
-  box-shadow: 0 0 0 3px rgba(43, 101, 66, 0.13);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 13%, transparent);
 }
 
 .addressInput:read-only {
-  background: #f5f7f6;
-  color: #5f6c64;
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
 }

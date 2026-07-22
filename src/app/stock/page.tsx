@@ -549,7 +549,7 @@ export default function StockPage() {
 
         {isFilterOpen && (
           <>
-            <button type="button" className={styles.addStockButton} onClick={openAddStock}>
+            <button type="button" className={`${styles.addStockButton} ${styles.createActionButton}`} onClick={openAddStock}>
               <Plus size={17} />
               <span>{t("stock.createItem")}</span>
             </button>
@@ -705,7 +705,7 @@ export default function StockPage() {
             <ChevronDown size={15} />
           </button>
 
-          <button type="button" className={styles.toolbarAddButton} onClick={openAddStock}>
+          <button type="button" className={`${styles.toolbarAddButton} ${styles.createActionButton}`} onClick={openAddStock}>
             <PackagePlus size={17} />
             <span>{t("stock.createItem")}</span>
           </button>

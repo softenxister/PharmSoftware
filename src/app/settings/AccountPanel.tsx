@@ -100,9 +100,11 @@ export function AccountPanel({ user, onUpdated }: { user: PharmUser; onUpdated: 
         <form onSubmit={saveProfile} className={styles.accountForm}>
           <div className={styles.avatarEditor}>
             <div className={styles.largeAvatar}>{avatarUrl ? <img src={avatarUrl} alt={t("account.currentProfile")} /> : initials}</div>
-            <div><strong>{t("account.profilePhoto")}</strong><small>{t("account.photoHint")}</small></div>
-            <label className={styles.secondaryButton}><Camera size={14} />{t("account.chooseImage")}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={selectAvatar} /></label>
-            {avatarUrl && <button type="button" className={styles.textButton} onClick={() => setAvatarUrl(null)}>{t("account.remove")}</button>}
+            <div className={styles.avatarEditorCopy}><strong>{t("account.profilePhoto")}</strong><small>{t("account.photoHint")}</small></div>
+            <div className={styles.avatarEditorActions}>
+              <label className={styles.secondaryButton}><Camera size={14} />{t("account.chooseImage")}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={selectAvatar} /></label>
+              {avatarUrl && <button type="button" className={styles.textButton} onClick={() => setAvatarUrl(null)}>{t("account.remove")}</button>}
+            </div>
           </div>
           <div className={styles.liveFormGrid}>
             <label className={styles.liveField}><span>{t("account.fullName")}</span><input name="name" defaultValue={user.name} minLength={2} maxLength={100} required /></label>

@@ -1,3 +1,5 @@
+import type { ParentPack, ProductPack } from "@/server/db/types";
+
 type ProductDescriptionInput = {
   brand: string;
   packLabel: string;
@@ -22,6 +24,84 @@ export function buildProductDescription(input: ProductDescriptionInput): string 
 
 export function shouldUseSellPackDropdown(sellPackCount: number): boolean {
   return Number.isFinite(sellPackCount) && sellPackCount > 1;
+}
+
+export type SellPackOption = {
+  key: string;
+  unit: string;
+  label: string;
+  relationLabel: string;
+  displayLabel: string;
+  priceMultiplier: number;
+  sellPriceThb?: number;
+  barcodes: string[];
+};
+
+export function displayPackUnit(unit: string): string {
+  if (unit === "blisterpack") return "blister packs";
+  return unit;
+}
+
+function sellPackButtonLabel(unit: string): string {
+  if (unit === "blisterpack") return "blister";
+  return unit;
+}
+
+function quantityKey(quantity: number): string {
+  return Number.isFinite(quantity) ? String(quantity) : "0";
+}
+
+export function buildSellPackOptions(
+  pack: ProductPack,
+  parentPacks: readonly ParentPack[],
+  baseBarcodes: readonly string[] = [],
+): SellPackOption[] {
+  return [
+    {
+      key: `base:${pack.packUnit}`,
+      unit: pack.packUnit,
+      label: sellPackButtonLabel(pack.packUnit),
+      relationLabel: pack.label,
+      displayLabel: `${pack.childQuantity} / ${displayPackUnit(pack.packUnit)}`,
+      priceMultiplier: 1,
+      barcodes: [...baseBarcodes],
+    },
+    ...parentPacks.map((parentPack) => {
+      const quantity = quantityKey(parentPack.childPackQuantity);
+      return {
+        key: parentPack.id ?? `parent:${parentPack.packUnit}:${parentPack.childPackUnit}:${quantity}`,
+        unit: parentPack.packUnit,
+        label: `${sellPackButtonLabel(parentPack.packUnit)}(${quantity})`,
+        relationLabel: parentPack.label,
+        displayLabel: `${parentPack.childPackQuantity} / ${displayPackUnit(parentPack.packUnit)}`,
+        priceMultiplier: parentPack.priceMultiplier,
+        ...(parentPack.sellPriceThb === undefined ? {} : { sellPriceThb: parentPack.sellPriceThb }),
+        barcodes: [...(parentPack.barcodes ?? [])],
+      };
+    }),
+  ];
+}
+
+export type PaidSaleNextStep =
+  | { kind: "invoice-preview" }
+  | {
+    kind: "receipt-route";
+    path: string;
+    resetOriginalSale: true;
+    target: "new-tab";
+  };
+
+export function resolvePaidSaleNextStep(
+  action: "submit" | "print",
+  saleId: string,
+): PaidSaleNextStep {
+  if (action === "submit") return { kind: "invoice-preview" };
+  return {
+    kind: "receipt-route",
+    path: `/sales/receipt/${encodeURIComponent(saleId)}`,
+    resetOriginalSale: true,
+    target: "new-tab",
+  };
 }
 
 export type DefaultReminderState = {

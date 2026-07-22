@@ -1,5 +1,5 @@
 export type AppLocale = "en" | "th";
-export type ColorTheme = "pharmacy-green" | "deep-forest" | "soft-neutral";
+export type ColorTheme = "pharmacy-green" | "pink" | "orange" | "purple";
 export type MemberDefaultSort = "lastOrderAt" | "name" | "registeredAt";
 export type AnalysisDefaultRange = "today" | "7d" | "30d";
 
@@ -44,7 +44,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 
 const isLocale = (value: unknown): value is AppLocale => value === "en" || value === "th";
 const isColorTheme = (value: unknown): value is ColorTheme => (
-  value === "pharmacy-green" || value === "deep-forest" || value === "soft-neutral"
+  value === "pharmacy-green" || value === "pink" || value === "orange" || value === "purple"
 );
 const isMemberDefaultSort = (value: unknown): value is MemberDefaultSort => (
   value === "lastOrderAt" || value === "name" || value === "registeredAt"
@@ -68,6 +68,13 @@ export function normalizeAppPreferences(value: unknown): AppPreferences {
       ? input.analysisDefaultRange
       : DEFAULT_APP_PREFERENCES.analysisDefaultRange,
   };
+}
+
+export function createAppPreferencesSavePayload(
+  current: AppPreferences,
+  patch: AppPreferencesPatch,
+): AppPreferences {
+  return normalizeAppPreferences({ ...current, ...patch });
 }
 
 export function parseAppPreferencesPatch(value: unknown): AppPreferencesPatch | null {

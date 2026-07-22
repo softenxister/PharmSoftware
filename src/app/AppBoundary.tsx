@@ -11,8 +11,8 @@ function SessionLoading() {
       aria-busy="true"
       style={{
         alignItems: "center",
-        background: "#f4f7f4",
-        color: "#496052",
+            background: "var(--app-page)",
+            color: "var(--app-muted)",
         display: "flex",
         fontSize: "14px",
         justifyContent: "center",

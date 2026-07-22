@@ -1,18 +1,18 @@
 .page {
-  --surface: #ffffff;
-  --border: #dce7e1;
-  --ink: #15251d;
-  --muted: #627168;
-  --green: #176c49;
-  --green-dark: #0e5036;
-  --green-soft: #e7f3ec;
+  --surface: var(--app-surface);
+  --border: var(--app-border);
+  --ink: var(--app-ink);
+  --muted: var(--app-muted);
+  --green: var(--app-accent);
+  --green-dark: var(--app-highlight-ink);
+  --green-soft: var(--app-accent-soft);
   display: flex;
   min-width: 0;
   min-height: 0;
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  background: #f5f8f6;
+  background: var(--app-page);
   color: var(--ink);
   font-family: var(--app-font);
 }
@@ -64,7 +64,7 @@
 .breadcrumb a,
 .billLinks a,
 .restrictedCard a {
-  color: var(--green);
+  color: var(--app-highlight-ink);
   font-weight: 800;
   text-decoration: none;
 }
@@ -87,7 +87,7 @@
 
 .refreshButton {
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--app-surface);
   color: var(--green-dark);
 }
 
@@ -126,7 +126,7 @@
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--border);
-  color: var(--green);
+  color: var(--app-highlight-ink);
   padding: 10px 13px;
 }
 
@@ -176,7 +176,7 @@
 
 .requestCard:hover,
 .requestCardActive {
-  border-color: #b8d5c6;
+  border-color: color-mix(in srgb, var(--green) 36%, var(--app-border));
   background: var(--green-soft);
 }
 
@@ -196,7 +196,7 @@
 .requestTopline small,
 .requestUser {
   overflow: hidden;
-  color: #748179;
+  color: var(--app-muted);
   font-size: 9.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -264,7 +264,7 @@
   text-transform: capitalize;
 }
 
-.approvedText { color: var(--green); }
+.approvedText { color: #176c49; }
 .rejectedText { color: #a23c35; }
 
 .emptyQueue,
@@ -276,7 +276,7 @@
   justify-content: center;
   flex-direction: column;
   gap: 8px;
-  color: #809087;
+  color: var(--app-muted);
   font-size: 12px;
   text-align: center;
 }
@@ -313,7 +313,7 @@
 }
 
 .billIdentity > span {
-  color: var(--green);
+  color: var(--app-highlight-ink);
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -374,7 +374,7 @@
 
 .tableWrap th,
 .tableWrap td {
-  border-bottom: 1px solid #e8efeb;
+  border-bottom: 1px solid var(--app-border-soft);
   padding: 9px 12px;
   text-align: right;
   vertical-align: middle;
@@ -384,7 +384,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #f7faf8;
+  background: var(--app-surface-muted);
   color: var(--muted);
   font-size: 9.5px;
   font-weight: 800;
@@ -422,7 +422,7 @@
 .tableWrap input {
   width: 106px;
   height: 32px;
-  border: 1px solid #bfcfc6;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
   outline: none;
   color: var(--ink);
@@ -434,8 +434,8 @@
 }
 
 .tableWrap input:focus {
-  border-color: #67a88a;
-  box-shadow: 0 0 0 3px rgba(23, 108, 73, 0.1);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 10%, transparent);
 }
 
 .quantityValue,
@@ -469,7 +469,7 @@
 .reasonSection textarea {
   min-height: 62px;
   resize: vertical;
-  border: 1px solid #bfcfc6;
+  border: 1px solid var(--app-border);
   border-radius: 7px;
   outline: none;
   color: var(--ink);
@@ -481,8 +481,8 @@
 }
 
 .reasonSection textarea:focus {
-  border-color: #67a88a;
-  box-shadow: 0 0 0 3px rgba(23, 108, 73, 0.1);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 10%, transparent);
 }
 
 .reasonSection > span {
@@ -514,7 +514,7 @@
   justify-content: flex-end;
   gap: 9px;
   border-top: 1px solid var(--border);
-  background: #fbfdfc;
+  background: var(--app-surface-muted);
   padding: 10px 15px;
 }
 
@@ -539,8 +539,8 @@
 }
 
 .applyButton {
-  border: 1px solid var(--green);
-  background: var(--green);
+  border: 1px solid var(--app-action);
+  background: var(--app-action);
   color: #ffffff;
 }
 
@@ -556,14 +556,14 @@
   align-self: center;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--app-surface);
   box-shadow: 0 12px 38px rgba(20, 45, 31, 0.08);
   margin: auto;
   padding: 28px;
   text-align: center;
 }
 
-.restrictedCard > svg { color: var(--green); }
+.restrictedCard > svg { color: var(--app-icon-ink); }
 .restrictedCard h1 { margin: 10px 0 7px; font-size: 19px; }
 .restrictedCard a { width: fit-content; border: 1px solid var(--border); margin: 18px auto 0; }
 

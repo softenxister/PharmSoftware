@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { StockItemInput } from "./types";
 import {
@@ -70,4 +71,14 @@ test("same-name package variants keep separate quantities, prices, and barcodes"
     { unit: "box", quantity: 20, sellPrice: 95, barcodes: ["200", "201"] },
     { unit: "box", quantity: 40, sellPrice: 180, barcodes: ["400", "401"] },
   ]);
+});
+
+test("parent-pack database identity includes unit and quantity", () => {
+  const schema = readFileSync(new URL("../../../prisma/schema.prisma", import.meta.url), "utf8");
+  const parentPackModel = schema.match(/model ProductParentPack \{[\s\S]*?\n\}/)?.[0] ?? "";
+
+  assert.match(
+    parentPackModel,
+    /@@unique\(\[productId, packUnit, childPackQuantity\]\)/,
+  );
 });

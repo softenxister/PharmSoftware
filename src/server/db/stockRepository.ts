@@ -41,6 +41,7 @@ const productGraph = {
     include: { barcodeAliases: true },
     orderBy: [
       { packUnit: "asc" as const },
+      { childPackUnit: "asc" as const },
       { childPackQuantity: "asc" as const },
     ],
   },

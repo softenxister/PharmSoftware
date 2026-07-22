@@ -50,3 +50,21 @@ test("stock adjustment helper text is translated", () => {
     "สถานะการปรับยังไม่ใช้กรองตารางสินค้า",
   );
 });
+
+test("color themes use descriptive names in both languages", () => {
+  const themeKeys = [
+    "appearance.pharmacyGreen",
+    "appearance.pink",
+    "appearance.orange",
+    "appearance.purple",
+  ] as const;
+
+  assert.deepEqual(
+    themeKeys.map((key) => translate("en", key)),
+    ["Pharmacy Green", "Rose Pink", "Warm Orange", "Calm Purple"],
+  );
+  assert.deepEqual(
+    themeKeys.map((key) => translate("th", key)),
+    ["เขียวเภสัช", "ชมพูกุหลาบ", "ส้มอบอุ่น", "ม่วงสงบ"],
+  );
+});

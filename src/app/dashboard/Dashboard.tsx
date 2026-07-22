@@ -65,7 +65,7 @@ const staffBarData = [
 
 const badgeColors: Record<string, { bg: string; text: string }> = {
   Gold:   { bg: "#fef3c7", text: "#92400e" },
-  Silver: { bg: "#f1f5f9", text: "#475569" },
+  Silver: { bg: "#f1f5f9", text: "var(--app-muted)" },
   Bronze: { bg: "#fdf2ec", text: "#7c3a1a" },
 };
 
@@ -82,7 +82,7 @@ const CustomSalesTooltip = ({ active, payload, label, t }: any) => {
     <div className={styles.tooltip}>
       <p className={styles.tooltipLabel}>{label}</p>
       {payload.map((p: any) => (
-        <p key={p.dataKey} className={styles.tooltipLine} style={{ color: p.dataKey === "sales" ? "#a3c9b0" : "#64748b" }}>
+        <p key={p.dataKey} className={styles.tooltipLine} style={{ color: p.dataKey === "sales" ? "#a3c9b0" : "var(--app-muted)" }}>
           {p.dataKey === "sales" ? t("dashboard.today") : t("dashboard.yesterday")}: ฿{p.value.toLocaleString()}
         </p>
       ))}
@@ -148,9 +148,9 @@ export function Dashboard() {
                   {trend}
                 </span>
               </div>
-              <p style={{ fontSize: "11px", color: "#64748b", marginBottom: 2 }}>{t(labelKey as TranslationKey)}</p>
-              <p style={{ fontSize: "22px", fontWeight: 700, color: "#101c14", lineHeight: 1.2 }}>{value}</p>
-              <p style={{ fontSize: "11px", color: "#65746b", marginTop: 2 }}>{t(subKey as TranslationKey, subCount ? { count: subCount } : undefined)}</p>
+              <p style={{ fontSize: "11px", color: "var(--app-muted)", marginBottom: 2 }}>{t(labelKey as TranslationKey)}</p>
+              <p style={{ fontSize: "22px", fontWeight: 700, color: "var(--app-ink)", lineHeight: 1.2 }}>{value}</p>
+              <p style={{ fontSize: "11px", color: "var(--app-muted)", marginTop: 2 }}>{t(subKey as TranslationKey, subCount ? { count: subCount } : undefined)}</p>
             </div>
           ))}
         </div>
@@ -179,9 +179,9 @@ export function Dashboard() {
             <div className={styles.chartBoxTall}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={salesData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f1" vertical={false} />
-                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#65746b" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#65746b" }} axisLine={false} tickLine={false}
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" vertical={false} />
+                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: "var(--app-muted)" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--app-muted)" }} axisLine={false} tickLine={false}
                     tickFormatter={v => `฿${(v / 1000).toFixed(0)}k`} />
                   <Tooltip content={<CustomSalesTooltip t={t} />} />
                   <Area type="monotone" dataKey="yesterday" stroke="#c8d5cc" strokeWidth={1.5} fill="none" dot={false} />
@@ -202,10 +202,10 @@ export function Dashboard() {
             <div className={styles.chartBoxShort}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={localizedMarginData} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f2f1" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: "#65746b" }} axisLine={false} tickLine={false}
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "var(--app-muted)" }} axisLine={false} tickLine={false}
                     tickFormatter={v => `${v}%`} domain={[0, 50]} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#475569" }} axisLine={false} tickLine={false} width={80} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--app-muted)" }} axisLine={false} tickLine={false} width={80} />
                   <Tooltip content={<CustomMarginTooltip t={t} />} />
                   <Bar dataKey="margin" fill="#3a9e68" radius={[0, 2, 2, 0]} barSize={14} />
                 </BarChart>
@@ -213,8 +213,8 @@ export function Dashboard() {
             </div>
             <div className={styles.sectionDivider}>
               <div className="flex justify-between">
-                <span style={{ fontSize: "11px", color: "#64748b" }}>{t("dashboard.avgMargin")}</span>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: "#101c14" }}>31.2%</span>
+                <span style={{ fontSize: "11px", color: "var(--app-muted)" }}>{t("dashboard.avgMargin")}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--app-ink)" }}>31.2%</span>
               </div>
             </div>
           </div>
@@ -235,7 +235,7 @@ export function Dashboard() {
             <div className="space-y-3">
               {topMembers.map(m => (
                 <div key={m.id} className="flex items-center gap-3">
-                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#65746b", width: 14, textAlign: "center" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--app-muted)", width: 14, textAlign: "center" }}>
                     {m.rank}
                   </span>
                   <div className="w-8 h-8 flex items-center justify-center text-xs shrink-0"
@@ -243,11 +243,11 @@ export function Dashboard() {
                     {m.name.split(" ").map(n => n[0]).join("")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p style={{ fontSize: "12px", fontWeight: 600, color: "#101c14" }}>{m.name}</p>
-                    <p style={{ fontSize: "10px", color: "#65746b" }}>{m.id} · {t("dashboard.visits", { count: m.visits })}</p>
+                    <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--app-ink)" }}>{m.name}</p>
+                    <p style={{ fontSize: "10px", color: "var(--app-muted)" }}>{m.id} · {t("dashboard.visits", { count: m.visits })}</p>
                   </div>
                   <div className="text-right">
-                    <p style={{ fontSize: "12px", fontWeight: 700, color: "#101c14" }}>฿{m.amount.toLocaleString()}</p>
+                    <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--app-ink)" }}>฿{m.amount.toLocaleString()}</p>
                     <span className="px-1.5 py-0.5 text-xs"
                       style={{
                         background: badgeColors[m.badge].bg,
@@ -278,12 +278,12 @@ export function Dashboard() {
               </div>
             </div>
 
-            <div className="p-3 mb-4" style={{ background: "#f7f9f8", borderRadius: 4, border: "1px solid #e4eae6" }}>
-              <p style={{ fontSize: "11px", color: "#64748b" }}>{t("dashboard.totalOutstanding")}</p>
-              <p style={{ fontSize: "20px", fontWeight: 700, color: "#101c14" }}>
+            <div className="p-3 mb-4" style={{ background: "var(--app-surface-muted)", borderRadius: 4, border: "1px solid var(--app-border)" }}>
+              <p style={{ fontSize: "11px", color: "var(--app-muted)" }}>{t("dashboard.totalOutstanding")}</p>
+              <p style={{ fontSize: "20px", fontWeight: 700, color: "var(--app-ink)" }}>
                 ฿{(45200 + 23800 + 67500 + 31200 + 19700).toLocaleString()}
               </p>
-              <p style={{ fontSize: "10px", color: "#65746b" }}>{t("dashboard.invoiceSupplierCount", { invoices: 5, suppliers: 5 })}</p>
+              <p style={{ fontSize: "10px", color: "var(--app-muted)" }}>{t("dashboard.invoiceSupplierCount", { invoices: 5, suppliers: 5 })}</p>
             </div>
 
             <div className="space-y-3">
@@ -292,15 +292,15 @@ export function Dashboard() {
                   <div className="flex items-center gap-2">
                     {p.overdue
                       ? <AlertCircle size={12} style={{ color: "#c0472e" }} />
-                      : <Clock size={12} style={{ color: "#65746b" }} />}
+                      : <Clock size={12} style={{ color: "var(--app-muted)" }} />}
                     <div>
-                      <p style={{ fontSize: "12px", fontWeight: 500, color: "#101c14" }}>{p.supplier}</p>
-                      <p style={{ fontSize: "10px", color: p.overdue ? "#c0472e" : "#65746b" }}>
+                      <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--app-ink)" }}>{p.supplier}</p>
+                      <p style={{ fontSize: "10px", color: p.overdue ? "#c0472e" : "var(--app-muted)" }}>
                         {t("dashboard.due", { date: p.due === "Today" ? t("dashboard.today") : p.due })}{p.overdue ? ` — ${t("dashboard.overdue")}` : ""}
                       </p>
                     </div>
                   </div>
-                  <p style={{ fontSize: "12px", fontWeight: 600, color: p.overdue ? "#c0472e" : "#101c14" }}>
+                  <p style={{ fontSize: "12px", fontWeight: 600, color: p.overdue ? "#c0472e" : "var(--app-ink)" }}>
                     ฿{p.amount.toLocaleString()}
                   </p>
                 </div>
@@ -315,7 +315,7 @@ export function Dashboard() {
                 <h3 className={styles.cardTitle}>{t("dashboard.staffOverview")}</h3>
                 <p className={styles.cardSubtitle}>{t("dashboard.todayPerformance")}</p>
               </div>
-              <Activity size={13} style={{ color: "#64748b" }} />
+              <Activity size={13} style={{ color: "var(--app-muted)" }} />
             </div>
 
             {/* Status grid */}
@@ -324,14 +324,14 @@ export function Dashboard() {
                 const colors = ["#3d9664", "#2563b0", "#b5531e", "#6347b5"];
                 const bgs = ["#e6f4ec", "#e8f0fa", "#faeee6", "#eeebf8"];
                 return (
-                  <div key={s.name} className="p-2.5 border" style={{ borderColor: "#e4eae6", borderRadius: 4 }}>
+                  <div key={s.name} className="p-2.5 border" style={{ borderColor: "var(--app-border)", borderRadius: 4 }}>
                     <div className="flex justify-between items-center mb-1.5">
-                      <span style={{ fontSize: "10px", color: "#64748b" }}>{s.name}</span>
+                      <span style={{ fontSize: "10px", color: "var(--app-muted)" }}>{s.name}</span>
                       <span style={{ fontSize: "11px", fontWeight: 600, color: colors[i] }}>
                         {s.active}/{s.total}
                       </span>
                     </div>
-                    <div className="h-1" style={{ background: "#eef1ef", borderRadius: 2 }}>
+                    <div className="h-1" style={{ background: "var(--app-border-soft)", borderRadius: 2 }}>
                       <div className="h-1" style={{
                         background: colors[i],
                         width: `${(s.active / s.total) * 100}%`,
@@ -343,7 +343,7 @@ export function Dashboard() {
               })}
             </div>
 
-            <p style={{ fontSize: "11px", color: "#64748b", marginBottom: 8 }}>{t("dashboard.performanceByStaff")}</p>
+            <p style={{ fontSize: "11px", color: "var(--app-muted)", marginBottom: 8 }}>{t("dashboard.performanceByStaff")}</p>
             <div className="space-y-2.5">
               {staffBarData.map((s, i) => (
                 <div key={i} className="flex items-center gap-2.5">
@@ -353,10 +353,10 @@ export function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between mb-1">
-                      <span style={{ fontSize: "11px", fontWeight: 500, color: "#101c14" }}>{s.name}</span>
-                      <span style={{ fontSize: "10px", color: "#64748b" }}>{t("dashboard.txn", { count: formatNumber(s.txn) })}</span>
+                      <span style={{ fontSize: "11px", fontWeight: 500, color: "var(--app-ink)" }}>{s.name}</span>
+                      <span style={{ fontSize: "10px", color: "var(--app-muted)" }}>{t("dashboard.txn", { count: formatNumber(s.txn) })}</span>
                     </div>
-                    <div className="h-1" style={{ background: "#f0f2f1", borderRadius: 2 }}>
+                    <div className="h-1" style={{ background: "var(--app-border-soft)", borderRadius: 2 }}>
                       <div className="h-1" style={{ background: "#3d9664", width: `${(s.txn / 70) * 100}%`, borderRadius: 2 }} />
                     </div>
                   </div>

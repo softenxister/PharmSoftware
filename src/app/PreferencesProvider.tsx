@@ -18,6 +18,7 @@ import {
   type TranslationParams,
 } from "@/app/i18n/i18n";
 import {
+  createAppPreferencesSavePayload,
   DEFAULT_APP_PREFERENCES,
   loadLocalAppPreferences,
   normalizeAppPreferences,
@@ -129,7 +130,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     if (!user || loaded.accountId !== user.id || isSaving) return;
     const version = requestVersion.current;
     const previous = loaded.value;
-    const optimistic = normalizeAppPreferences({ ...previous, ...patch });
+    const optimistic = createAppPreferencesSavePayload(previous, patch);
     setLoaded({ accountId: user.id, value: optimistic });
     saveLocalAppPreferences(window.localStorage, user.id, optimistic, true);
     setIsSaving(true);
@@ -139,7 +140,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/preferences", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify(optimistic),
       });
       const body = await response.json() as { preferences?: unknown };
       if (!response.ok || body.preferences === undefined) throw new Error("Preference save failed.");

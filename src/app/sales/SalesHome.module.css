@@ -2,7 +2,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: #f2f5f2;
+  background: var(--app-page);
 }
 
 .content {
@@ -15,9 +15,9 @@
 .overview {
   overflow: hidden;
   margin-bottom: 14px;
-  border: 1px solid #d3ddd6;
+  border: 1px solid var(--app-border);
   border-radius: 10px;
-  background: #fbfdfb;
+  background: var(--app-surface-muted);
   box-shadow: 0 6px 18px rgba(23, 49, 31, 0.055);
 }
 
@@ -29,7 +29,7 @@
   justify-content: space-between;
   gap: 20px;
   padding: 16px 20px;
-  background: linear-gradient(110deg, #fbfdfb 0%, #f1f7f3 100%);
+  background: linear-gradient(110deg, var(--app-surface-muted) 0%, var(--app-surface-soft) 100%);
 }
 
 .headerCopy {
@@ -38,7 +38,7 @@
 
 .eyebrow {
   margin: 0 0 4px;
-  color: #54705d;
+  color: var(--app-muted);
   font-size: 11px;
   font-weight: 720;
   letter-spacing: 0.055em;
@@ -48,7 +48,7 @@
 .title {
   overflow: hidden;
   margin: 0;
-  color: #15251a;
+  color: var(--app-ink);
   font-size: 25px;
   font-weight: 760;
   letter-spacing: -0.02em;
@@ -65,11 +65,11 @@
   justify-content: center;
   gap: 8px;
   padding: 0 15px;
-  border: 1px solid #275c3a;
+  border: 1px solid var(--app-create-action);
   border-radius: 7px;
-  background: #275c3a;
+  background: var(--app-create-action);
   box-shadow: 0 2px 5px rgba(24, 69, 43, 0.16);
-  color: #f4faf6;
+  color: var(--app-surface-muted);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -78,20 +78,20 @@
 }
 
 .newSaleButton:hover {
-  border-color: #1f4c31;
-  background: #1f4c31;
+  border-color: var(--app-create-action-dark);
+  background: var(--app-create-action-dark);
   transform: translateY(-1px);
 }
 
 .newSaleButton:focus-visible {
-  outline: 3px solid rgba(47, 124, 78, 0.22);
+  outline: 3px solid color-mix(in srgb, var(--app-accent) 22%, transparent);
   outline-offset: 2px;
 }
 
 .summaryGrid {
   display: grid;
   grid-template-columns: 1.35fr 1fr 1fr;
-  border-top: 1px solid #dde5df;
+  border-top: 1px solid var(--app-border);
   background: rgba(255, 255, 255, 0.78);
 }
 
@@ -107,7 +107,7 @@
 }
 
 .metric + .metric {
-  border-left: 1px solid #e2e9e4;
+  border-left: 1px solid var(--app-border);
 }
 
 .metric::before {
@@ -123,7 +123,7 @@
 
 .metricLabel {
   overflow: hidden;
-  color: #68786e;
+  color: var(--app-muted);
   font-size: 11.5px;
   font-weight: 650;
   line-height: 1.25;
@@ -134,7 +134,7 @@
 .metricValue {
   overflow: hidden;
   margin-top: 5px;
-  color: #173b27;
+  color: var(--app-ink);
   font-size: 21px;
   font-weight: 780;
   letter-spacing: -0.015em;
@@ -149,9 +149,9 @@
 
 .panel {
   overflow: hidden;
-  border: 1px solid #d3ddd6;
+  border: 1px solid var(--app-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--app-surface);
   box-shadow: 0 7px 22px rgba(23, 49, 31, 0.06);
 }
 
@@ -163,13 +163,13 @@
   min-height: 70px;
   box-sizing: border-box;
   padding: 13px 16px 13px 18px;
-  border-bottom: 1px solid #dfe7e1;
-  background: #fff;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
 }
 
 .panelTitle {
   margin: 0;
-  color: #17271c;
+  color: var(--app-ink);
   font-size: 15px;
   font-weight: 760;
   letter-spacing: -0.01em;
@@ -177,7 +177,7 @@
 
 .panelMeta {
   margin: 3px 0 0;
-  color: #738078;
+  color: var(--app-muted);
   font-size: 11.5px;
 }
 
@@ -200,7 +200,7 @@
   position: absolute;
   top: 50%;
   left: 11px;
-  color: #6c7a71;
+  color: var(--app-muted);
   pointer-events: none;
   transform: translateY(-50%);
 }
@@ -209,10 +209,10 @@
   width: 100%;
   height: 36px;
   box-sizing: border-box;
-  border: 1px solid #cfdbd3;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: #f8faf8;
-  color: #17271c;
+  background: var(--app-surface-muted);
+  color: var(--app-ink);
   font: inherit;
   font-size: 12.5px;
   outline: none;
@@ -220,13 +220,13 @@
 }
 
 .searchInput::placeholder {
-  color: #7c8981;
+  color: var(--app-muted);
 }
 
 .searchInput:focus {
-  border-color: #4f8965;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(47, 124, 78, 0.11);
+  border-color: var(--app-accent);
+  background: var(--app-surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 11%, transparent);
 }
 
 .statusChips {
@@ -234,9 +234,9 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 3px;
-  border: 1px solid #d5dfd8;
+  border: 1px solid var(--app-border);
   border-radius: 7px;
-  background: #f4f7f5;
+  background: var(--app-page);
   padding: 3px;
 }
 
@@ -245,7 +245,7 @@
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #627168;
+  color: var(--app-muted);
   cursor: pointer;
   font: inherit;
   font-size: 11.5px;
@@ -254,17 +254,17 @@
 }
 
 .chip:hover:not(.chipActive) {
-  background: #e8efea;
-  color: #294f38;
+  background: var(--app-accent-soft);
+  color: var(--app-highlight-ink);
 }
 
 .chip:focus-visible {
-  outline: 2px solid rgba(47, 124, 78, 0.32);
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 32%, transparent);
   outline-offset: 1px;
 }
 
 .chipActive {
-  background: #2c6440;
+  background: var(--app-accent);
   color: #fff;
   box-shadow: 0 1px 2px rgba(23, 60, 38, 0.16);
 }
@@ -320,8 +320,8 @@
   height: 38px;
   box-sizing: border-box;
   padding: 0 14px;
-  background: #f4f7f5;
-  color: #607067;
+  background: var(--app-page);
+  color: var(--app-muted);
   font-family: var(--app-font);
   font-size: 10.5px;
   font-size-adjust: var(--app-uppercase-font-size-adjust);
@@ -337,8 +337,8 @@
   box-sizing: border-box;
   overflow: hidden;
   padding: 10px 14px;
-  border-top: 1px solid #e8eeea;
-  color: #26362c;
+  border-top: 1px solid var(--app-border-soft);
+  color: var(--app-ink);
   font-size: 12.5px;
   text-overflow: ellipsis;
   vertical-align: middle;
@@ -353,7 +353,7 @@
 }
 
 .iconHeader {
-  color: #52665a;
+  color: var(--app-muted);
 }
 
 .billNoCell {
@@ -374,20 +374,19 @@
   height: 30px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #c9d9ce;
+  border: 0;
   border-radius: 6px;
-  background: #f7faf8;
-  color: #2c6641;
+  background: var(--app-surface-muted);
+  color: var(--app-icon-ink);
   cursor: pointer;
 }
 
 .printButton:hover {
-  border-color: #9fbba8;
-  background: #eaf3ed;
+  background: var(--app-accent-soft);
 }
 
 .printButton:focus-visible {
-  outline: 3px solid rgba(47, 124, 78, 0.22);
+  outline: 3px solid color-mix(in srgb, var(--app-accent) 22%, transparent);
   outline-offset: 2px;
 }
 
@@ -416,7 +415,7 @@
 }
 
 .row:hover {
-  background: #f8fbf9;
+  background: color-mix(in srgb, var(--app-accent-soft) 62%, var(--app-surface));
 }
 
 .rowPending {
@@ -425,12 +424,12 @@
 
 .rowPending:hover,
 .rowPending:focus-visible {
-  background: #f4f8f1;
+  background: var(--app-surface-muted);
 }
 
 .rowPending:focus-visible {
   position: relative;
-  outline: 2px solid rgba(47, 124, 78, 0.35);
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 35%, transparent);
   outline-offset: -2px;
 }
 
@@ -445,7 +444,7 @@
   display: block;
   max-width: 100%;
   overflow: hidden;
-  color: #22583a;
+  color: var(--app-highlight-ink);
   font-weight: 760;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -453,7 +452,7 @@
 
 .billDate {
   overflow: hidden;
-  color: #405248;
+  color: var(--app-muted);
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -468,7 +467,7 @@
 
 .billTime {
   overflow: hidden;
-  color: #748178;
+  color: var(--app-muted);
   font-size: 11.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -478,7 +477,7 @@
   display: block;
   max-width: 100%;
   overflow: hidden;
-  color: #405248;
+  color: var(--app-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -497,17 +496,17 @@
   flex: 0 0 34px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #d1e2d7;
+  border: 1px solid var(--app-border);
   border-radius: 50%;
-  background: #e8f2ec;
-  color: #255a3b;
+  background: var(--app-surface-soft);
+  color: var(--app-highlight-ink);
   font-size: 10.5px;
   font-weight: 780;
 }
 
 .customerName {
   overflow: hidden;
-  color: #17271c;
+  color: var(--app-ink);
   font-weight: 690;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -518,8 +517,8 @@
   max-width: 100%;
   overflow: hidden;
   border-radius: 999px;
-  background: #edf5ef;
-  color: #36704b;
+  background: var(--app-surface-soft);
+  color: var(--app-highlight-ink);
   font-size: 9.5px;
   font-weight: 760;
   line-height: 17px;
@@ -533,7 +532,7 @@
 }
 
 .amount {
-  color: #16291d;
+  color: var(--app-ink);
   font-weight: 780;
 }
 
@@ -590,15 +589,15 @@
 
 .emptyState {
   padding: 42px 20px;
-  border-top: 1px solid #e8eeea;
-  background: #fbfcfb;
-  color: #6d7b72;
+  border-top: 1px solid var(--app-border-soft);
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
   text-align: center;
 }
 
 .emptyTitle {
   margin: 0;
-  color: #24352a;
+  color: var(--app-ink);
   font-size: 14px;
   font-weight: 740;
 }

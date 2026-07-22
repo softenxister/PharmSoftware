@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, Languages, Palette } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import { usePreferences } from "@/app/PreferencesProvider";
-import type { AppLocale } from "./appPreferences";
+import type { AppLocale, ColorTheme } from "./appPreferences";
 import styles from "./Settings.module.css";
 
 const languageOptions: Array<{ value: AppLocale; code: string }> = [
@@ -10,18 +11,43 @@ const languageOptions: Array<{ value: AppLocale; code: string }> = [
   { value: "th", code: "TH" },
 ];
 
+const themeOptions: Array<{ value: ColorTheme; labelKey: "appearance.pharmacyGreen" | "appearance.pink" | "appearance.orange" | "appearance.purple" }> = [
+  { value: "pharmacy-green", labelKey: "appearance.pharmacyGreen" },
+  { value: "pink", labelKey: "appearance.pink" },
+  { value: "orange", labelKey: "appearance.orange" },
+  { value: "purple", labelKey: "appearance.purple" },
+];
+
 export function AppearancePanel() {
   const { preferences, isReady, isSaving, saveError, updatePreferences, t } = usePreferences();
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const selectedTheme = themeOptions.find((option) => option.value === preferences.colorTheme) ?? themeOptions[0];
+
+  useEffect(() => {
+    if (!themeDropdownOpen) return;
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!themeDropdownRef.current?.contains(event.target as Node)) setThemeDropdownOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setThemeDropdownOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [themeDropdownOpen]);
 
   return (
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
-        <div className={styles.panelTitleGroup}>
-          <span className={styles.deviceIcon}><Languages size={18} aria-hidden="true" /></span>
-          <div>
-            <h2 className={styles.panelTitle}>{t("appearance.title")}</h2>
-            <p className={styles.panelDescription}>{t("appearance.description")}</p>
-          </div>
+        <div>
+          <h2 className={styles.panelTitle}>{t("appearance.title")}</h2>
+          <p className={styles.panelDescription}>{t("appearance.description")}</p>
         </div>
         <span className={styles.savedBadge} aria-live="polite">
           {!isReady ? t("common.loading") : isSaving ? t("common.saving") : t("common.saved")}
@@ -62,10 +88,46 @@ export function AppearancePanel() {
             <h3 className={styles.preferenceTitle}>{t("appearance.theme")}</h3>
             <p className={styles.preferenceDescription}>{t("appearance.themeHint")}</p>
           </div>
-          <button type="button" className={styles.themeSummary} disabled>
-            <Palette size={16} aria-hidden="true" />
-            <span>{t("appearance.pharmacyGreen")}</span>
-          </button>
+          <div className={styles.themeSelector} ref={themeDropdownRef}>
+            <button
+              type="button"
+              className={styles.themeDropdownButton}
+              aria-haspopup="listbox"
+              aria-expanded={themeDropdownOpen}
+              aria-controls="appearance-theme-options"
+              disabled={!isReady || isSaving}
+              onClick={() => setThemeDropdownOpen((open) => !open)}
+            >
+              <span className={styles.themeSwatch} data-theme-option={selectedTheme.value} aria-hidden="true" />
+              <span>{t(selectedTheme.labelKey)}</span>
+              <ChevronDown className={themeDropdownOpen ? styles.themeDropdownChevronOpen : undefined} size={15} aria-hidden="true" />
+            </button>
+
+            {themeDropdownOpen && (
+              <div className={styles.themeDropdownMenu} id="appearance-theme-options" role="listbox" aria-label={t("appearance.theme")}>
+                {themeOptions.map((option) => {
+                  const selected = preferences.colorTheme === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`${styles.themeDropdownOption} ${selected ? styles.themeDropdownOptionActive : ""}`}
+                      role="option"
+                      aria-selected={selected}
+                      onClick={() => {
+                        setThemeDropdownOpen(false);
+                        void updatePreferences({ colorTheme: option.value });
+                      }}
+                    >
+                      <span className={styles.themeSwatch} data-theme-option={option.value} aria-hidden="true" />
+                      <span>{t(option.labelKey)}</span>
+                      {selected && <Check size={14} strokeWidth={2.4} aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>

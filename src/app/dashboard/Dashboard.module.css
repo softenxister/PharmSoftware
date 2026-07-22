@@ -2,7 +2,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: #f6f8f6;
+  background: var(--app-page);
 }
 
 .content {
@@ -22,14 +22,14 @@
 }
 
 .pageTitle {
-  color: #101c14;
+  color: var(--app-ink);
   font-size: 18px;
   font-weight: 700;
 }
 
 .pageSubtitle {
   margin-top: 2px;
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
 }
 
@@ -42,9 +42,9 @@
 
 .statusPill,
 .shiftPill {
-  border: 1px solid #dde5e0;
+  border: 1px solid var(--app-border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--app-surface);
   padding: 6px 12px;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .mutedText {
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 12px;
 }
 
@@ -92,22 +92,22 @@
 }
 
 .card {
-  border: 1px solid #dde5e0;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .paddedCard {
-  border: 1px solid #dde5e0;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--app-surface);
   padding: 20px;
 }
 
 .kpiCard {
-  border: 1px solid #dde5e0;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--app-surface);
   padding: 16px;
 }
 
@@ -119,13 +119,13 @@
 }
 
 .cardTitle {
-  color: #101c14;
+  color: var(--app-ink);
   font-size: 14px;
   font-weight: 600;
 }
 
 .cardSubtitle {
-  color: #65746b;
+  color: var(--app-muted);
   font-size: 11px;
 }
 
@@ -166,7 +166,7 @@
 }
 
 .legendText {
-  color: #64748b;
+  color: var(--app-muted);
   font-size: 11px;
 }
 
@@ -190,7 +190,7 @@
 .sectionDivider {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #eef1ef;
+  border-top: 1px solid var(--app-border-soft);
 }
 
 .spaceY3 > * + * {
