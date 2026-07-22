@@ -50,7 +50,7 @@ export const salesProducts: SalesProduct[] = [
     itemName: "Tylenol 500 mg Caplet",
     brandName: "Tylenol",
     manufacturerName: "Kenvue",
-    pack: { packUnit: "blisterpack", childUnit: "caplet", childQuantity: 10, label: "10 caplets" },
+    pack: { packUnit: "blisterpack", childUnit: "tablet", childQuantity: 10, label: "10 tablets" },
     parentPacks: [{ packUnit: "box", childPackUnit: "blisterpack", childPackQuantity: 10, label: "1 box = 10 blisterpack", priceMultiplier: 10 }],
     location: "A1-04",
     barcode: "8850001000021",

@@ -17,6 +17,7 @@ import type { SalesProduct, StockItemInput } from "@/server/db/types";
 import { useAuth } from "@/app/AuthProvider";
 import { shouldCloseDropdown } from "@/app/dropdownInteraction";
 import { usePreferences } from "@/app/PreferencesProvider";
+import { localizeUnitExpression } from "@/app/i18n/productUnits";
 import { buildStockCategoryOptions, getStockCategoryLabel } from "./stockCategoryFilter";
 import { getStockFilterOptionLabel } from "./stockFilterLabels";
 import {
@@ -789,7 +790,7 @@ export default function StockPage() {
                           <span className={styles.itemMeta}>
                             {item.brand}
                             <span aria-hidden="true">|</span>
-                            {item.pack}
+                            {localizeUnitExpression(preferences.locale, item.pack)}
                           </span>
                         </span>
                       </span>

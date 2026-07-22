@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, type KeyboardEvent as Reac
 import { useNavigate, useSearchParams } from 'react-router';
 import { Settings } from 'lucide-react';
 import { usePreferences } from '@/app/PreferencesProvider';
+import { localizeProductUnit, localizeUnitExpression } from '@/app/i18n/productUnits';
 import { MemberAvatar } from '@/app/member/MemberAvatarView';
 import styles from './NewSale.module.css';
 import type { ProductPack, SalesProduct } from '@/server/db/types';
@@ -24,7 +25,6 @@ import {
   buildSellPackOptions,
   calculateSalePricing,
   createReminderFromDefaultDosage,
-  displayPackUnit,
   resolvePaidSaleNextStep,
   shouldUseSellPackDropdown,
   type SellPackOption,
@@ -567,7 +567,8 @@ const IconPrint = ({ className }: { className?: string }) => (
 
 export default function NewSale({ user }: { user: PharmUser }): React.ReactElement {
   const navigate = useNavigate();
-  const { t, formatDate, formatNumber } = usePreferences();
+  const { t, formatDate, formatNumber, preferences: appPreferences } = usePreferences();
+  const localizeUnit = (value: string) => localizeUnitExpression(appPreferences.locale, value);
   const paymentMethodLabel = (method: StorePaymentMethod) => t(method === 'Cash'
     ? 'pos.cash'
     : method === 'Bank transfer' ? 'pos.bankTransfer' : 'pos.creditCard');
@@ -1707,7 +1708,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       </span>
                       <span className={styles.itemOptionSub}>{buildProductDescription({
                         brand: it.brand,
-                        packLabel: it.packLabel,
+                        packLabel: localizeUnit(it.packLabel),
                         location: it.loc,
                         totalStock,
                         showLocation: storeSettings.showProductLocation,
@@ -1753,7 +1754,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       value={editor.sellPack.key}
                       options={editor.item.sellPacks
                         .filter((pack) => editor.item.batches.some((batch) => availableStockForPack(batch, pack) > 0))
-                        .map((pack) => ({ value: pack.key, label: pack.label }))}
+                        .map((pack) => ({ value: pack.key, label: localizeUnit(pack.label) }))}
                       onChange={(packKey) => {
                         const pack = editor.item.sellPacks.find((candidate) => candidate.key === packKey);
                         if (pack) handleSelectSellPack(pack);
@@ -1761,8 +1762,8 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       className={styles.sellPackSelect}
                     />
                   ) : (
-                    <span className={styles.singlePackValue} aria-label={t('newSale.sellUnit')} title={editor.sellPack.relationLabel}>
-                      {editor.sellPack.label}
+                    <span className={styles.singlePackValue} aria-label={t('newSale.sellUnit')} title={localizeUnit(editor.sellPack.relationLabel)}>
+                      {localizeUnit(editor.sellPack.label)}
                     </span>
                   )}
                 </div>
@@ -1848,7 +1849,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       <span className={styles.batchOptionRow}><span className={styles.muted}>{t('newSale.expiryShort')}</span> {formatExpiry(b.exp)}</span>
                       <span className={styles.batchOptionRow}><span className={styles.muted}>{t('newSale.sell')}</span> ฿{formatBaht(sellPriceForPack(b, editor.sellPack))}</span>
                       {preferences.showAvailableStock && (
-                        <span className={styles.batchOptionRow}><span className={styles.muted}>{t('nav.stock')}</span> {availableStockForPack(b, editor.sellPack)} {displayPackUnit(editor.sellPack.unit)}</span>
+                        <span className={styles.batchOptionRow}><span className={styles.muted}>{t('nav.stock')}</span> {availableStockForPack(b, editor.sellPack)} {localizeProductUnit(appPreferences.locale, editor.sellPack.unit, availableStockForPack(b, editor.sellPack))}</span>
                       )}
                     </button>
                   ))}
@@ -1891,7 +1892,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       {allergyWarning && <strong className={styles.allergyWarning}>{allergyWarning}</strong>}
                     </td>
                     <td className={styles.packCell}>
-                      <span className={styles.packCellUnit}>{line.packLabel}</span>
+                      <span className={styles.packCellUnit}>{localizeUnit(line.packLabel)}</span>
                     </td>
                     {storeSettings.showProductLocation && <td className={styles.muted}>{line.loc}</td>}
                     <td className={styles.muted}>{line.batch.batchNo}</td>
@@ -1960,7 +1961,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                 const nearest = nearestExpiryBatch(it.batches);
                 const productDescription = buildProductDescription({
                   brand: it.brand,
-                  packLabel: it.packLabel,
+                  packLabel: localizeUnit(it.packLabel),
                   location: it.loc,
                   totalStock: it.batches.reduce((sum, batch) => sum + batch.stock, 0),
                   showLocation: storeSettings.showProductLocation,
@@ -2076,7 +2077,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                               <span className={styles.reminderDrugText}>
                                 <span className={styles.reminderDrugName}>{line.itemName}</span>
                                 <span className={styles.reminderDrugSub}>
-                                  {t('newSale.tabsTotal', { count: formatNumber(totalTabs) })} | {catalogItem?.packLabel ?? line.packLabel} | {line.packLabel}
+                                  {t('newSale.tabsTotal', { count: formatNumber(totalTabs) })} | {localizeUnit(catalogItem?.packLabel ?? line.packLabel)} | {localizeUnit(line.packLabel)}
                                   {storeSettings.showProductLocation ? ` | ${line.loc}` : ''}
                                 </span>
                               </span>

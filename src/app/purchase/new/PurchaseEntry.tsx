@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router";
 import { usePreferences } from "@/app/PreferencesProvider";
+import { localizeUnitExpression } from "@/app/i18n/productUnits";
 import {
   ChevronRight,
   PackagePlus,
@@ -129,7 +130,11 @@ function mergeCatalogProducts(current: SalesProduct[], incoming: SalesProduct[])
 
 export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
   const navigate = useNavigate();
-  const { t } = usePreferences();
+  const { t, preferences } = usePreferences();
+  const localizeUnit = useCallback(
+    (value: string) => localizeUnitExpression(preferences.locale, value),
+    [preferences.locale],
+  );
   const [activePurchaseId, setActivePurchaseId] = useState(purchaseId);
   const [distributor, setDistributor] = useState("");
   const [distributorOptions, setDistributorOptions] = useState<string[]>([]);
@@ -829,7 +834,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                         <span className={styles.itemOptionMeta}>
                           <span className={styles.itemOptionName}>{product.itemName}</span>
                           <span className={styles.itemOptionSub}>
-                            {product.brandName} - {product.pack.label} - {product.location || t("purchaseEntry.noLocation")}
+                            {product.brandName} - {localizeUnit(product.pack.label)} - {product.location || t("purchaseEntry.noLocation")}
                           </span>
                         </span>
                         <span className={styles.itemOptionPrice}>
@@ -889,9 +894,9 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                           <span>{line.itemName}</span>
                         </div>
                       </td>
-                      <td>{line.qty} {line.unit}</td>
+                      <td>{line.qty} {localizeUnit(line.unit)}</td>
                       <td>฿{line.cost}</td>
-                      <td>{line.freeQty ? `${line.freeQty} ${line.freeUnit}` : "-"}</td>
+                      <td>{line.freeQty ? `${line.freeQty} ${localizeUnit(line.freeUnit)}` : "-"}</td>
                       <td>{line.lotNo || "-"}</td>
                       <td>{line.expiryDate || "-"}</td>
                     </tr>
@@ -1005,7 +1010,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                     <div className={styles.purchaseProductMeta}>
                       <strong>{selectedItem.itemName}</strong>
                       <small>{selectedItem.brandName} - {selectedItem.manufacturerName}</small>
-                      <small>{selectedItem.pack.label}</small>
+                      <small>{localizeUnit(selectedItem.pack.label)}</small>
                     </div>
                   </section>
 
@@ -1042,6 +1047,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                           label={t("purchaseEntry.purchaseUnit")}
                           value={unit}
                           options={selectedUnitOptions}
+                          getOptionLabel={localizeUnit}
                           onChange={setUnit}
                         />
                       </div>
@@ -1073,6 +1079,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                             options={selectedUnitOptions}
                             disabled={!includeFreeQty}
                             showLabel={false}
+                            getOptionLabel={localizeUnit}
                             onChange={setFreeUnit}
                           />
                         </div>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Package, X } from "lucide-react";
 import { usePreferences } from "@/app/PreferencesProvider";
+import { localizeUnitExpression } from "@/app/i18n/productUnits";
 import type { PharmUserRole } from "@/server/auth/pharmUser";
 import type { SalesProduct } from "@/server/db/types";
 import type { StockDefaultDosage, StockItemDetailPatch } from "@/server/db/stockItemDetail";
@@ -188,7 +189,7 @@ export function StockItemDetailDialog({ product, role, onClose, onSaved }: Stock
             <span className={styles.adjustmentProductMeta}>
               <span>{product.itemName}</span><span aria-hidden="true">|</span>
               <span>{product.manufacturerName}</span><span aria-hidden="true">|</span>
-              <span>{product.pack.label}</span>
+              <span>{localizeUnitExpression(preferences.locale, product.pack.label)}</span>
             </span>
           </span>
           <button type="button" className={styles.adjustmentCloseButton} onClick={onClose} disabled={isSaving} aria-label={t("stock.closeItemDetail")}>

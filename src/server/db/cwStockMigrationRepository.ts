@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@/generated/prisma/client";
+import { replaceDeprecatedProductUnit } from "@/app/i18n/productUnits";
 import type { PharmUser } from "@/server/auth/pharmUser";
 import {
   prepareCwStockMigration,
@@ -317,7 +318,7 @@ export async function importCwStockMigration(
         }),
         manufacturerId,
         categoryId,
-        baseUnit: source.baseUnit,
+        baseUnit: replaceDeprecatedProductUnit(source.baseUnit),
         isActive: source.isActive,
       });
 
@@ -328,10 +329,10 @@ export async function importCwStockMigration(
         parentPacks.push({
           id: parentPackId,
           productId,
-          packUnit: unit.unitName,
-          childPackUnit: source.baseUnit,
+          packUnit: replaceDeprecatedProductUnit(unit.unitName),
+          childPackUnit: replaceDeprecatedProductUnit(source.baseUnit),
           childPackQuantity: unit.quantityInBaseUnit,
-          label: `1 ${unit.unitName} = ${unit.quantityInBaseUnit} ${source.baseUnit}`,
+          label: `1 ${replaceDeprecatedProductUnit(unit.unitName)} = ${unit.quantityInBaseUnit} ${replaceDeprecatedProductUnit(source.baseUnit)}`,
           priceMultiplier: unit.quantityInBaseUnit,
           sellPriceThb: unit.sellPriceThb,
           barcode: unit.barcodes[0] ?? null,

@@ -11,6 +11,14 @@ import {
 } from "lucide-react";
 import type { SalesProduct, StockItemInput } from "@/server/db/types";
 import { usePreferences } from "@/app/PreferencesProvider";
+import {
+  PRODUCT_PACKAGE_VALUES,
+  PRODUCT_SUBUNIT_VALUES,
+  PRODUCT_UNIT_VALUES,
+  canonicalizeProductUnit,
+  localizeProductUnit,
+} from "@/app/i18n/productUnits";
+import type { AppLocale } from "@/app/settings/appPreferences";
 import { canonicalizeStockCategory, getStockCategoryOptions } from "./stockCategoryFilter";
 import styles from "./Stock.module.css";
 
@@ -37,8 +45,6 @@ type SelectOption = {
   label: string;
 };
 
-const unitOptions = ["tablet", "caplet", "blister", "box", "bottle", "sachet", "tube", "piece", "ml", "g"];
-const packageOptions = ["box", "bottle", "tube", "strip", "carton", "blister", "sachet", "piece"];
 const regulatoryFormOptions = ["ข.ย. 9", "ข.ย. 10", "ข.ย. 11"];
 
 function generateBarcode(): string {
@@ -52,14 +58,28 @@ function createPackagingRow(): PackagingRow {
     id: crypto.randomUUID(),
     parentUnit: "box",
     childQuantity: "",
-    childUnit: "blister",
+    childUnit: "blisterpack",
     barcode: "",
     sellPrice: "",
   };
 }
 
-function optionList(values: string[]): SelectOption[] {
-  return values.map((value) => ({ value, label: value }));
+function optionList(values: readonly string[], locale: AppLocale, currentValue?: string): SelectOption[] {
+  return [...new Set([...values, ...(currentValue ? [currentValue] : [])])]
+    .map((value) => ({ value, label: localizeProductUnit(locale, value) }));
+}
+
+function normalizeForOptions(
+  value: string | undefined,
+  options: readonly string[],
+  fallback: string,
+): string {
+  if (!value) return fallback;
+  const canonical = canonicalizeProductUnit(value);
+  if (options.includes(canonical)) return canonical;
+  if (canonical === "ml" || canonical === "l") return options.includes("bottle") ? "bottle" : fallback;
+  if (canonical === "g" || canonical === "kg") return options.includes("pack") ? "pack" : fallback;
+  return canonical;
 }
 
 function useClickOutside<T extends HTMLElement>(onOutside: () => void) {
@@ -265,8 +285,12 @@ export function StockEntryForm({
     canonicalizeStockCategory(initialItem?.itemCategory ?? resolvedCategoryOptions[0]?.value ?? ""),
   );
   const [weightage, setWeightage] = useState(initialItem?.weightage ?? "");
-  const [subUnit, setSubUnit] = useState(initialItem?.subUnit ?? unitOptions[0]);
-  const [unit, setUnit] = useState(initialItem?.unit ?? unitOptions[0]);
+  const [subUnit, setSubUnit] = useState(() =>
+    normalizeForOptions(initialItem?.subUnit, PRODUCT_SUBUNIT_VALUES, PRODUCT_SUBUNIT_VALUES[0]),
+  );
+  const [unit, setUnit] = useState(() =>
+    normalizeForOptions(initialItem?.unit, PRODUCT_UNIT_VALUES, PRODUCT_UNIT_VALUES[0]),
+  );
   const [brandName, setBrandName] = useState(initialItem?.brandName ?? "");
   const lotNo = initialItem?.lotNo ?? "";
   const expiryDate = initialItem?.expiryDate ?? "";
@@ -280,6 +304,8 @@ export function StockEntryForm({
   const [packagingRows, setPackagingRows] = useState<PackagingRow[]>(() => {
     const rows = initialItem?.packagingRows.map((row, index) => ({
       ...row,
+      parentUnit: normalizeForOptions(row.parentUnit, PRODUCT_PACKAGE_VALUES, PRODUCT_PACKAGE_VALUES[0]),
+      childUnit: normalizeForOptions(row.childUnit, PRODUCT_SUBUNIT_VALUES, PRODUCT_SUBUNIT_VALUES[0]),
       barcode: [row.barcode, ...(row.barcodes ?? [])].filter(Boolean).join(", "),
       sellPrice: row.sellPrice ?? "",
       id: `package-${index + 1}`,
@@ -557,9 +583,8 @@ export function StockEntryForm({
               <SearchableSelect
                 ariaLabel={t("stockForm.subUnit")}
                 value={subUnit}
-                options={optionList(unitOptions)}
+                options={optionList(PRODUCT_SUBUNIT_VALUES, preferences.locale, subUnit)}
                 onChange={setSubUnit}
-                allowCustom
                 onCommit={() => focusNextField("subUnit")}
               />
             </label>
@@ -569,9 +594,8 @@ export function StockEntryForm({
               <SearchableSelect
                 ariaLabel={t("stockForm.unit")}
                 value={unit}
-                options={optionList(unitOptions)}
+                options={optionList(PRODUCT_UNIT_VALUES, preferences.locale, unit)}
                 onChange={setUnit}
-                allowCustom
                 onCommit={() => focusNextField("unit")}
               />
             </label>
@@ -641,9 +665,8 @@ export function StockEntryForm({
                 <SearchableSelect
                   ariaLabel={t("stockForm.package")}
                   value={row.parentUnit}
-                  options={optionList(packageOptions)}
+                  options={optionList(PRODUCT_PACKAGE_VALUES, preferences.locale, row.parentUnit)}
                   onChange={(value) => updatePackagingRow(row.id, { parentUnit: value })}
-                  allowCustom
                 />
               </label>
 
@@ -662,9 +685,8 @@ export function StockEntryForm({
                 <SearchableSelect
                   ariaLabel={t("stockForm.subUnit")}
                   value={row.childUnit}
-                  options={optionList(unitOptions)}
+                  options={optionList(PRODUCT_SUBUNIT_VALUES, preferences.locale, row.childUnit)}
                   onChange={(value) => updatePackagingRow(row.id, { childUnit: value })}
-                  allowCustom
                 />
               </label>
 

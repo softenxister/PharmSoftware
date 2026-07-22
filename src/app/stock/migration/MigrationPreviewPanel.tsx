@@ -1,4 +1,6 @@
 import { AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { usePreferences } from "@/app/PreferencesProvider";
+import { localizeProductUnit, localizeUnitExpression } from "@/app/i18n/productUnits";
 import type { MigrationPreview, MigrationResult } from "./migrationClient";
 import styles from "./StockMigration.module.css";
 
@@ -25,6 +27,9 @@ export function MigrationPreviewPanel({
   onConfirmedChange,
   onImport,
 }: Props) {
+  const { preferences } = usePreferences();
+  const baseUnitLabel = preferences.locale === "th" ? "หน่วยฐาน" : "Base unit";
+  const perUnitLabel = preferences.locale === "th" ? "ต่อ" : "per";
   const importableCount = preview.summary.newCount + preview.summary.updateCount;
 
   if (result) {
@@ -85,9 +90,9 @@ export function MigrationPreviewPanel({
                 <td><code>{row.externalProductCode}</code></td>
                 <td><strong>{row.itemName}</strong><small>{row.baseBarcode}</small></td>
                 <td><strong>{row.brandName ?? "Review required"}</strong><small className={styles[`brand${row.brandConfidence}`]}>{row.brandConfidence === "review" ? "No reliable match" : `${row.brandConfidence} confidence${row.brandMatchedAlias ? ` · ${row.brandMatchedAlias}` : ""}`}</small></td>
-                <td><div className={styles.unitList}>{row.units.map((unit) => <span key={`${unit.unitName}-${unit.quantityInBaseUnit}`}><strong>{unit.unitName}</strong><small>{unit.isBaseUnit ? "Base unit" : `${unit.quantityInBaseUnit} ${row.baseUnit}`}</small></span>)}</div></td>
-                <td><div className={styles.unitList}>{row.units.map((unit) => <span key={`${unit.unitName}-${unit.quantityInBaseUnit}`}><strong>{unit.unitName}[{unit.quantityInBaseUnit}]</strong><small>{unit.barcodes.join(", ")}</small></span>)}</div></td>
-                <td><div className={styles.unitList}>{row.units.map((unit) => <span key={`${unit.unitName}-${unit.quantityInBaseUnit}`}><strong>฿{unit.sellPriceThb.toLocaleString()}</strong><small>per {unit.unitName}</small></span>)}</div></td>
+                <td><div className={styles.unitList}>{row.units.map((unit) => <span key={`${unit.unitName}-${unit.quantityInBaseUnit}`}><strong>{localizeProductUnit(preferences.locale, unit.unitName)}</strong><small>{unit.isBaseUnit ? baseUnitLabel : localizeUnitExpression(preferences.locale, `${unit.quantityInBaseUnit} ${row.baseUnit}`)}</small></span>)}</div></td>
+                <td><div className={styles.unitList}>{row.units.map((unit) => <span key={`${unit.unitName}-${unit.quantityInBaseUnit}`}><strong>{localizeUnitExpression(preferences.locale, `${unit.unitName}[${unit.quantityInBaseUnit}]`)}</strong><small>{unit.barcodes.join(", ")}</small></span>)}</div></td>
+                <td><div className={styles.unitList}>{row.units.map((unit) => <span key={`${unit.unitName}-${unit.quantityInBaseUnit}`}><strong>฿{unit.sellPriceThb.toLocaleString()}</strong><small>{perUnitLabel} {localizeProductUnit(preferences.locale, unit.unitName)}</small></span>)}</div></td>
                 <td>{row.availableStock}</td>
                 <td>{row.issue ?? (row.matchReason === "externalProductCode" ? "CW product code" : row.matchedItemName ?? "Create new")}</td>
               </tr>

@@ -1,4 +1,5 @@
 import type { SavedStockItem, SalesProduct, StockItemInput } from "./types";
+import { canonicalizeProductUnit } from "@/app/i18n/productUnits";
 
 type RelatedLineProduct = Pick<SalesProduct, "id" | "itemName" | "barcode" | "location">;
 
@@ -51,7 +52,8 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
   const manufacturerName = item.manufacturer.trim() || brandName;
   const category = item.itemCategory.trim();
   const location = item.location?.trim() || "-";
-  const subUnit = item.subUnit?.trim() || item.unit.trim();
+  const subUnit = canonicalizeProductUnit(item.subUnit?.trim() || item.unit.trim());
+  const unit = canonicalizeProductUnit(item.unit);
   const lotNo = item.lotNo?.trim() || `NEW-${primaryBarcode.slice(-6) || "000000"}`;
   const expiryDate = item.expiryDate?.trim() || "";
   const imageUrl = item.photoUrl.trim() || `https://placehold.co/360x360/png?text=${encodeURIComponent(brandName.slice(0, 18))}`;
@@ -72,7 +74,7 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
     brandName,
     manufacturerName,
     pack: {
-      packUnit: item.unit.trim(),
+      packUnit: unit,
       childUnit: subUnit,
       childQuantity: cleanWeightage,
       label: `${item.weightage.trim()} ${subUnit}`.trim(),
@@ -84,10 +86,10 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
       const unitSellPrice = Number(row.sellPrice);
 
       return {
-        packUnit: row.parentUnit.trim(),
-        childPackUnit: row.childUnit.trim(),
+        packUnit: canonicalizeProductUnit(row.parentUnit),
+        childPackUnit: canonicalizeProductUnit(row.childUnit),
         childPackQuantity: cleanQuantity,
-        label: `1 ${row.parentUnit.trim()} = ${cleanQuantity} ${row.childUnit.trim()}`,
+        label: `1 ${canonicalizeProductUnit(row.parentUnit)} = ${cleanQuantity} ${canonicalizeProductUnit(row.childUnit)}`,
         priceMultiplier: cleanQuantity,
         ...(Number.isFinite(unitSellPrice) && unitSellPrice >= 0 ? { sellPriceThb: unitSellPrice } : {}),
         barcodes: unitBarcodes,
@@ -125,16 +127,16 @@ export function createSavedStockItem(input: StockItemInput, currentItem?: SavedS
     sellPrice: input.sellPrice.trim(),
     itemCategory: input.itemCategory.trim(),
     weightage: input.weightage.trim(),
-    subUnit: input.subUnit?.trim() || input.unit.trim(),
-    unit: input.unit.trim(),
+    subUnit: canonicalizeProductUnit(input.subUnit?.trim() || input.unit.trim()),
+    unit: canonicalizeProductUnit(input.unit),
     brandName: input.brandName.trim(),
     packagingRows: input.packagingRows
       .map((row) => {
         const barcodes = normalizeBarcodeValues(row.barcode, row.barcodes);
         return {
-          parentUnit: row.parentUnit.trim(),
+          parentUnit: canonicalizeProductUnit(row.parentUnit),
           childQuantity: row.childQuantity.trim(),
-          childUnit: row.childUnit.trim(),
+          childUnit: canonicalizeProductUnit(row.childUnit),
           barcode: barcodes[0] ?? "",
           barcodes: barcodes.slice(1),
           sellPrice: row.sellPrice?.trim() ?? "",

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Package, X } from "lucide-react";
 import { usePreferences } from "@/app/PreferencesProvider";
+import { localizeUnitExpression } from "@/app/i18n/productUnits";
 import {
   calculateStockAdjustment,
   MAX_DIRECT_STOCK_QUANTITY,
@@ -30,7 +31,7 @@ export function StockBatchAdjustmentDialog({
   onClose,
   onUpdated,
 }: StockBatchAdjustmentDialogProps) {
-  const { t, formatNumber } = usePreferences();
+  const { t, formatNumber, preferences } = usePreferences();
   const dialogRef = useRef<HTMLElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
   const [drafts, setDrafts] = useState(() => product.batches.map((batch) => ({
@@ -148,7 +149,7 @@ export function StockBatchAdjustmentDialog({
             <span className={styles.adjustmentProductMeta}>
               <span>{product.manufacturerName}</span>
               <span aria-hidden="true">|</span>
-              <span>{product.pack.label}</span>
+              <span>{localizeUnitExpression(preferences.locale, product.pack.label)}</span>
             </span>
           </span>
           <button

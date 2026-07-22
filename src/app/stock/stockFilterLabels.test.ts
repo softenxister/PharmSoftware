@@ -28,6 +28,13 @@ test("every standard Stock sidebar option has a Thai display label", () => {
   }
 });
 
-test("unknown stored option values stay unchanged", () => {
-  assert.equal(getStockFilterOptionLabel("th", "Special dosage"), "Special dosage");
+test("stored unit filters translate in both directions", () => {
+  assert.equal(getStockFilterOptionLabel("th", "box"), "กล่อง");
+  assert.equal(getStockFilterOptionLabel("en", "กล่อง"), "box");
+  assert.equal(getStockFilterOptionLabel("en", "อัน"), "piece");
+});
+
+test("unknown cross-language unit filters fail closed", () => {
+  assert.equal(getStockFilterOptionLabel("th", "Special dosage"), "หน่วย");
+  assert.equal(getStockFilterOptionLabel("en", "หน่วยใหม่"), "unit");
 });

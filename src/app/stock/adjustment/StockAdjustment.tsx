@@ -12,6 +12,8 @@ import {
   XCircle,
 } from "lucide-react";
 import type { SalesProduct } from "@/server/db/types";
+import { usePreferences } from "@/app/PreferencesProvider";
+import { localizeUnitExpression } from "@/app/i18n/productUnits";
 import { invalidateStockCatalog, loadStockProductsByIds } from "../stockCatalogClient";
 import styles from "./StockAdjustment.module.css";
 
@@ -110,6 +112,7 @@ function buildAdjustmentLines(bill: PurchaseBill, catalog: SalesProduct[]): Adju
 }
 
 export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAdjustmentProps) {
+  const { preferences } = usePreferences();
   const [user, setUser] = useState<PharmUser | null>(null);
   const [requests, setRequests] = useState<CorrectionRequest[]>([]);
   const [selectedRequestId, setSelectedRequestId] = useState(initialRequestId ?? "");
@@ -408,7 +411,7 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
                       const delta = next === null ? 0 : next - line.currentQuantity;
                       return (
                         <tr key={line.key} className={!line.found ? styles.invalidRow : ""}>
-                          <td><strong>{line.itemName}</strong><small>Batch {line.batchNo || "missing"} · {line.stockUnit}</small></td>
+                          <td><strong>{line.itemName}</strong><small>Batch {line.batchNo || "missing"} · {localizeUnitExpression(preferences.locale, line.stockUnit)}</small></td>
                           <td><span className={styles.quantityValue}>{line.currentQuantity.toLocaleString("en-US")}</span></td>
                           <td>
                             <input

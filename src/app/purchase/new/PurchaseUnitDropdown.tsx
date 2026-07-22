@@ -11,6 +11,7 @@ type PurchaseUnitDropdownProps = {
   options: string[];
   disabled?: boolean;
   showLabel?: boolean;
+  getOptionLabel?: (value: string) => string;
   onChange: (value: string) => void;
 };
 
@@ -20,6 +21,7 @@ export function PurchaseUnitDropdown({
   options,
   disabled = false,
   showLabel = true,
+  getOptionLabel = (option) => option,
   onChange,
 }: PurchaseUnitDropdownProps) {
   const { t } = usePreferences();
@@ -31,8 +33,11 @@ export function PurchaseUnitDropdown({
   const matches = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return options;
-    return options.filter(option => option.toLowerCase().includes(normalizedQuery));
-  }, [options, query]);
+    return options.filter(option => (
+      option.toLowerCase().includes(normalizedQuery)
+      || getOptionLabel(option).toLowerCase().includes(normalizedQuery)
+    ));
+  }, [getOptionLabel, options, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -67,7 +72,7 @@ export function PurchaseUnitDropdown({
           if (event.key === "Escape") setOpen(false);
         }}
       >
-        <span>{value || t("purchaseEntry.selectUnit")}</span>
+        <span>{value ? getOptionLabel(value) : t("purchaseEntry.selectUnit")}</span>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
 
@@ -109,7 +114,7 @@ export function PurchaseUnitDropdown({
                   setOpen(false);
                 }}
               >
-                <span>{option}</span>
+                <span>{getOptionLabel(option)}</span>
                 {option === value && <Check size={14} aria-hidden="true" />}
               </button>
             ))}

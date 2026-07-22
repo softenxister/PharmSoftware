@@ -73,6 +73,37 @@ test("same-name package variants keep separate quantities, prices, and barcodes"
   ]);
 });
 
+test("stock writes replace deprecated product units with canonical values", () => {
+  const input: StockItemInput = {
+    photoUrl: "",
+    barcode: "500",
+    itemName: "Legacy vial",
+    lotNo: "LOT-2",
+    expiryDate: "2028-01-01",
+    location: "A2",
+    manufacturer: "Maker",
+    sellPrice: "10",
+    itemCategory: "Test",
+    weightage: "1",
+    subUnit: "caplet",
+    unit: "VIAL",
+    brandName: "Test",
+    packagingRows: [
+      { parentUnit: "container", childQuantity: "5", childUnit: "PEN.", barcode: "501", sellPrice: "45" },
+    ],
+  };
+
+  const saved = createSavedStockItem(input);
+  const product = savedStockToSalesProduct(saved);
+
+  assert.equal(saved.unit, "bottle");
+  assert.equal(saved.subUnit, "tablet");
+  assert.equal(product.pack.packUnit, "bottle");
+  assert.equal(product.pack.childUnit, "tablet");
+  assert.equal(product.parentPacks[0]?.packUnit, "jar");
+  assert.equal(product.parentPacks[0]?.childPackUnit, "piece");
+});
+
 test("parent-pack database identity includes unit and quantity", () => {
   const schema = readFileSync(new URL("../../../prisma/schema.prisma", import.meta.url), "utf8");
   const parentPackModel = schema.match(/model ProductParentPack \{[\s\S]*?\n\}/)?.[0] ?? "";

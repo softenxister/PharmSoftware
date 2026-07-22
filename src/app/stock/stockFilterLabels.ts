@@ -1,4 +1,5 @@
 import type { AppLocale } from "@/app/settings/appPreferences";
+import { localizeProductUnit } from "@/app/i18n/productUnits";
 
 const THAI_STOCK_FILTER_LABELS: Readonly<Record<string, string>> = Object.freeze({
   tablet: "ยาเม็ด",
@@ -47,6 +48,10 @@ const THAI_STOCK_FILTER_LABELS: Readonly<Record<string, string>> = Object.freeze
 });
 
 export function getStockFilterOptionLabel(locale: AppLocale, value: string): string {
-  if (locale !== "th") return value;
-  return THAI_STOCK_FILTER_LABELS[value.trim().toLocaleLowerCase("en-US")] ?? value;
+  const trimmed = value.trim();
+  if (locale !== "th") {
+    return /[\u0E00-\u0E7F]/.test(trimmed) ? localizeProductUnit("en", trimmed) : value;
+  }
+  return THAI_STOCK_FILTER_LABELS[trimmed.toLocaleLowerCase("en-US")]
+    ?? localizeProductUnit("th", trimmed);
 }
