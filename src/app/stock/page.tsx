@@ -253,6 +253,7 @@ export default function StockPage() {
           query: debouncedQuery,
           sort: "name",
           sortDirection: nameSortDirection,
+          filters: appliedFilters,
         });
         if (cancelled) return;
         if (result.products.length === 0 && result.total > 0 && page > 1) {
@@ -273,7 +274,7 @@ export default function StockPage() {
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, nameSortDirection, page, stockRefreshVersion]);
+  }, [appliedFilters, debouncedQuery, nameSortDirection, page, stockRefreshVersion]);
 
   useEffect(() => {
     if (!adjustmentSuccess) return;
@@ -447,10 +448,12 @@ export default function StockPage() {
   const resetStockFilters = () => {
     setDraftFilters(createEmptyDraftFilters());
     setAppliedFilters(createEmptyAppliedFilters());
+    setPage(1);
     setOpenFilterPanel(null);
   };
   const applyStockFilters = () => {
     if (!stockRangeResult.isValid) return;
+    setPage(1);
     setAppliedFilters({
       categories: draftFilters.categories,
       dosageTypes: draftFilters.dosageTypes,

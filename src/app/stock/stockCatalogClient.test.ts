@@ -118,3 +118,47 @@ test("stock page loads request descending item-name order", async () => {
 
   assert.equal(requestedUrl, "/api/stock?page=1&pageSize=50&sort=name&direction=desc");
 });
+
+test("inventory filters request one server-filtered page instead of the complete catalog", async () => {
+  invalidateStockCatalog();
+  const requestedUrls: string[] = [];
+  const fetcher: typeof fetch = async (input) => {
+    requestedUrls.push(String(input));
+    return new Response(JSON.stringify({
+      products: [product],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      hasMore: false,
+    }), { status: 200 });
+  };
+
+  const result = await loadStockPage({
+    page: 1,
+    pageSize: 50,
+    sort: "name",
+    sortDirection: "desc",
+    filters: {
+      categories: ["Cold, Cough, Allergy & Respiratory"],
+      dosageTypes: ["tablet"],
+      expiryWindows: ["Within 30 days"],
+      manufacturers: ["GPO"],
+      tags: ["Best seller"],
+      stockLevels: ["Low Stock"],
+      stockRange: { min: 5, max: 20 },
+    },
+  }, fetcher);
+
+  assert.deepEqual(result.products, [product]);
+  assert.deepEqual(requestedUrls, [
+    "/api/stock?page=1&pageSize=50&sort=name&direction=desc"
+      + "&category=Cold%2C+Cough%2C+Allergy+%26+Respiratory"
+      + "&dosageType=tablet"
+      + "&expiry=Within+30+days"
+      + "&manufacturer=GPO"
+      + "&tag=Best+seller"
+      + "&stockLevel=Low+Stock"
+      + "&stockMin=5"
+      + "&stockMax=20",
+  ]);
+});

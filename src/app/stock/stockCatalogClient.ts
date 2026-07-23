@@ -1,4 +1,5 @@
 import type { SalesProduct } from "@/server/db/types";
+import type { StockReadFilters } from "@/server/db/stockReadQuery";
 
 const STOCK_CACHE_TTL_MS = 5_000;
 const MAX_CACHE_ENTRIES = 40;
@@ -22,6 +23,7 @@ export type StockPageOptions = {
   sort?: "name" | "weekly";
   sortDirection?: StockSortDirection;
   productIds?: string[];
+  filters?: StockReadFilters;
 };
 
 let cachedPages = new Map<string, { result: StockPage; expiresAt: number }>();
@@ -48,6 +50,21 @@ function stockPageUrl(options: StockPageOptions): string {
   if (query) params.set("q", query);
   if (options.sortDirection === "desc") params.set("direction", "desc");
   if (productIds.length > 0) params.set("ids", productIds.join(","));
+  const filters = options.filters;
+  if (filters) {
+    for (const category of filters.categories) params.append("category", category);
+    for (const dosageType of filters.dosageTypes) params.append("dosageType", dosageType);
+    for (const expiry of filters.expiryWindows) params.append("expiry", expiry);
+    for (const manufacturer of filters.manufacturers) params.append("manufacturer", manufacturer);
+    for (const tag of filters.tags) params.append("tag", tag);
+    for (const stockLevel of filters.stockLevels) params.append("stockLevel", stockLevel);
+    if (filters.stockRange?.min !== null && filters.stockRange?.min !== undefined) {
+      params.set("stockMin", String(filters.stockRange.min));
+    }
+    if (filters.stockRange?.max !== null && filters.stockRange?.max !== undefined) {
+      params.set("stockMax", String(filters.stockRange.max));
+    }
+  }
   return `/api/stock?${params.toString()}`;
 }
 
