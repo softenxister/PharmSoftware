@@ -88,7 +88,7 @@ const CATEGORY_RULES: readonly CategoryRule[] = [
       "thermometer", "blood pressure", "glucometer", "glucose meter", "test strip",
       "lancet", "syringe", "needle", "catheter", "stethoscope", "nebulizer", "spirometer",
       "wheelchair", "walker", "crutch", "medical mask", "face mask", "pm2 5", "n95",
-      "kf94", "daily kids mask", "daily mask", "diagnostic test", "covid test",
+      "kf94", "daily kids mask", "daily mask", "diagnostic test", "covid test", "mask",
       "influenza test", "nitrile gloves", "forceps", "eye shield",
       "kleanglove", "glove",
       "เครื่องวัด", "เครื่องตรวจ", "ชุดตรวจ", "เข็มฉีดยา", "สายสวน", "รถเข็น",

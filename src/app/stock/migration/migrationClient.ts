@@ -111,7 +111,56 @@ export type DistributorMigrationResult = {
   importedCount: number;
 };
 
+type NormalizationResult = {
+  evaluatedCount: number;
+  changedCount: number;
+  unchangedCount: number;
+};
+
+export type ProductCategoryNormalizationResult = NormalizationResult;
+export type ProductMeasurementNormalizationResult = NormalizationResult;
+
 type ApiError = { error?: { message?: string } };
+
+function isNormalizationResult(value: unknown): value is NormalizationResult {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Partial<NormalizationResult>;
+  return Number.isInteger(result.evaluatedCount)
+    && Number.isInteger(result.changedCount)
+    && Number.isInteger(result.unchangedCount)
+    && Number(result.evaluatedCount) >= 0
+    && Number(result.changedCount) >= 0
+    && Number(result.unchangedCount) >= 0
+    && Number(result.changedCount) + Number(result.unchangedCount) === Number(result.evaluatedCount);
+}
+
+export async function submitProductCategoryNormalization(
+  fetcher: typeof fetch = fetch,
+): Promise<ProductCategoryNormalizationResult> {
+  const response = await fetcher("/api/stock/migrations/categories", { method: "POST" });
+  const payload = await response.json().catch(() => ({})) as ApiError & { data?: unknown };
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "The product category normalization request failed.");
+  }
+  if (!isNormalizationResult(payload.data)) {
+    throw new Error("The product category normalization response was incomplete.");
+  }
+  return payload.data;
+}
+
+export async function submitProductMeasurementNormalization(
+  fetcher: typeof fetch = fetch,
+): Promise<ProductMeasurementNormalizationResult> {
+  const response = await fetcher("/api/stock/migrations/measurements", { method: "POST" });
+  const payload = await response.json().catch(() => ({})) as ApiError & { data?: unknown };
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "The product measurement normalization request failed.");
+  }
+  if (!isNormalizationResult(payload.data)) {
+    throw new Error("The product measurement normalization response was incomplete.");
+  }
+  return payload.data;
+}
 
 export async function submitCwMigration<T>(
   action: "preview" | "import",

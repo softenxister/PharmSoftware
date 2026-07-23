@@ -173,6 +173,68 @@
 .dataNote strong { display: block; margin-bottom: 2px; color: #294a36; }
 .dataNote p { margin: 0; }
 
+.normalizationSection { margin-top: 20px; }
+.normalizationCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 17px 18px;
+}
+.normalizationCopy h3 { margin: 0; font-size: 15px; }
+.normalizationCopy p {
+  max-width: 700px;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.normalizationCopy code {
+  color: #365541;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11.5px;
+}
+.normalizationCard .primaryButton { display: inline-flex; align-items: center; gap: 7px; }
+.normalizationHint { margin: 7px 2px 0; color: var(--amber); font-size: 12px; }
+.normalizationError {
+  margin-top: 9px;
+  border: 1px solid #ecc8c4;
+  border-radius: 8px;
+  background: var(--red-soft);
+  color: #803630;
+  padding: 10px 12px;
+  font-size: 12.5px;
+}
+.normalizationResult {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+  border: 1px solid #bfd7c7;
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  padding: 11px 13px;
+  font-size: 12.5px;
+}
+.normalizationResult dl { display: flex; gap: 18px; margin: 0; }
+.normalizationResult dl div { display: flex; align-items: baseline; gap: 5px; }
+.normalizationResult dt { color: var(--muted); font-size: 10px; font-weight: 750; text-transform: uppercase; }
+.normalizationResult dd { margin: 0; font-size: 15px; font-weight: 800; }
+.spinningIcon { animation: normalizationSpin .8s linear infinite; }
+
+@keyframes normalizationSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinningIcon { animation: none; }
+}
+
 @media (max-width: 760px) {
   .pageHeader { align-items: flex-start; flex-direction: column; gap: 10px; }
   .content { width: min(100% - 24px, 1120px); padding-top: 16px; }
@@ -184,6 +246,10 @@
   .confirmRow { align-items: stretch; flex-direction: column; }
   .dropzone { grid-template-columns: auto minmax(0, 1fr); }
   .dropzone .secondaryButton { grid-column: 1 / -1; }
+  .normalizationCard { grid-template-columns: auto minmax(0, 1fr); }
+  .normalizationCard .primaryButton { grid-column: 1 / -1; justify-content: center; }
+  .normalizationResult { grid-template-columns: auto minmax(0, 1fr); }
+  .normalizationResult dl { grid-column: 1 / -1; justify-content: space-between; }
 }
 
 @media (max-width: 480px) {

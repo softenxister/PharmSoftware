@@ -39,6 +39,7 @@ import {
   type StockLevel,
 } from "./stockInventoryFilters";
 import { isStockRowActivationKey } from "./stockRowInteraction";
+import { getStockMeasurementLabel } from "@/lib/productMeasurement";
 import { StockEntryForm } from "./StockEntryForm";
 import { StockBatchAdjustmentDialog } from "./StockBatchAdjustmentDialog";
 import { StockItemDetailDialog } from "./StockItemDetailDialog";
@@ -89,7 +90,7 @@ function productToStockItem(product: SalesProduct): StockItem {
     category: product.category,
     dosageType: product.pack.childUnit,
     expiryDates: product.batches.map((batch) => batch.expiryDate),
-    pack: product.pack.label,
+    pack: getStockMeasurementLabel(product),
     min,
     max,
     stock,

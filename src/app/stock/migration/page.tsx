@@ -16,6 +16,8 @@ import { invalidateStockCatalog } from "@/app/stock/stockCatalogClient";
 import { MigrationPreviewPanel } from "./MigrationPreviewPanel";
 import { MemberDataMigrationCard } from "./MemberDataMigrationCard";
 import { DistributorDataMigrationCard } from "./DistributorDataMigrationCard";
+import { ProductCategoryNormalizationCard } from "./ProductCategoryNormalizationCard";
+import { ProductMeasurementNormalizationCard } from "./ProductMeasurementNormalizationCard";
 import {
   submitCwMigration,
   type MigrationPreview,
@@ -163,6 +165,9 @@ export default function StockMigrationPage() {
             <MemberDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
             <DistributorDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
           </section>
+
+          <ProductMeasurementNormalizationCard canNormalize={canImport} />
+          <ProductCategoryNormalizationCard canNormalize={canImport} />
 
           {error && <div ref={errorRef} className={styles.errorNotice} role="alert"><ArchiveRestore size={18} /><span><strong>Import did not complete.</strong>{error}</span></div>}
           {preview && <MigrationPreviewPanel preview={preview} result={result} confirmed={confirmed} busy={busy === "import"} onConfirmedChange={setConfirmed} onImport={handleImport} />}
