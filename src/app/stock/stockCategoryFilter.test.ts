@@ -18,11 +18,13 @@ test("English and Thai expose the same canonical category values one-to-one", ()
     thaiOptions.map((option) => option.value),
   );
   assert.equal(
-    thaiOptions.find((option) => option.value === "Allergy & Cold")?.label,
-    "หวัด ไอ และภูมิแพ้",
+    thaiOptions.find((option) => option.value === "Cold, Cough, Allergy & Respiratory")?.label,
+    "ยาแก้หวัด ไอ ภูมิแพ้ และระบบทางเดินหายใจ",
   );
   assert.ok(thaiOptions.every((option) => /[\u0E00-\u0E7F]/.test(option.label)));
   assert.ok(!buildStockCategoryOptions(["Cold, Cough & Allergy"]).includes("Cold, Cough & Allergy"));
+  assert.ok(!englishOptions.some((option) => /household medicine/i.test(option.label)));
+  assert.ok(!thaiOptions.some((option) => option.label.includes("ยาสามัญประจำบ้าน")));
 });
 
 test("overlapping legacy category names canonicalize without changing stored products", () => {
@@ -37,6 +39,12 @@ test("overlapping legacy category names canonicalize without changing stored pro
     filterByStockCategories(items, ["Allergy & Cold"]).map((item) => item.id),
     ["sara", "tiffy"],
   );
-  assert.equal(canonicalizeStockCategory("Cold, Cough & Allergy"), "Allergy & Cold");
-  assert.equal(getStockCategoryLabel("th", "Cold, Cough & Allergy"), "หวัด ไอ และภูมิแพ้");
+  assert.equal(
+    canonicalizeStockCategory("Cold, Cough & Allergy"),
+    "Cold, Cough, Allergy & Respiratory",
+  );
+  assert.equal(
+    getStockCategoryLabel("th", "Cold, Cough & Allergy"),
+    "ยาแก้หวัด ไอ ภูมิแพ้ และระบบทางเดินหายใจ",
+  );
 });

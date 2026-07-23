@@ -16,6 +16,7 @@ export const CW_STOCK_HEADERS = [
 ] as const;
 
 import { extractThaiPharmacyBrand } from "./thaiBrandExtractor";
+import { normalizeProductCategory } from "./productCategoryNormalization";
 
 type CwStockHeader = (typeof CW_STOCK_HEADERS)[number];
 type CsvRecord = Record<CwStockHeader, string>;
@@ -323,8 +324,13 @@ export function normalizeCwStockCsv(csvText: string): CwStockNormalizationResult
 
     const sourceManufacturer = row["บริษัทผลิต"];
     const manufacturerName = cleanManufacturer(sourceManufacturer) || "Unknown manufacturer";
-    const category = row["กลุ่มสินค้า"] || "Uncategorized";
     const brand = extractThaiPharmacyBrand(row["ชื่อสินค้า(เต็ม)"]);
+    const category = normalizeProductCategory({
+      itemName: row["ชื่อสินค้า(เต็ม)"],
+      brandName: brand.brandName,
+      genericName: row["ชื่อสามัญ"],
+      sourceCategory: row["กลุ่มสินค้า"],
+    });
     const normalizedProduct: NormalizedStockProduct = {
       externalProductCode,
       isActive: row.Active.trim().toLowerCase() === "true",

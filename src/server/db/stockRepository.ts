@@ -13,6 +13,7 @@ import {
   hasForbiddenStockDiscountChange,
   type StockItemDetailPatch,
 } from "./stockItemDetail";
+import { normalizeProductCategory } from "@/server/import/productCategoryNormalization";
 
 export type PurchasedStockLineInput = {
   productId: string;
@@ -169,11 +170,16 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
     ...mapped.parentPacks.flatMap((pack) => pack.barcodes ?? []),
   ];
   await assertBarcodesAvailable(tx, mapped.id, requestedBarcodes);
+  const categoryName = normalizeProductCategory({
+    itemName: mapped.itemName,
+    brandName: mapped.brandName,
+    sourceCategory: mapped.category,
+  });
   const [category, manufacturer] = await Promise.all([
     tx.category.upsert({
-      where: { name: mapped.category || "Uncategorized" },
+      where: { name: categoryName },
       update: {},
-      create: { name: mapped.category || "Uncategorized" },
+      create: { name: categoryName },
     }),
     tx.manufacturer.upsert({
       where: { name: mapped.manufacturerName || "Unknown manufacturer" },
@@ -409,10 +415,15 @@ export async function updateStockItemDetail(
     if (hasForbiddenStockDiscountChange(user.role, current, input)) {
       throw new Error("Stock discount permission denied.");
     }
+    const categoryName = normalizeProductCategory({
+      itemName: current.itemName,
+      brandName: current.brandName,
+      sourceCategory: input.category,
+    });
     const category = await tx.category.upsert({
-      where: { name: input.category },
+      where: { name: categoryName },
       update: {},
-      create: { name: input.category },
+      create: { name: categoryName },
     });
     await tx.product.update({
       where: { id: current.id },

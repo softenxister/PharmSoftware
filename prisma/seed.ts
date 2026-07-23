@@ -13,6 +13,7 @@ import {
   type StockProductOverride,
 } from "../src/server/db/stockDataMapper";
 import { normalizePostgresConnectionString } from "../src/server/db/postgresConnection";
+import { normalizeProductCategory } from "../src/server/import/productCategoryNormalization";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not configured.");
@@ -46,11 +47,16 @@ async function seedProducts() {
   const products = mergeStockSeedData(salesProducts, savedItems, overrides);
 
   for (const product of products) {
+    const categoryName = normalizeProductCategory({
+      itemName: product.itemName,
+      brandName: product.brandName,
+      sourceCategory: product.category,
+    });
     const [category, manufacturer] = await Promise.all([
       prisma.category.upsert({
-        where: { name: product.category || "Uncategorized" },
+        where: { name: categoryName },
         update: {},
-        create: { name: product.category || "Uncategorized" },
+        create: { name: categoryName },
       }),
       prisma.manufacturer.upsert({
         where: { name: product.manufacturerName || "Unknown manufacturer" },
