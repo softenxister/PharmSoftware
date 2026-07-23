@@ -287,3 +287,63 @@ Add the third owner-only CW dataset to `/stock/migration`, accepting the origina
 ## Open Questions
 
 - None. The supplied CW workbook establishes the source layout and the user restricted mapping to `รหัส` and `ชื่อ`.
+
+---
+
+# Implementation Plan: Evidence-Ranked Product Category Coverage
+
+## Overview
+
+Replace the first-match-only fallback pass with auditable evidence ranking, then use it to reduce the live fallback category without overriding manual categories or guessing ambiguous products.
+
+## Architecture Decisions
+
+- Define Product Category as the primary broad retail-use group; keep regulatory status separate.
+- Rank anchored product families, exact retail brands, generic ingredients, and strong use/form phrases.
+- Require one unique high-confidence winner for bulk reassignment and retain conflicts in the fallback category.
+- Re-evaluate only fallback products during bulk normalization; preserve all explicit non-fallback categories.
+- Extend the existing preview/apply script with reasons, confidence, conflicts, and a reversible backup.
+
+## Task List
+
+### Phase 1: Classification Contract
+
+- [ ] Add evidence-result types and failing representative tests.
+- [ ] Implement ranked family, brand, ingredient, and strong-purpose rules.
+
+### Checkpoint: Classifier
+
+- [ ] Focused pure tests pass, including false-positive and conflict guards.
+
+### Phase 2: Catalog Preview
+
+- [ ] Extend the script to re-evaluate fallback products and report reasons/conflicts/samples.
+- [ ] Audit the complete live preview and refine only evidence-backed high-volume families.
+
+### Checkpoint: Preview
+
+- [ ] At least 25% of fallback products move with unique high-confidence evidence.
+- [ ] Representative samples for every destination category are credible.
+
+### Phase 3: Guarded Apply
+
+- [ ] Write a detailed backup and apply the reviewed assignments transactionally.
+- [ ] Verify live counts, category integrity, and zero changes to explicit non-fallback assignments.
+
+### Checkpoint: Complete
+
+- [ ] Related tests, TypeScript baseline comparison, and diff checks are complete.
+- [ ] The implementation and final distribution are committed.
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| A brand spans multiple retail categories | High | Use model/use terms or mark the brand ambiguous; never map that brand alone. |
+| A therapeutic ingredient conflicts with route/site | High | Route-specific evidence wins only when explicit; unresolved ties remain fallback. |
+| Existing fallback hides a manual choice | Medium | This pass is explicitly authorized to re-evaluate fallback only; backup every changed ID. |
+| Loose substring matching creates false positives | High | Use anchored family rules and whole normalized terms with negative regression cases. |
+
+## Open Questions
+
+- None. The user confirmed the classification policy before implementation.

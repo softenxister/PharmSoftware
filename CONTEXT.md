@@ -33,3 +33,15 @@ _Avoid_: Manufacturer
 **Distributor Code**:
 The CW-issued business identifier for a distributor, distinct from its internal database ID and display name.
 _Avoid_: Distributor name, internal ID
+
+**Product Category**:
+The single broad retail-use group used to find and organize a product in stock. It is distinct from regulatory status and detailed pharmacological classification.
+_Avoid_: Regulatory category, drug schedule
+
+**Regulatory Status**:
+A legal control or sale classification such as household medicine, dangerous drug, or specially controlled drug. It is not a product category.
+_Avoid_: Product category
+
+**Fallback Category**:
+The broad “Other Medicines & Health Products” group reserved for products whose primary retail use cannot be determined from reliable catalog evidence.
+_Avoid_: Uncategorized

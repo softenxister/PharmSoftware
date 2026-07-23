@@ -137,3 +137,26 @@
 - [x] Final verification and additive deployment
   - Acceptance: the distributor-code migration is applied without deleting or rewriting existing distributor data.
   - Verify: focused tests, schema/client checks, builds, `git diff --check`, and live read-only schema verification.
+
+---
+
+# Evidence-Ranked Product Category Coverage
+
+- [ ] Evidence-producing classifier
+  - Acceptance: family, brand, ingredient, and strong-purpose matches return one category, confidence, and reason; conflicts remain fallback.
+  - Verify: failing-then-passing pure tests with false-positive guards.
+  - Files: `src/server/import/productCategoryNormalization.ts` and its test.
+
+- [ ] Complete-catalog preview
+  - Acceptance: fallback products are re-evaluated while explicit categories stay fixed; output includes counts, reasons, conflicts, and samples.
+  - Verify: preview against the live 12,163-product catalog.
+  - Files: `scripts/normalize-product-categories.ts`.
+
+- [ ] Guarded live apply
+  - Acceptance: at least 25% of the 8,851 fallback products move on unique high-confidence evidence with a detailed backup.
+  - Verify: live count comparison, category integrity query, and representative sample audit.
+  - Files: normalization backup output only; no schema change.
+
+- [ ] Final verification
+  - Acceptance: focused tests and diff checks pass, TypeScript adds no new errors, and changes are committed without the backup artifact.
+  - Verify: direct Node/TypeScript/git commands; no npm commands.
