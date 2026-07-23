@@ -49,6 +49,33 @@ test("legal and supplier source groups do not become normalized product categori
   }), "Personal Care & Cosmetics");
 });
 
+test("Neoplast brand-family models map to first aid even without a plaster keyword", () => {
+  assert.equal(normalizeProductCategory({
+    itemName: "3M NEOPLAST SOFT PAD 5ชิ้น",
+    brandName: "3M",
+    sourceCategory: "Uncategorized",
+  }), "First Aid & Wound Care");
+  assert.equal(normalizeProductCategory({
+    itemName: "NEOPLAST-S",
+    brandName: "3M",
+    sourceCategory: "Uncategorized",
+  }), "First Aid & Wound Care");
+  assert.equal(normalizeProductCategory({
+    itemName: "NEOPLAST KOOL PATCH 6ชิ้น",
+    brandName: "3M",
+    sourceCategory: "Uncategorized",
+  }), "First Aid & Wound Care");
+  assert.equal(normalizeProductCategory({
+    itemName: "NEOPLASTIC TAN พลาสติกสีเนื้อ 20ชิ้น",
+    brandName: "NEOPLASTIC",
+    sourceCategory: "Uncategorized",
+  }), "First Aid & Wound Care");
+  assert.equal(normalizeProductCategory({
+    itemName: "ANTINEOPLASTIC MEDICINE SAMPLE",
+    sourceCategory: "Uncategorized",
+  }), "Other Medicines & Health Products");
+});
+
 test("unknown products use one broad fallback instead of an invented specific category", () => {
   assert.equal(normalizeProductCategory({
     itemName: "UNKNOWN PHARMACY PRODUCT X1",

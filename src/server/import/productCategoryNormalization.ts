@@ -15,6 +15,7 @@ export type ProductCategoryNormalizationInput = {
 type CategoryRule = {
   category: string;
   terms: readonly string[];
+  leadingTerms?: readonly string[];
 };
 
 function searchable(value: string): string {
@@ -69,6 +70,7 @@ const CATEGORY_RULES: readonly CategoryRule[] = [
   },
   {
     category: "First Aid & Wound Care",
+    leadingTerms: ["neoplast", "neoplastic", "3m neoplast", "3m neoplastic"],
     terms: [
       "betadine", "povidone iodine", "iodine", "gentian violet", "hydrogen peroxide",
       "rubbing alcohol", "alcohol pad", "normal saline", "wound", "plaster", "bandage",
@@ -246,7 +248,12 @@ export function normalizeProductCategory(input: ProductCategoryNormalizationInpu
   const sourceText = searchable(sourceCategory);
   const isHouseholdMedicine = sourceText.includes("ยาสามัญประจำบ้าน");
   for (const rule of CATEGORY_RULES) {
-    if (rule.terms.some((term) => containsTerm(text, term))) return rule.category;
+    if (
+      rule.leadingTerms?.some((term) => text.startsWith(searchable(term)))
+      || rule.terms.some((term) => containsTerm(text, term))
+    ) {
+      return rule.category;
+    }
   }
   if (isHouseholdMedicine && containsTerm(text, "alcohol")) return "First Aid & Wound Care";
 
