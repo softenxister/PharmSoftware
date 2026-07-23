@@ -308,32 +308,32 @@ Replace the first-match-only fallback pass with auditable evidence ranking, then
 
 ### Phase 1: Classification Contract
 
-- [ ] Add evidence-result types and failing representative tests.
-- [ ] Implement ranked family, brand, ingredient, and strong-purpose rules.
+- [x] Add evidence-result types and failing representative tests.
+- [x] Implement ranked family, brand, ingredient, and strong-purpose rules.
 
 ### Checkpoint: Classifier
 
-- [ ] Focused pure tests pass, including false-positive and conflict guards.
+- [x] Focused pure tests pass, including false-positive and conflict guards.
 
 ### Phase 2: Catalog Preview
 
-- [ ] Extend the script to re-evaluate fallback products and report reasons/conflicts/samples.
-- [ ] Audit the complete live preview and refine only evidence-backed high-volume families.
+- [x] Extend the script to re-evaluate fallback products and report reasons/conflicts/samples.
+- [x] Audit the complete live preview and refine only evidence-backed high-volume families.
 
 ### Checkpoint: Preview
 
-- [ ] At least 25% of fallback products move with unique high-confidence evidence.
-- [ ] Representative samples for every destination category are credible.
+- [x] At least 25% of fallback products move with unique high-confidence evidence.
+- [x] Representative samples for every destination category are credible.
 
 ### Phase 3: Guarded Apply
 
-- [ ] Write a detailed backup and apply the reviewed assignments transactionally.
-- [ ] Verify live counts, category integrity, and zero changes to explicit non-fallback assignments.
+- [x] Write a detailed backup and apply the reviewed assignments transactionally.
+- [x] Verify live counts, category integrity, and zero changes to explicit non-fallback assignments.
 
 ### Checkpoint: Complete
 
-- [ ] Related tests, TypeScript baseline comparison, and diff checks are complete.
-- [ ] The implementation and final distribution are committed.
+- [x] Related tests, TypeScript baseline comparison, and diff checks are complete.
+- [x] The implementation and final distribution are committed.
 
 ## Risks and Mitigations
 

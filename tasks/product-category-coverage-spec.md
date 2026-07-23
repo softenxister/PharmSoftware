@@ -69,3 +69,10 @@ Use explicit, auditable evidence rules. Product-family rules are anchored; gener
 ## Open Questions
 
 None. The user confirmed primary retail use, high-confidence maximization, and preserving genuinely ambiguous products as fallback.
+
+## Outcome
+
+- Applied 2,341 unique high-confidence fallback assignments across the live 12,163-product catalog.
+- Reduced `Other Medicines & Health Products` from 8,851 to 6,510 products (26.45%).
+- Preserved every explicit non-fallback assignment and completed the final pass with zero unresolved classifier conflicts.
+- Wrote a detailed recovery backup before the transaction; the post-apply preview reported zero remaining changes.
