@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { Navigate, createBrowserRouter } from "react-router";
-import { AppBoundary } from "./AppBoundary";
+import { AppBoundary, SessionLoading } from "./AppBoundary";
 
 const lazyPage = async <T extends { default: ComponentType }>(module: Promise<T>) => {
   const loaded = await module;
@@ -11,6 +11,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: AppBoundary,
+    HydrateFallback: SessionLoading,
     children: [
       { index: true, lazy: () => lazyPage(import("./page")) },
       { path: "analysis", lazy: () => lazyPage(import("./analysis/page")) },

@@ -7,6 +7,7 @@ import { PosPreferencesPanel } from "./PosPreferencesPanel";
 import { AccountPanel } from "./AccountPanel";
 import { AppearancePanel } from "./AppearancePanel";
 import { StaffPanel } from "./StaffPanel";
+import { ProductImageReviewPanel } from "./ProductImageReviewPanel";
 import { StoreProfilePanel } from "./StoreProfilePanel";
 import { SettingsPlaceholder } from "./SettingsPlaceholders";
 import { SettingsSidebar, type SettingsSection } from "./SettingsSidebar";
@@ -56,7 +57,8 @@ export function SettingsWorkspace({
             {activeSection === "store-profile" && <StoreProfilePanel user={currentUser} />}
             {activeSection === "pos-preferences" && <PosPreferencesPanel user={currentUser} />}
             {activeSection === "staff-management" && isOwner && <StaffPanel />}
-            {activeSection !== "account" && activeSection !== "appearance" && activeSection !== "store-profile" && activeSection !== "pos-preferences" && activeSection !== "staff-management"
+            {activeSection === "product-image-review" && isOwner && <ProductImageReviewPanel />}
+            {activeSection !== "account" && activeSection !== "appearance" && activeSection !== "store-profile" && activeSection !== "pos-preferences" && activeSection !== "staff-management" && activeSection !== "product-image-review"
               && <SettingsPlaceholder section={activeSection} />}
           </div>
         </main>

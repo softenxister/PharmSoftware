@@ -4,7 +4,7 @@ import { TopBar } from "@/features/events/components/navigation/TopBar";
 import { resolveAuthRoute } from "./authRouting";
 import { useAuth } from "./AuthProvider";
 
-function SessionLoading() {
+export function SessionLoading() {
   return (
     <main
       aria-live="polite"
