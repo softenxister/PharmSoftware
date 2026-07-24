@@ -47,7 +47,7 @@ export function createServerApp() {
   app.use("*", secureHeaders(securityOptions));
   app.use("/api/*", async (context, next) => {
     await next();
-    context.header("Cache-Control", "no-store");
+    if (!context.res.headers.has("cache-control")) context.header("Cache-Control", "no-store");
   });
   app.use("/api/*", (context, next) => (
     context.req.path === STOCK_MIGRATION_PATH

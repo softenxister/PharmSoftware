@@ -85,7 +85,7 @@ function comparableProductNames(left: string, right: string): boolean {
   const rightTokens = new Set(rightNormalized.split(" ").filter(Boolean));
   const shared = [...leftTokens].filter((token) => rightTokens.has(token)).length;
   const union = new Set([...leftTokens, ...rightTokens]).size;
-  return union > 0 && shared / union >= 0.6;
+  return union > 0 && shared / union >= 0.5;
 }
 
 export function permitsCommercialImageReuse(sourceLicence: string | null | undefined): boolean {
