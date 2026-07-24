@@ -247,11 +247,6 @@ function toResolvableProduct(row: {
   barcode: string;
   manufacturer: { name: string };
   barcodeAliases: Array<{ barcode: string }>;
-  parentPacks: Array<{
-    packUnit: string;
-    barcode: string | null;
-    barcodeAliases: Array<{ barcode: string }>;
-  }>;
   activeIngredients: Array<{ ingredient: { canonicalName: string } }>;
 }): ResolvableProduct {
   return {
@@ -263,10 +258,6 @@ function toResolvableProduct(row: {
     barcodes: [
       { value: row.barcode, packageLevel: "EACH" },
       ...row.barcodeAliases.map(({ barcode }) => ({ value: barcode, packageLevel: "EACH" })),
-      ...row.parentPacks.flatMap((pack) => [
-        ...(pack.barcode ? [{ value: pack.barcode, packageLevel: pack.packUnit }] : []),
-        ...pack.barcodeAliases.map(({ barcode }) => ({ value: barcode, packageLevel: pack.packUnit })),
-      ]),
     ],
     ingredientNames: row.activeIngredients.map(({ ingredient }) => ingredient.canonicalName),
   };
@@ -350,13 +341,11 @@ async function runBatch(batchSize: number): Promise<number> {
       brandName: true,
       barcode: true,
       manufacturer: { select: { name: true } },
-      barcodeAliases: { select: { barcode: true } },
-      parentPacks: {
-        select: {
-          packUnit: true,
-          barcode: true,
-          barcodeAliases: { select: { barcode: true } },
-        },
+      // A product has one current image. Only base-item identifiers are safe
+      // here because the free provider does not return packaging level.
+      barcodeAliases: {
+        where: { parentPackId: null },
+        select: { barcode: true },
       },
       activeIngredients: {
         select: { ingredient: { select: { canonicalName: true } } },
