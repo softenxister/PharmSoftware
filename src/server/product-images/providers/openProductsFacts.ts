@@ -109,10 +109,12 @@ export function createOpenProductsFactsProvider(options: {
   fetch?: typeof fetch;
   userAgent?: string;
   minIntervalMs?: number;
+  sleep?: (milliseconds: number) => Promise<void>;
 } = {}): ProductImageProvider {
   const fetcher = options.fetch ?? fetch;
   const userAgent = options.userAgent ?? "PharmProductImageResolver/1.0";
-  const minIntervalMs = Math.max(0, options.minIntervalMs ?? 650);
+  const minIntervalMs = Math.max(0, options.minIntervalMs ?? 800);
+  const sleep = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
   const cache = new Map<string, ProductImageProviderCandidate | null>();
   let lastRequestAt = 0;
   return {
@@ -122,26 +124,37 @@ export function createOpenProductsFactsProvider(options: {
       const normalized = normalizeGtin(gtin14);
       if (!normalized) return null;
       if (cache.has(normalized)) return cache.get(normalized) ?? null;
-      const delay = minIntervalMs - (Date.now() - lastRequestAt);
-      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
-      lastRequestAt = Date.now();
-      const response = await fetcher(buildOpenProductsFactsUrl(normalized), {
-        headers: {
-          accept: "application/json",
-          "user-agent": userAgent,
-        },
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (response.status === 404) {
-        cache.set(normalized, null);
-        return null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const delay = minIntervalMs - (Date.now() - lastRequestAt);
+        if (delay > 0) await sleep(delay);
+        lastRequestAt = Date.now();
+        const response = await fetcher(buildOpenProductsFactsUrl(normalized), {
+          headers: {
+            accept: "application/json",
+            "user-agent": userAgent,
+          },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (response.status === 404) {
+          cache.set(normalized, null);
+          return null;
+        }
+        if ((response.status === 429 || response.status === 503) && attempt === 0) {
+          const retryAfterSeconds = Number(response.headers.get("retry-after"));
+          const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0
+            ? Math.min(120_000, retryAfterSeconds * 1_000)
+            : 60_000;
+          await sleep(Math.max(minIntervalMs, retryAfterMs));
+          continue;
+        }
+        if (!response.ok) throw new Error(`Open Products Facts returned HTTP ${response.status}.`);
+        const payload = await response.json();
+        const candidate = parseOpenProductsFactsResponse(payload, normalized);
+        cache.set(normalized, candidate);
+        if (cache.size > 500) cache.delete(cache.keys().next().value as string);
+        return candidate;
       }
-      if (!response.ok) throw new Error(`Open Products Facts returned HTTP ${response.status}.`);
-      const payload = await response.json();
-      const candidate = parseOpenProductsFactsResponse(payload, normalized);
-      cache.set(normalized, candidate);
-      if (cache.size > 500) cache.delete(cache.keys().next().value as string);
-      return candidate;
+      throw new Error("Open Products Facts retry limit was reached.");
     },
   };
 }

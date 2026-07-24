@@ -82,3 +82,35 @@ test("caches repeated exact-barcode reads to conserve the free provider", async 
   await provider.findByGtin("04006381333931");
   assert.equal(calls, 1);
 });
+
+test("honors throttling and retries one exact-barcode read", async () => {
+  let calls = 0;
+  const waits: number[] = [];
+  const provider = createOpenProductsFactsProvider({
+    minIntervalMs: 0,
+    sleep: async (milliseconds) => {
+      waits.push(milliseconds);
+    },
+    fetch: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(null, {
+          status: 429,
+          headers: { "retry-after": "2" },
+        });
+      }
+      return Response.json({
+        status: "success",
+        product: {
+          code: "4006381333931",
+          image_front_url: "https://images.openfoodfacts.org/example.400.jpg",
+        },
+      });
+    },
+  });
+
+  const candidate = await provider.findByGtin("04006381333931");
+  assert.equal(candidate?.sourceImageUrl, "https://images.openfoodfacts.org/example.full.jpg");
+  assert.equal(calls, 2);
+  assert.deepEqual(waits, [2_000]);
+});
