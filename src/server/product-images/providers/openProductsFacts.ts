@@ -53,9 +53,18 @@ function safeImageUrl(value: unknown): string | null {
   if (!source) return null;
   try {
     const url = new URL(source);
-    return url.protocol === "https:" && OPEN_PRODUCTS_FACTS_IMAGE_HOSTS.includes(
+    if (url.protocol !== "https:" || !OPEN_PRODUCTS_FACTS_IMAGE_HOSTS.includes(
       url.hostname.toLocaleLowerCase("en-US") as typeof OPEN_PRODUCTS_FACTS_IMAGE_HOSTS[number],
-    ) ? url.toString() : null;
+    )) return null;
+
+    // The API's image_front_url commonly points to a 400 px display derivative.
+    // Open Products Facts uses the same selected-image path with `.full` for the
+    // original-resolution derivative.
+    url.pathname = url.pathname.replace(
+      /\.(?:100|200|400|800)\.(jpe?g|png|webp|avif)$/i,
+      ".full.$1",
+    );
+    return url.toString();
   } catch {
     return null;
   }

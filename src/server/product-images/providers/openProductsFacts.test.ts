@@ -23,14 +23,14 @@ test("parses a reusable exact-barcode front image candidate", () => {
       manufacturer: "Example Pharma",
       quantity: "10 tablets",
       countries_codes: ["en:thailand"],
-      image_front_url: "https://images.openfoodfacts.org/images/products/400/638/133/3931/front_en.10.800.jpg",
+      image_front_url: "https://images.openfoodfacts.org/images/products/400/638/133/3931/front_en.10.400.jpg",
     },
   }, "04006381333931");
 
   assert.deepEqual(candidate, {
     provider: "OPEN_PRODUCTS_FACTS",
     sourcePageUrl: "https://world.openfoodfacts.org/product/4006381333931",
-    sourceImageUrl: "https://images.openfoodfacts.org/images/products/400/638/133/3931/front_en.10.800.jpg",
+    sourceImageUrl: "https://images.openfoodfacts.org/images/products/400/638/133/3931/front_en.10.full.jpg",
     sourceLicence: "CC BY-SA 3.0",
     matchMethod: "EXACT_GTIN",
     sourceIdentifierType: "GTIN",
@@ -72,7 +72,7 @@ test("caches repeated exact-barcode reads to conserve the free provider", async 
         status: "success",
         product: {
           code: "4006381333931",
-          image_front_url: "https://images.openfoodfacts.org/example.jpg",
+          image_front_url: "https://images.openfoodfacts.org/example.400.jpg",
         },
       });
     },
