@@ -113,7 +113,7 @@ export function createOpenProductsFactsProvider(options: {
 } = {}): ProductImageProvider {
   const fetcher = options.fetch ?? fetch;
   const userAgent = options.userAgent ?? "PharmProductImageResolver/1.0";
-  const minIntervalMs = Math.max(0, options.minIntervalMs ?? 800);
+  const minIntervalMs = Math.max(0, options.minIntervalMs ?? 900);
   const sleep = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
   const cache = new Map<string, ProductImageProviderCandidate | null>();
   let lastRequestAt = 0;
@@ -124,7 +124,8 @@ export function createOpenProductsFactsProvider(options: {
       const normalized = normalizeGtin(gtin14);
       if (!normalized) return null;
       if (cache.has(normalized)) return cache.get(normalized) ?? null;
-      for (let attempt = 0; attempt < 2; attempt += 1) {
+      const maximumAttempts = 5;
+      for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
         const delay = minIntervalMs - (Date.now() - lastRequestAt);
         if (delay > 0) await sleep(delay);
         lastRequestAt = Date.now();
@@ -139,7 +140,10 @@ export function createOpenProductsFactsProvider(options: {
           cache.set(normalized, null);
           return null;
         }
-        if ((response.status === 429 || response.status === 503) && attempt === 0) {
+        if (
+          (response.status === 429 || response.status === 503)
+          && attempt < maximumAttempts - 1
+        ) {
           const retryAfterSeconds = Number(response.headers.get("retry-after"));
           const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0
             ? Math.min(120_000, retryAfterSeconds * 1_000)
