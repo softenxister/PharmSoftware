@@ -1,5 +1,6 @@
 import type { SavedStockItem, SalesProduct, StockItemInput } from "./types";
 import { canonicalizeProductUnit } from "@/app/i18n/productUnits";
+import { productImageUrl } from "@/server/product-images/placeholder";
 
 type RelatedLineProduct = Pick<SalesProduct, "id" | "itemName" | "barcode" | "location">;
 
@@ -56,7 +57,7 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
   const unit = canonicalizeProductUnit(item.unit);
   const lotNo = item.lotNo?.trim() || `NEW-${primaryBarcode.slice(-6) || "000000"}`;
   const expiryDate = item.expiryDate?.trim() || "";
-  const imageUrl = item.photoUrl.trim() || `https://placehold.co/360x360/png?text=${encodeURIComponent(brandName.slice(0, 18))}`;
+  const imageUrl = item.photoUrl.trim() || productImageUrl(item.id);
   const validPackagingRows = item.packagingRows.filter((row) => {
     const quantity = Number(row.childQuantity);
     return (

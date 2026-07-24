@@ -61,6 +61,7 @@ test("same-name package variants keep separate quantities, prices, and barcodes"
   const product = savedStockToSalesProduct(saved);
 
   assert.equal(product.barcode, "100");
+  assert.equal(product.imageUrl, `/api/product-images/${encodeURIComponent(saved.id)}`);
   assert.deepEqual(product.barcodes, ["101"]);
   assert.deepEqual(product.parentPacks.map((pack) => ({
     unit: pack.packUnit,

@@ -193,6 +193,16 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
     || current.brandName !== mapped.brandName
     || current.manufacturerId !== manufacturer.id
   );
+  const imageIdentityChanged = Boolean(current) && (
+    compositionIdentityChanged
+    || current.imageUrl !== mapped.imageUrl
+  );
+
+  if (imageIdentityChanged) {
+    await tx.productImageAsset.deleteMany({ where: { productId: mapped.id } });
+    await tx.productImageCandidate.deleteMany({ where: { productId: mapped.id } });
+    await tx.productIdentifier.deleteMany({ where: { productId: mapped.id } });
+  }
 
   await tx.product.upsert({
     where: { id: mapped.id },
@@ -214,6 +224,12 @@ async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInp
         compositionCheckedAt: null,
         compositionRetryAt: null,
         compositionError: null,
+      } : {}),
+      ...(imageIdentityChanged ? {
+        imageResolutionStatus: "PENDING",
+        imageCheckedAt: null,
+        imageRetryAt: null,
+        imageResolutionError: null,
       } : {}),
     },
     create: {

@@ -496,12 +496,17 @@ export async function readProductImageReviewQueue(input: {
   };
 }
 
-async function candidateForDecision(candidateId: string) {
+async function candidateById(candidateId: string) {
   const candidate = await prisma.productImageCandidate.findUnique({
     where: { id: candidateId },
     include: { product: { select: { id: true } } },
   });
   if (!candidate) throw new ProductImageCandidateNotFoundError("Product image candidate was not found.");
+  return candidate;
+}
+
+async function candidateForDecision(candidateId: string) {
+  const candidate = await candidateById(candidateId);
   if (candidate.status !== ProductImageCandidateStatus.PENDING) {
     throw new ProductImageCandidateStateError("Product image candidate has already been reviewed.");
   }
@@ -632,7 +637,7 @@ export async function readStoredProductImage(storageKey: string): Promise<Respon
 }
 
 export async function readCandidatePreview(candidateId: string): Promise<ValidatedProductImage> {
-  const candidate = await candidateForDecision(candidateId);
+  const candidate = await candidateById(candidateId);
   if (candidate.provider !== provider.name) throw new Error("The product image provider is not enabled.");
   return fetchValidatedProductImage(candidate.sourceImageUrl, {
     allowedHosts: provider.allowedImageHosts,
