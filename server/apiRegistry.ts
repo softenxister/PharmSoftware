@@ -25,13 +25,10 @@ import * as staff from "@/app/api/staff/route";
 import * as stockAdjustments from "@/app/api/stock-adjustments/route";
 import * as stockBatchAdjustments from "@/app/api/stock/batch-adjustments/route";
 import * as stock from "@/app/api/stock/route";
-<<<<<<< HEAD
 import * as productCategoryNormalization from "@/app/api/stock/migrations/categories/route";
 import * as productMeasurementNormalization from "@/app/api/stock/migrations/measurements/route";
-=======
 import * as stockPhoto from "@/app/api/stock/photo/route";
 import * as stockPhotos from "@/app/api/stock/photos/route";
->>>>>>> b87fabaa (Manaul)
 import * as cwStockMigration from "@/app/api/stock/migrations/cw/route";
 import * as distributorDataMigration from "@/app/api/stock/migrations/distributors/route";
 import * as memberDataMigration from "@/app/api/stock/migrations/members/route";
@@ -96,7 +93,6 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "POST", path: "/api/stock", handler: handler(stock.POST) },
   { method: "PATCH", path: "/api/stock", handler: handler(stock.PATCH) },
   { method: "DELETE", path: "/api/stock", handler: handler(stock.DELETE) },
-<<<<<<< HEAD
   {
     method: "POST",
     path: "/api/stock/migrations/categories",
@@ -107,10 +103,8 @@ export const apiRoutes: readonly ApiRoute[] = [
     path: "/api/stock/migrations/measurements",
     handler: handler(productMeasurementNormalization.POST),
   },
-=======
   { method: "POST", path: "/api/stock/photo", handler: handler(stockPhoto.POST) },
   { method: "POST", path: "/api/stock/photos", handler: handler(stockPhotos.POST) },
->>>>>>> b87fabaa (Manaul)
   { method: "POST", path: "/api/stock/migrations/cw", handler: handler(cwStockMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/distributors", handler: handler(distributorDataMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/members", handler: handler(memberDataMigration.POST) },
