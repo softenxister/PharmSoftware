@@ -4,6 +4,7 @@ import {
   runProductImageBatch,
 } from "@/server/product-images/repository";
 import { parseProductImageBatchInput } from "@/server/product-images/reviewContract";
+import { openProductsFactsImageResolutionIsEnabled } from "@/server/product-images/config";
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
   }
   const input = parseProductImageBatchInput(body);
   if (!input) return Response.json({ error: "Batch size must be a whole number from 1 to 50." }, { status: 400 });
+  if (!openProductsFactsImageResolutionIsEnabled()) {
+    return Response.json({
+      error: "Open Products Facts image discovery is disabled.",
+    }, { status: 409 });
+  }
 
   try {
     const processed = await runProductImageBatch(input.batchSize);

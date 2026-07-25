@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     }
     if (error instanceof Error && error.message.includes("not configured")) {
       return Response.json({
-        error: "Private S3 storage is not configured. Add the server credentials before approval.",
+        error: "Private product-image storage is not configured. Add the server credentials before approval.",
       }, { status: 503 });
     }
     return Response.json({ error: "Unable to approve the product image." }, { status: 500 });

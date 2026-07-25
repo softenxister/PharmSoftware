@@ -8,6 +8,23 @@ import {
 import { prisma } from "@/server/db/prisma";
 import { normalizeGtin } from "./identity";
 import { productImageUrl } from "./placeholder";
+import {
+  selectBraveImageSearchEligibleProducts,
+  type BraveImageSearchEligibleProduct,
+} from "./braveEligibility";
+import { MAX_BRAVE_IMAGE_SEARCH_PRODUCTS } from "./braveJobContract";
+import {
+  BRAVE_IMAGE_SEARCH_HOSTS,
+  BRAVE_IMAGE_SEARCH_PROVIDER,
+  BraveImageSearchRequestError,
+  braveImageSearchIsConfigured,
+  createBraveImageSearchClient,
+  type BraveImageSearchRateLimit,
+} from "./providers/braveImageSearch";
+import {
+  candidateHasValidatedPreview,
+  fetchBraveCandidateImage,
+} from "./providers/braveImageFetch";
 import { createOpenProductsFactsProvider } from "./providers/openProductsFacts";
 import type { ProductImageProviderCandidate } from "./providers/types";
 import {
@@ -22,18 +39,25 @@ import {
   loadS3Config,
 } from "./s3Storage";
 import { fetchValidatedProductImage } from "./secureFetch";
+import { openProductsFactsImageResolutionIsEnabled } from "./config";
 
 const RETRY_DELAY_MS = 24 * 60 * 60 * 1_000;
 const UNRESOLVED_RECHECK_MS = 30 * 24 * 60 * 60 * 1_000;
 const DEFAULT_BATCH_SIZE = 10;
 const MAX_BATCH_SIZE = 50;
+const BRAVE_RETRY_DELAY_MS = 24 * 60 * 60 * 1_000;
+const BRAVE_CONCURRENCY = 5;
+const BRAVE_NO_RESULT_MARKER = "BRAVE_IMAGE_SEARCH_NO_RESULT";
+const BRAVE_RETRY_MARKER = "BRAVE_IMAGE_SEARCH_RETRY";
 
 export class ProductImageCandidateStateError extends Error {}
 export class ProductImageCandidateNotFoundError extends Error {}
+export class ProductImageJobAlreadyRunningError extends Error {}
 
 const provider = createOpenProductsFactsProvider();
 let verifiedStoragePromise: Promise<ReturnType<typeof createS3ProductImageStorage>> | null = null;
 let runningBatch: Promise<number> | null = null;
+let runningBraveImageSearch: Promise<BraveImageSearchRunResult> | null = null;
 
 function boundedReason(reason: string): string {
   return reason.replace(/\s+/g, " ").trim().slice(0, 500);
@@ -45,6 +69,12 @@ function configuredStorage() {
   } catch {
     return null;
   }
+}
+
+function allowedImageHostsForProvider(providerName: string): readonly string[] {
+  if (providerName === provider.name) return provider.allowedImageHosts;
+  if (providerName === BRAVE_IMAGE_SEARCH_PROVIDER) return BRAVE_IMAGE_SEARCH_HOSTS;
+  throw new Error("The product image provider is not enabled.");
 }
 
 async function verifiedStorage() {
@@ -234,7 +264,7 @@ async function activateCandidate(input: {
         imageCheckedAt: reviewedAt,
         imageRetryAt: null,
         imageResolutionError: null,
-        imageUrl: productImageUrl(input.productId),
+        imageUrl: productImageUrl(input.productId, input.image.sha256),
       },
     });
   });
@@ -376,12 +406,183 @@ async function runBatch(batchSize: number): Promise<number> {
 }
 
 export async function runProductImageBatch(batchSize = DEFAULT_BATCH_SIZE): Promise<number> {
+  if (!openProductsFactsImageResolutionIsEnabled()) return 0;
   if (!runningBatch) {
     runningBatch = runBatch(batchSize).finally(() => {
       runningBatch = null;
     });
   }
   return runningBatch;
+}
+
+async function readBraveImageSearchEligibleProducts(
+  limit = Number.POSITIVE_INFINITY,
+): Promise<BraveImageSearchEligibleProduct[]> {
+  const rows = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      imageCandidates: {
+        none: { provider: BRAVE_IMAGE_SEARCH_PROVIDER },
+      },
+    },
+    select: {
+      id: true,
+      barcode: true,
+      itemName: true,
+      imageUrl: true,
+      imageResolutionError: true,
+      imageRetryAt: true,
+      imageAsset: { select: { id: true } },
+      batches: { select: { availableStock: true } },
+    },
+  });
+  return selectBraveImageSearchEligibleProducts(rows, limit, {
+    noResultMarker: BRAVE_NO_RESULT_MARKER,
+    retryMarker: BRAVE_RETRY_MARKER,
+  });
+}
+
+export async function readBraveImageSearchEligibility() {
+  const products = await readBraveImageSearchEligibleProducts();
+  return {
+    configured: braveImageSearchIsConfigured(),
+    eligibleCount: products.length,
+    maxPerRun: MAX_BRAVE_IMAGE_SEARCH_PRODUCTS,
+  };
+}
+
+export type BraveImageSearchRunResult = {
+  selected: number;
+  queried: number;
+  queued: number;
+  unresolved: number;
+  failed: number;
+  eligibleRemaining: number;
+  rateLimit: BraveImageSearchRateLimit;
+};
+
+function braveReviewEvidence(): SavedCandidateInput["evidence"] {
+  return {
+    decision: "REVIEW",
+    autoPublishEligible: false,
+    score: 18,
+    agreements: ["barcodeQuery"],
+    missing: ["verifiedIdentifier", "sourceLicence"],
+    conflicts: [],
+  };
+}
+
+async function saveBraveNoResult(productId: string): Promise<void> {
+  await prisma.product.update({
+    where: { id: productId },
+    data: {
+      imageResolutionStatus: ProductImageResolutionStatus.UNRESOLVED,
+      imageCheckedAt: new Date(),
+      imageRetryAt: null,
+      imageResolutionError: BRAVE_NO_RESULT_MARKER,
+      imageUrl: productImageUrl(productId),
+    },
+  });
+}
+
+async function saveBraveRetry(productId: string): Promise<void> {
+  await prisma.product.update({
+    where: { id: productId },
+    data: {
+      imageResolutionStatus: ProductImageResolutionStatus.PENDING,
+      imageCheckedAt: new Date(),
+      imageRetryAt: new Date(Date.now() + BRAVE_RETRY_DELAY_MS),
+      imageResolutionError: BRAVE_RETRY_MARKER,
+      imageUrl: productImageUrl(productId),
+    },
+  });
+}
+
+async function executeBraveImageSearch(limit: number): Promise<BraveImageSearchRunResult> {
+  const products = await readBraveImageSearchEligibleProducts(
+    Math.min(MAX_BRAVE_IMAGE_SEARCH_PRODUCTS, Math.max(1, Math.trunc(limit))),
+  );
+  const client = createBraveImageSearchClient();
+  let nextIndex = 0;
+  let queried = 0;
+  let queued = 0;
+  let unresolved = 0;
+  let failed = 0;
+  let rateLimited = false;
+  const rateLimit: BraveImageSearchRateLimit = { remaining: null, resetSeconds: null };
+
+  const worker = async () => {
+    while (!rateLimited) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const product = products[index];
+      if (!product) return;
+      queried += 1;
+      try {
+        const result = await client.search(product.barcode, product.itemName);
+        if (result.rateLimit.remaining !== null) {
+          rateLimit.remaining = rateLimit.remaining === null
+            ? result.rateLimit.remaining
+            : Math.min(rateLimit.remaining, result.rateLimit.remaining);
+        }
+        if (result.rateLimit.resetSeconds !== null) {
+          rateLimit.resetSeconds = result.rateLimit.resetSeconds;
+        }
+        if (!result.candidate) {
+          await saveBraveNoResult(product.id);
+          unresolved += 1;
+          continue;
+        }
+        let image: ValidatedProductImage;
+        try {
+          image = await fetchBraveCandidateImage(result.candidate.sourceImageUrl);
+        } catch {
+          await saveBraveNoResult(product.id);
+          unresolved += 1;
+          continue;
+        }
+        await saveCandidate({
+          productId: product.id,
+          candidate: result.candidate,
+          status: "PENDING",
+          evidence: braveReviewEvidence(),
+          image: image.metadata,
+        });
+        queued += 1;
+      } catch (error) {
+        failed += 1;
+        await saveBraveRetry(product.id);
+        if (error instanceof BraveImageSearchRequestError && error.status === 429) {
+          rateLimited = true;
+        }
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(BRAVE_CONCURRENCY, products.length) }, () => worker()),
+  );
+  return {
+    selected: products.length,
+    queried,
+    queued,
+    unresolved,
+    failed,
+    eligibleRemaining: (await readBraveImageSearchEligibleProducts()).length,
+    rateLimit,
+  };
+}
+
+export async function runBraveImageSearch(limit: number): Promise<BraveImageSearchRunResult> {
+  if (runningBraveImageSearch) {
+    throw new ProductImageJobAlreadyRunningError("A Brave image search is already running.");
+  }
+  runningBraveImageSearch = executeBraveImageSearch(limit);
+  try {
+    return await runningBraveImageSearch;
+  } finally {
+    runningBraveImageSearch = null;
+  }
 }
 
 export async function readProductImageReviewQueue(input: {
@@ -417,7 +618,7 @@ export async function readProductImageReviewQueue(input: {
       ],
     } : {}),
   };
-  const [items, grouped] = await Promise.all([
+  const [items, grouped, validatedReviewCount] = await Promise.all([
     prisma.productImageCandidate.findMany({
       where,
       include: {
@@ -433,14 +634,35 @@ export async function readProductImageReviewQueue(input: {
         },
       },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: pageSize + 1,
+      take: status === "PENDING" ? (pageSize + 1) * 3 : pageSize + 1,
     }),
     prisma.product.groupBy({
       by: ["imageResolutionStatus"],
       _count: { _all: true },
     }),
+    prisma.product.count({
+      where: {
+        imageResolutionStatus: ProductImageResolutionStatus.REVIEW,
+        imageCandidates: {
+          some: {
+            status: ProductImageCandidateStatus.PENDING,
+            OR: [
+              { provider: { not: BRAVE_IMAGE_SEARCH_PROVIDER } },
+              {
+                imageMimeType: { not: null },
+                imageWidth: { not: null },
+                imageHeight: { not: null },
+              },
+            ],
+          },
+        },
+      },
+    }),
   ]);
-  const page = items.slice(0, pageSize);
+  const visibleItems = status === "PENDING"
+    ? items.filter(candidateHasValidatedPreview)
+    : items;
+  const page = visibleItems.slice(0, pageSize);
   const counts = Object.fromEntries(grouped.map((entry) => [
     entry.imageResolutionStatus,
     entry._count._all,
@@ -448,7 +670,7 @@ export async function readProductImageReviewQueue(input: {
   return {
     summary: {
       verified: counts.VERIFIED ?? 0,
-      review: counts.REVIEW ?? 0,
+      review: validatedReviewCount,
       unresolved: counts.UNRESOLVED ?? 0,
       pending: counts.PENDING ?? 0,
     },
@@ -481,7 +703,7 @@ export async function readProductImageReviewQueue(input: {
         currentImageUrl: productImageUrl(item.product.id),
       },
     })),
-    nextCursor: items.length > pageSize ? page.at(-1)?.id ?? null : null,
+    nextCursor: visibleItems.length > pageSize ? page.at(-1)?.id ?? null : null,
   };
 }
 
@@ -521,10 +743,11 @@ function candidateSource(candidate: Awaited<ReturnType<typeof candidateForDecisi
 
 export async function approveProductImageCandidate(candidateId: string, reviewerId: string): Promise<void> {
   const candidate = await candidateForDecision(candidateId);
-  if (candidate.provider !== provider.name) throw new Error("The product image provider is not enabled.");
-  const image = await fetchValidatedProductImage(candidate.sourceImageUrl, {
-    allowedHosts: provider.allowedImageHosts,
-  });
+  const image = candidate.provider === BRAVE_IMAGE_SEARCH_PROVIDER
+    ? await fetchBraveCandidateImage(candidate.sourceImageUrl)
+    : await fetchValidatedProductImage(candidate.sourceImageUrl, {
+      allowedHosts: allowedImageHostsForProvider(candidate.provider),
+    });
   await activateCandidate({
     productId: candidate.product.id,
     candidateId: candidate.id,
@@ -627,9 +850,11 @@ export async function readStoredProductImage(storageKey: string): Promise<Respon
 
 export async function readCandidatePreview(candidateId: string): Promise<ValidatedProductImage> {
   const candidate = await candidateById(candidateId);
-  if (candidate.provider !== provider.name) throw new Error("The product image provider is not enabled.");
+  if (candidate.provider === BRAVE_IMAGE_SEARCH_PROVIDER) {
+    return fetchBraveCandidateImage(candidate.sourceImageUrl);
+  }
   return fetchValidatedProductImage(candidate.sourceImageUrl, {
-    allowedHosts: provider.allowedImageHosts,
+    allowedHosts: allowedImageHostsForProvider(candidate.provider),
   });
 }
 

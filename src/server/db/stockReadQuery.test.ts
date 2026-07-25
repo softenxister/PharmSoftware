@@ -29,6 +29,21 @@ test("stock reads accept descending item-name order", () => {
   );
 });
 
+test("stock reads accept sortable inventory columns and reject unknown sort keys", () => {
+  for (const sort of ["minimum", "maximum", "stock", "sellPrice"]) {
+    const parsed = parseStockReadQuery(
+      `http://pharm.test/api/stock?sort=${sort}&direction=desc`,
+    );
+    assert.equal(parsed.sort, sort);
+    assert.equal(parsed.sortDirection, "desc");
+  }
+
+  assert.equal(
+    parseStockReadQuery("http://pharm.test/api/stock?sort=discount").sort,
+    "name",
+  );
+});
+
 test("stock read limits are clamped and search input is normalized", () => {
   assert.deepEqual(parseStockReadQuery(
     "http://pharm.test/api/stock?page=-2&pageSize=500&q=%20%20Paracetamol%20%20&sort=weekly",

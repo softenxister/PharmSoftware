@@ -5,8 +5,12 @@ import {
   invalidateStockCatalog,
   loadStockPage,
   loadStockProductsByIds,
+  saveStockProduct,
   searchStockCatalog,
+  storeAllExternalStockPhotos,
+  storeStockProductPhoto,
 } from "./stockCatalogClient";
+import type { StockItemInput } from "@/server/db/types";
 
 const product: SalesProduct = {
   id: "p-test",
@@ -119,6 +123,27 @@ test("stock page loads request descending item-name order", async () => {
   assert.equal(requestedUrl, "/api/stock?page=1&pageSize=50&sort=name&direction=desc");
 });
 
+test("stock page loads request each sortable inventory column", async () => {
+  for (const sort of ["minimum", "maximum", "stock", "sellPrice"] as const) {
+    invalidateStockCatalog();
+    let requestedUrl = "";
+    const fetcher: typeof fetch = async (input) => {
+      requestedUrl = String(input);
+      return new Response(JSON.stringify({
+        products: [product],
+        page: 1,
+        pageSize: 50,
+        total: 1,
+        hasMore: false,
+      }), { status: 200 });
+    };
+
+    await loadStockPage({ sort, sortDirection: "desc" }, fetcher);
+
+    assert.equal(requestedUrl, `/api/stock?page=1&pageSize=50&sort=${sort}&direction=desc`);
+  }
+});
+
 test("inventory filters request one server-filtered page instead of the complete catalog", async () => {
   invalidateStockCatalog();
   const requestedUrls: string[] = [];
@@ -161,4 +186,124 @@ test("inventory filters request one server-filtered page instead of the complete
       + "&stockMin=5"
       + "&stockMax=20",
   ]);
+});
+
+test("stock saves surface the API error instead of failing silently", async () => {
+  const input: StockItemInput = {
+    productId: "p-test",
+    photoUrl: "https://cdn.example.com/not-an-image",
+    barcode: "1234567890123",
+    itemName: "Test product",
+    lotNo: "",
+    expiryDate: "",
+    location: "A1",
+    manufacturer: "Test manufacturer",
+    sellPrice: "100",
+    itemCategory: "Test",
+    weightage: "10",
+    unit: "box",
+    subUnit: "tablet",
+    brandName: "Test",
+    packagingRows: [],
+  };
+  const fetcher: typeof fetch = async () => Response.json({
+    error: "Barcode is already assigned to another item.",
+  }, { status: 400 });
+
+  await assert.rejects(
+    () => saveStockProduct(input, fetcher),
+    /Barcode is already assigned to another item/,
+  );
+});
+
+test("stock saves return the updated product after a fast URL-text save", async () => {
+  const input: StockItemInput = {
+    productId: "p-test",
+    photoUrl: "https://cdn.example.com/item.png",
+    barcode: product.barcode,
+    itemName: product.itemName,
+    lotNo: "",
+    expiryDate: "",
+    location: product.location,
+    manufacturer: product.manufacturerName,
+    sellPrice: "100",
+    itemCategory: product.category,
+    weightage: "10",
+    unit: "box",
+    subUnit: "tablet",
+    brandName: product.brandName,
+    packagingRows: [],
+  };
+  let savedBody = "";
+  const fetcher: typeof fetch = async (_url, init) => {
+    savedBody = String(init?.body);
+    return Response.json({
+      product: {
+        ...product,
+        imageUrl: input.photoUrl,
+      },
+    });
+  };
+
+  const saved = await saveStockProduct(input, fetcher);
+
+  assert.deepEqual(JSON.parse(savedBody), input);
+  assert.equal(saved.imageUrl, input.photoUrl);
+});
+
+test("photo storage is an explicit request separate from the fast stock save", async () => {
+  let requestedUrl = "";
+  let requestedMethod = "";
+  let requestedBody = "";
+  const fetcher: typeof fetch = async (url, init) => {
+    requestedUrl = String(url);
+    requestedMethod = init?.method ?? "";
+    requestedBody = String(init?.body);
+    return Response.json({
+      product: {
+        ...product,
+        imageUrl: "/api/product-images/p-test?v=stored-checksum",
+      },
+    });
+  };
+
+  const stored = await storeStockProductPhoto(
+    "p-test",
+    "https://cdn.example.com/item.png",
+    fetcher,
+  );
+
+  assert.equal(requestedUrl, "/api/stock/photo");
+  assert.equal(requestedMethod, "POST");
+  assert.deepEqual(JSON.parse(requestedBody), {
+    productId: "p-test",
+    photoUrl: "https://cdn.example.com/item.png",
+  });
+  assert.equal(stored.imageUrl, "/api/product-images/p-test?v=stored-checksum");
+});
+
+test("bulk photo storage uses one explicit stock-photo collection request", async () => {
+  let requestedUrl = "";
+  let requestedMethod = "";
+  const fetcher: typeof fetch = async (url, init) => {
+    requestedUrl = String(url);
+    requestedMethod = init?.method ?? "";
+    return Response.json({
+      result: {
+        eligibleCount: 4,
+        storedCount: 3,
+        failedCount: 1,
+      },
+    });
+  };
+
+  const result = await storeAllExternalStockPhotos(fetcher);
+
+  assert.equal(requestedUrl, "/api/stock/photos");
+  assert.equal(requestedMethod, "POST");
+  assert.deepEqual(result, {
+    eligibleCount: 4,
+    storedCount: 3,
+    failedCount: 1,
+  });
 });

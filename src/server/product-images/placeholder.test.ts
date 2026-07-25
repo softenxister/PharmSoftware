@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createUnresolvedProductSvg,
+  isPlaceholderProductImageUrl,
   productImageUrl,
   resolvePlaceholderBrand,
 } from "./placeholder";
@@ -42,4 +43,20 @@ test("builds stable internal product image URLs", () => {
     productImageUrl("product/with spaces"),
     "/api/product-images/product%2Fwith%20spaces",
   );
+});
+
+test("builds a new database image URL for each approved asset version", () => {
+  assert.equal(
+    productImageUrl("product/with spaces", "sha/256"),
+    "/api/product-images/product%2Fwith%20spaces?v=sha%2F256",
+  );
+});
+
+test("recognizes placeholder hosts without matching lookalike domains", () => {
+  assert.equal(isPlaceholderProductImageUrl("https://placehold.co/512x512.png"), true);
+  assert.equal(isPlaceholderProductImageUrl("https://cdn.placehold.co/512x512.png"), true);
+  assert.equal(isPlaceholderProductImageUrl("https://via.placeholder.com/512.png"), true);
+  assert.equal(isPlaceholderProductImageUrl("https://placehold.co.evil.example/512.png"), false);
+  assert.equal(isPlaceholderProductImageUrl("https://cdn.example.com/real-product.png"), false);
+  assert.equal(isPlaceholderProductImageUrl("not-a-url"), false);
 });

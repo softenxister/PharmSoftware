@@ -160,3 +160,67 @@
 - [x] Final verification
   - Acceptance: focused tests and diff checks pass, TypeScript adds no new errors, and changes are committed without the backup artifact.
   - Verify: direct Node/TypeScript/git commands; no npm commands.
+
+---
+
+# Verified Product Images
+
+- [x] Persistence foundation
+  - Acceptance: additive image-resolution schema and migration preserve all product-linked data,
+    mark existing products pending, and default future products pending.
+  - Verify: Prisma generation/validation, migration inspection, focused repository test.
+  - Files: `prisma/schema.prisma`, one migration, generated Prisma client.
+
+- [x] Matching and placeholder contract
+  - Acceptance: valid GTIN normalization, hard-conflict rejection, non-auto text matching, and safe
+    white/dark-green brand placeholder with `Invalid` fallback are deterministic.
+  - Verify: red-green pure tests including Thai/English and hostile/long brand input.
+  - Files: `src/server/product-images/*` pure modules and tests.
+
+- [x] Free provider discovery
+  - Acceptance: exact-barcode Open Products Facts family responses become licensed, attributed
+    candidates; request cache/rate limits and retry state bound resource use.
+  - Verify: fixture tests and optional live smoke test.
+  - Files: `src/server/product-images/providers/*`.
+
+- [x] Secure image validation
+  - Acceptance: only allowlisted HTTPS image bytes with safe DNS, redirects, MIME signatures, byte
+    size, and useful dimensions reach storage or preview.
+  - Verify: local hostile-response and valid-image fixture tests.
+  - Files: secure fetch/metadata modules and tests.
+
+- [x] Private S3 storage
+  - Acceptance: server-only SigV4 upload/read, checksum object keys, no ACLs, and safe missing-config
+    behavior.
+  - Verify: signature fixtures and configured-bucket smoke test when credentials are supplied.
+  - Files: storage/config modules and tests.
+
+- [x] Resolver state machine
+  - Acceptance: only exact conflict-free licensed matches auto-publish; uncertain candidates enter
+    review; retries, duplicates, stale actions, and unresolved outcomes are idempotent.
+  - Verify: repository/orchestrator transaction tests.
+  - Files: resolver repository/orchestrator and tests.
+
+- [x] Image and review APIs
+  - Acceptance: authenticated internal image/placeholder delivery and Owner-only list,
+    preview, approve, reject, unresolved, and bounded-run endpoints are registered.
+  - Verify: authorization, response, cache/CSP, stale-state, and registry tests.
+  - Files: scoped API routes and `server/apiRegistry*`.
+
+- [x] Owner review screen
+  - Acceptance: permanent Owner-only Settings section shows summary, queue, candidate comparison,
+    evidence/licence, filters, pagination, and guarded decisions in stable desktop/tablet layout.
+  - Verify: UI state tests plus isolated-browser accessibility, interaction, console, and network checks.
+  - Files: focused settings panel/client, sidebar/workspace, i18n, scoped CSS/tests.
+
+- [ ] Complete-catalog backfill
+  - Acceptance: dry run and bounded resumable apply visit every current product and retain a prior
+    `imageUrl` recovery snapshot without altering unrelated product data.
+  - Verify: pre/post counts, status sum, duplicate/conflict queries, restart exercise.
+  - Files: `scripts/resolve-product-images.ts`, option tests, recovery output.
+
+- [ ] S3 publication and final verification
+  - Acceptance: bucket safety checks pass, approved objects are private and internally served, all
+    current products are verified/review/unresolved, and future products remain automatically pending.
+  - Verify: checksum/upload/read/public-denial smoke tests, focused and regression tests, TypeScript,
+    Prisma, `git diff --check`, desktop/tablet browser pass.

@@ -576,6 +576,27 @@
   flex: 1;
 }
 
+.toolbarStatus {
+  min-width: 0;
+  max-width: 330px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--stock-primary-dark);
+  font-size: 11.5px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbarStatusError {
+  color: var(--stock-danger);
+}
+
+.moreMenuContainer {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .moreButton {
   display: inline-flex;
   height: 38px;
@@ -595,8 +616,77 @@
   white-space: nowrap;
 }
 
-.moreButton:hover {
+.moreButton:hover:not(:disabled) {
   background: var(--app-surface-muted);
+}
+
+.moreButton:disabled {
+  color: var(--app-muted);
+  cursor: wait;
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 12;
+  width: 310px;
+  border: 1px solid var(--stock-border);
+  border-radius: 7px;
+  background: var(--stock-surface);
+  box-shadow: 0 10px 24px rgba(20, 35, 25, 0.14);
+  padding: 6px;
+}
+
+.moreMenuItem {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--stock-primary-dark);
+  cursor: pointer;
+  font: inherit;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.moreMenuItem:hover:not(:disabled),
+.moreMenuItem:focus-visible {
+  background: var(--stock-primary-soft);
+  outline: none;
+}
+
+.moreMenuItem:disabled {
+  color: var(--app-muted);
+  cursor: wait;
+}
+
+.moreMenuItem > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.moreMenuItem > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.moreMenuItem strong {
+  font-size: 12.5px;
+  font-weight: 820;
+}
+
+.moreMenuItem small {
+  color: var(--stock-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .toolbarAddButton {
@@ -1120,13 +1210,25 @@
   display: flex;
   min-height: 58px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: auto;
   border: 1px solid var(--stock-border);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: 0 -4px 14px rgba(20, 35, 25, 0.08);
   padding: 10px 12px;
+}
+
+.saveErrorMessage {
+  min-width: 0;
+  max-width: 70%;
+  margin: 0;
+  overflow: hidden;
+  color: #9f2d26;
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .formBody {

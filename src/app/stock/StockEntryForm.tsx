@@ -20,6 +20,10 @@ import {
 } from "@/app/i18n/productUnits";
 import type { AppLocale } from "@/app/settings/appPreferences";
 import { canonicalizeStockCategory, getStockCategoryOptions } from "./stockCategoryFilter";
+import {
+  isStockSaveShortcut,
+  selectStockIdentityText,
+} from "./stockEntryInteraction";
 import styles from "./Stock.module.css";
 
 type PackagingRow = {
@@ -298,7 +302,10 @@ export function StockEntryForm({
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [focusPackagingRowId, setFocusPackagingRowId] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const deleteCancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const packagingRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [packagingRows, setPackagingRows] = useState<PackagingRow[]>(() => {
@@ -332,6 +339,17 @@ export function StockEntryForm({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isDeleteConfirmationOpen, isDeleting]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const handleSaveShortcut = (event: globalThis.KeyboardEvent) => {
+      if (!isStockSaveShortcut(mode, event)) return;
+      event.preventDefault();
+      if (!isDeleteConfirmationOpen) formRef.current?.requestSubmit();
+    };
+    window.addEventListener("keydown", handleSaveShortcut);
+    return () => window.removeEventListener("keydown", handleSaveShortcut);
+  }, [isDeleteConfirmationOpen, isEditing, mode]);
 
   const missingSaveFields = useMemo(() => {
     const price = Number(sellPrice);
@@ -375,31 +393,39 @@ export function StockEntryForm({
     ));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canSave) return;
+    if (!canSave || !onSave || isSaving) return;
 
-    onSave?.({
-      productId: initialItem?.productId,
-      photoUrl,
-      barcode,
-      itemName,
-      lotNo,
-      expiryDate,
-      location,
-      manufacturer,
-      sellPrice,
-      itemCategory,
-      weightage,
-      subUnit,
-      unit,
-      brandName,
-      packagingRows,
-    });
+    setSaveError("");
+    setIsSaving(true);
+    try {
+      await onSave({
+        productId: initialItem?.productId,
+        photoUrl,
+        barcode,
+        itemName,
+        lotNo,
+        expiryDate,
+        location,
+        manufacturer,
+        sellPrice,
+        itemCategory,
+        weightage,
+        subUnit,
+        unit,
+        brandName,
+        packagingRows,
+      });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : t("stockForm.saveError"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleConfirmedDelete = async () => {
-    if (!isEditing || !onDelete || isDeleting) return;
+    if (!isEditing || !onDelete || isDeleting || isSaving) return;
     setDeleteError("");
     setIsDeleting(true);
     try {
@@ -418,6 +444,7 @@ export function StockEntryForm({
 
   return (
     <form
+      ref={formRef}
       className={`${styles.stockForm} ${styles.stockFormPortrait} ${!isEditing ? styles.stockFormCreate : ""}`}
       onSubmit={handleSubmit}
       noValidate
@@ -431,6 +458,7 @@ export function StockEntryForm({
             <button
               type="button"
               className={styles.deleteItemButton}
+              disabled={isSaving}
               onClick={() => {
                 setDeleteError("");
                 setIsDeleteConfirmationOpen(true);
@@ -503,6 +531,7 @@ export function StockEntryForm({
               type="text"
               value={photoUrl}
               placeholder="https://example.com/photo.jpg"
+              onClick={(event) => selectStockIdentityText(mode, event.currentTarget)}
               onChange={(event) => setPhotoUrl(event.target.value)}
             />
           </label>
@@ -513,6 +542,7 @@ export function StockEntryForm({
               <input
                 type="text"
                 value={barcode}
+                onClick={(event) => selectStockIdentityText(mode, event.currentTarget)}
                 onChange={(event) => setBarcode(event.target.value)}
                 placeholder={t("stockForm.barcodesPlaceholder")}
               />
@@ -534,6 +564,7 @@ export function StockEntryForm({
               <input
                 value={itemName}
                 placeholder="Paracetamol 500 mg"
+                onClick={(event) => selectStockIdentityText(mode, event.currentTarget)}
                 onChange={(event) => setItemName(event.target.value)}
               />
             </label>
@@ -757,9 +788,18 @@ export function StockEntryForm({
       </div>
 
       <div className={styles.formFooter}>
-        <button type="submit" className={`${styles.toolbarAddButton} ${!isEditing ? styles.createActionButton : ""}`} disabled={!canSave || isDeleting}>
+        {saveError && (
+          <p className={styles.saveErrorMessage} role="alert" title={saveError}>
+            {saveError}
+          </p>
+        )}
+        <button type="submit" className={`${styles.toolbarAddButton} ${!isEditing ? styles.createActionButton : ""}`} disabled={!canSave || isDeleting || isSaving}>
           <PackagePlus size={17} />
-          <span>{isEditing ? t("stockForm.saveChanges") : t("stockForm.create")}</span>
+          <span>
+            {isSaving
+              ? t("stockForm.saving")
+              : isEditing ? t("stockForm.saveChanges") : t("stockForm.create")}
+          </span>
         </button>
       </div>
     </form>

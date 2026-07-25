@@ -27,6 +27,29 @@ test("rejects HTML, SVG, tiny images, and unsupported signatures", () => {
   assert.throws(() => inspectProductImage(new Uint8Array([1, 2, 3, 4]), "image/png"), /format/i);
 });
 
+test("accepts review-sized thumbnails only with an explicit provider policy", () => {
+  assert.throws(() => inspectProductImage(png(500, 500), "image/png"), /resolution/i);
+  assert.deepEqual(
+    inspectProductImage(png(500, 500), "image/png", {
+      minimumShortSide: 300,
+      minimumLongSide: 400,
+    }),
+    {
+      mimeType: "image/png",
+      width: 500,
+      height: 500,
+      byteSize: 24,
+    },
+  );
+  assert.throws(
+    () => inspectProductImage(png(200, 200), "image/png", {
+      minimumShortSide: 300,
+      minimumLongSide: 400,
+    }),
+    /resolution/i,
+  );
+});
+
 test("rejects images larger than the configured byte limit", () => {
   assert.throws(
     () => inspectProductImage(new Uint8Array(9 * 1024 * 1024), "image/png"),

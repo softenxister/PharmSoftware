@@ -8,6 +8,8 @@ test("product image review and job routes require an Owner session", async () =>
     ["GET", "/api/product-image-review"],
     ["POST", "/api/product-image-review/candidate-1/approve"],
     ["POST", "/api/product-image-review/candidate-1/reject"],
+    ["GET", "/api/product-image-jobs/brave"],
+    ["POST", "/api/product-image-jobs/brave"],
     ["POST", "/api/product-image-jobs/run"],
     ["GET", "/api/product-image-candidates/candidate-1/preview"],
   ]) {

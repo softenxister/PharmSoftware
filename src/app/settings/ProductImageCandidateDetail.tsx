@@ -16,14 +16,16 @@ export function ProductImageCandidateDetail({
   busy,
   onApprove,
   onReject,
+  onLeaveUnresolved,
 }: {
   candidate: ProductImageReviewItem | null;
   busy: boolean;
   onApprove: (candidate: ProductImageReviewItem) => void;
-  onReject: (candidate: ProductImageReviewItem, reason: string, leaveUnresolved: boolean) => void;
+  onReject: (candidate: ProductImageReviewItem) => void;
+  onLeaveUnresolved: (candidate: ProductImageReviewItem, reason: string) => void;
 }) {
   const { t } = usePreferences();
-  const [decision, setDecision] = useState<"reject" | "unresolved" | null>(null);
+  const [unresolvedOpen, setUnresolvedOpen] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
   const evidence = useMemo(() => evidenceRows(candidate?.evidence), [candidate?.evidence]);
 
@@ -40,11 +42,11 @@ export function ProductImageCandidateDetail({
   const canDecide = hasReviewDecision(candidate, busy);
   const submitDecision = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!decision || !canDecide) return;
+    if (!unresolvedOpen || !canDecide) return;
     const form = new FormData(event.currentTarget);
     const reason = String(form.get("reason") ?? "").replace(/\s+/g, " ").trim();
     if (!reason || reason.length > 500) return;
-    onReject(candidate, reason, decision === "unresolved");
+    onLeaveUnresolved(candidate, reason);
   };
 
   return (
@@ -112,7 +114,7 @@ export function ProductImageCandidateDetail({
 
       {candidate.status === "PENDING" && (
         <div className={styles.imageReviewActions}>
-          {decision ? (
+          {unresolvedOpen ? (
             <form onSubmit={submitDecision} className={styles.imageDecisionForm}>
               <label>
                 <span>{t("productImages.reason")}</span>
@@ -127,11 +129,11 @@ export function ProductImageCandidateDetail({
                 />
               </label>
               <div>
-                <button type="button" className={styles.secondaryActionButton} onClick={() => setDecision(null)} disabled={busy}>
+                <button type="button" className={styles.secondaryActionButton} onClick={() => setUnresolvedOpen(false)} disabled={busy}>
                   <X size={14} />{t("productImages.cancel")}
                 </button>
-                <button type="submit" className={decision === "unresolved" ? styles.unresolvedButton : styles.rejectButton} disabled={!canDecide}>
-                  {decision === "unresolved" ? t("productImages.confirmUnresolved") : t("productImages.confirmReject")}
+                <button type="submit" className={styles.unresolvedButton} disabled={!canDecide}>
+                  {t("productImages.confirmUnresolved")}
                 </button>
               </div>
             </form>
@@ -140,10 +142,10 @@ export function ProductImageCandidateDetail({
               <button type="button" className={styles.primaryButton} onClick={() => onApprove(candidate)} disabled={!canDecide}>
                 <Check size={15} />{t("productImages.approve")}
               </button>
-              <button type="button" className={styles.rejectButton} onClick={() => setDecision("reject")} disabled={!canDecide}>
+              <button type="button" className={styles.rejectButton} onClick={() => onReject(candidate)} disabled={!canDecide}>
                 {t("productImages.reject")}
               </button>
-              <button type="button" className={styles.unresolvedButton} onClick={() => setDecision("unresolved")} disabled={!canDecide}>
+              <button type="button" className={styles.unresolvedButton} onClick={() => setUnresolvedOpen(true)} disabled={!canDecide}>
                 {t("productImages.leaveUnresolved")}
               </button>
             </>

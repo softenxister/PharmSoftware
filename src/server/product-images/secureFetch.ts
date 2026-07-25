@@ -1,17 +1,29 @@
 import { createHash } from "node:crypto";
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { inspectProductImage, MAX_PRODUCT_IMAGE_BYTES, type ProductImageMetadata } from "./imageMetadata";
+import {
+  inspectProductImage,
+  MAX_PRODUCT_IMAGE_BYTES,
+  type ProductImageInspectionPolicy,
+  type ProductImageMetadata,
+} from "./imageMetadata";
 
 type LookupResult = { address: string; family: number };
 
-type SecureFetchOptions = {
+export type SecureFetchOptions = {
   allowedHosts: readonly string[];
   lookup?: (hostname: string) => Promise<LookupResult[]>;
   fetch?: typeof fetch;
   timeoutMs?: number;
   maxRedirects?: number;
+  inspectionPolicy?: ProductImageInspectionPolicy;
 };
+
+export class ProductImageFetchHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`Product image returned HTTP ${status}.`);
+  }
+}
 
 function ipv4Number(address: string): number {
   return address.split(".").reduce((value, octet) => (value * 256) + Number(octet), 0) >>> 0;
@@ -102,6 +114,20 @@ export function validateProviderImageUrl(source: string, allowedHosts: readonly 
   return url;
 }
 
+export function parseManualProductImageUrl(source: string): URL | null {
+  const trimmed = source.trim();
+  if (!trimmed || trimmed.startsWith("/api/product-images/")) return null;
+  if (trimmed.length > 2_048) throw new Error("Product image URL is too long.");
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error("Product image URL is invalid.");
+  }
+  return validateProviderImageUrl(url.toString(), [url.hostname]);
+}
+
 async function readBoundedBody(response: Response): Promise<Uint8Array> {
   const declaredLength = Number(response.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > MAX_PRODUCT_IMAGE_BYTES) {
@@ -164,13 +190,33 @@ export async function fetchValidatedProductImage(
       url = next;
       continue;
     }
-    if (!response.ok) throw new Error(`Product image returned HTTP ${response.status}.`);
+    if (!response.ok) throw new ProductImageFetchHttpError(response.status);
 
     const bytes = await readBoundedBody(response);
-    const metadata = inspectProductImage(bytes, response.headers.get("content-type"));
+    const metadata = inspectProductImage(
+      bytes,
+      response.headers.get("content-type"),
+      options.inspectionPolicy,
+    );
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     return { bytes, metadata, sha256 };
   }
 
   throw new Error("Product image could not be fetched.");
+}
+
+export async function fetchValidatedManualProductImage(
+  source: string,
+  options: Omit<SecureFetchOptions, "allowedHosts"> = {},
+): Promise<{ bytes: Uint8Array; metadata: ProductImageMetadata; sha256: string } | null> {
+  const url = parseManualProductImageUrl(source);
+  if (!url) return null;
+  return fetchValidatedProductImage(url.toString(), {
+    ...options,
+    inspectionPolicy: options.inspectionPolicy ?? {
+      minimumShortSide: 96,
+      minimumLongSide: 96,
+    },
+    allowedHosts: [url.hostname],
+  });
 }

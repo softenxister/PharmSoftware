@@ -7,6 +7,16 @@ export type ProductImageMetadata = {
   byteSize: number;
 };
 
+export type ProductImageInspectionPolicy = {
+  minimumShortSide: number;
+  minimumLongSide: number;
+};
+
+const DEFAULT_INSPECTION_POLICY: ProductImageInspectionPolicy = {
+  minimumShortSide: 600,
+  minimumLongSide: 800,
+};
+
 function uint24Le(bytes: Uint8Array, offset: number): number {
   return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16);
 }
@@ -76,6 +86,7 @@ function avifDimensions(bytes: Uint8Array): [number, number] | null {
 export function inspectProductImage(
   bytes: Uint8Array,
   _declaredContentType?: string | null,
+  policy: ProductImageInspectionPolicy = DEFAULT_INSPECTION_POLICY,
 ): ProductImageMetadata {
   if (bytes.byteLength > MAX_PRODUCT_IMAGE_BYTES) {
     throw new Error("Product images must not exceed 8 MiB.");
@@ -93,7 +104,10 @@ export function inspectProductImage(
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
     throw new Error("Invalid product image dimensions.");
   }
-  if (Math.min(width, height) < 600 && Math.max(width, height) < 800) {
+  if (
+    Math.min(width, height) < policy.minimumShortSide
+    && Math.max(width, height) < policy.minimumLongSide
+  ) {
     throw new Error("Product image resolution is too small.");
   }
   const aspectRatio = width / height;

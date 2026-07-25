@@ -1,5 +1,5 @@
-import type { SalesProduct } from "@/server/db/types";
-import type { StockReadFilters } from "@/server/db/stockReadQuery";
+import type { SalesProduct, StockItemInput } from "@/server/db/types";
+import type { StockReadFilters, StockSort } from "@/server/db/stockReadQuery";
 
 const STOCK_CACHE_TTL_MS = 5_000;
 const MAX_CACHE_ENTRIES = 40;
@@ -15,12 +15,17 @@ export type StockPage = {
 };
 
 export type StockSortDirection = "asc" | "desc";
+export type BulkStockPhotoStorageResult = {
+  eligibleCount: number;
+  storedCount: number;
+  failedCount: number;
+};
 
 export type StockPageOptions = {
   page?: number;
   pageSize?: number;
   query?: string;
-  sort?: "name" | "weekly";
+  sort?: StockSort;
   sortDirection?: StockSortDirection;
   productIds?: string[];
   filters?: StockReadFilters;
@@ -44,7 +49,7 @@ function stockPageUrl(options: StockPageOptions): string {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
-    sort: options.sort === "weekly" ? "weekly" : "name",
+    sort: options.sort ?? "name",
   });
   const query = options.query?.trim();
   if (query) params.set("q", query);
@@ -142,4 +147,77 @@ export async function loadStockProductsByIds(
   if (ids.length === 0) return [];
   const result = await loadStockPage({ productIds: ids }, fetcher);
   return result.products;
+}
+
+export async function saveStockProduct(
+  input: StockItemInput,
+  fetcher: typeof fetch = fetch,
+): Promise<SalesProduct> {
+  const response = await fetcher("/api/stock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data: unknown = await response.json().catch(() => null);
+  const payload = data && typeof data === "object"
+    ? data as { product?: SalesProduct; error?: unknown }
+    : {};
+  if (!response.ok || !payload.product) {
+    const message = typeof payload.error === "string" && payload.error.trim()
+      ? payload.error
+      : "Unable to save stock item.";
+    throw new Error(message);
+  }
+  return payload.product;
+}
+
+export async function storeStockProductPhoto(
+  productId: string,
+  photoUrl: string,
+  fetcher: typeof fetch = fetch,
+): Promise<SalesProduct> {
+  const response = await fetcher("/api/stock/photo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productId, photoUrl }),
+  });
+  const data: unknown = await response.json().catch(() => null);
+  const payload = data && typeof data === "object"
+    ? data as { product?: SalesProduct; error?: unknown }
+    : {};
+  if (!response.ok || !payload.product) {
+    const message = typeof payload.error === "string" && payload.error.trim()
+      ? payload.error
+      : "Unable to store this photo.";
+    throw new Error(message);
+  }
+  return payload.product;
+}
+
+function isBulkStockPhotoStorageResult(value: unknown): value is BulkStockPhotoStorageResult {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Partial<BulkStockPhotoStorageResult>;
+  return Number.isSafeInteger(result.eligibleCount)
+    && Number(result.eligibleCount) >= 0
+    && Number.isSafeInteger(result.storedCount)
+    && Number(result.storedCount) >= 0
+    && Number.isSafeInteger(result.failedCount)
+    && Number(result.failedCount) >= 0;
+}
+
+export async function storeAllExternalStockPhotos(
+  fetcher: typeof fetch = fetch,
+): Promise<BulkStockPhotoStorageResult> {
+  const response = await fetcher("/api/stock/photos", { method: "POST" });
+  const data: unknown = await response.json().catch(() => null);
+  const payload = data && typeof data === "object"
+    ? data as { result?: unknown; error?: unknown }
+    : {};
+  if (!response.ok || !isBulkStockPhotoStorageResult(payload.result)) {
+    const message = typeof payload.error === "string" && payload.error.trim()
+      ? payload.error
+      : "Unable to store external stock photos.";
+    throw new Error(message);
+  }
+  return payload.result;
 }

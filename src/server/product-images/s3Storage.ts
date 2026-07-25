@@ -1,6 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 
 export type S3Config = {
+  provider: "amazon-s3" | "backblaze-b2";
   region: string;
   bucket: string;
   accessKeyId: string;
@@ -27,13 +28,43 @@ const MIME_EXTENSIONS = {
 
 function required(environment: Record<string, string | undefined>, name: string): string {
   const value = environment[name]?.trim();
-  if (!value) throw new Error("Amazon S3 product-image storage is not configured.");
+  if (!value) throw new Error("Private product-image storage is not configured.");
   return value;
 }
 
 export function loadS3Config(
   environment: Record<string, string | undefined> = process.env,
 ): S3Config {
+  const backblazeNames = [
+    "BACKBLAZE_B2_REGION",
+    "BACKBLAZE_B2_BUCKET",
+    "BACKBLAZE_B2_KEY_ID",
+    "BACKBLAZE_B2_APPLICATION_KEY",
+  ] as const;
+  const hasBackblazeConfiguration = backblazeNames.some((name) => environment[name]?.trim());
+  if (hasBackblazeConfiguration) {
+    const region = required(environment, "BACKBLAZE_B2_REGION");
+    const bucket = required(environment, "BACKBLAZE_B2_BUCKET");
+    const accessKeyId = required(environment, "BACKBLAZE_B2_KEY_ID");
+    const secretAccessKey = required(environment, "BACKBLAZE_B2_APPLICATION_KEY");
+
+    if (!/^[a-z]{2}-[a-z]+-\d{3}$/.test(region)) {
+      throw new Error("Backblaze B2 region is invalid.");
+    }
+    if (!/^(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket)) {
+      throw new Error("Backblaze B2 bucket name is invalid.");
+    }
+
+    return {
+      provider: "backblaze-b2",
+      region,
+      bucket,
+      accessKeyId,
+      secretAccessKey,
+      endpoint: `https://s3.${region}.backblazeb2.com`,
+    };
+  }
+
   const region = required(environment, "AWS_S3_REGION");
   const bucket = required(environment, "AWS_S3_BUCKET");
   const accessKeyId = required(environment, "AWS_S3_ACCESS_KEY_ID");
@@ -56,6 +87,7 @@ export function loadS3Config(
   }
 
   return {
+    provider: "amazon-s3",
     region,
     bucket,
     accessKeyId,
@@ -167,6 +199,26 @@ export function createS3ProductImageStorage(options: {
 
   return {
     async verifyPrivateBucket(): Promise<void> {
+      if (config.provider === "backblaze-b2") {
+        const bucketAcl = buildSignedS3Request({
+          method: "GET",
+          key: "",
+          query: { acl: "" },
+          config,
+        });
+        const bucketAclResponse = await checkedResponse(
+          await fetcher(bucketAcl.url, { headers: bucketAcl.headers }),
+          "bucket ACL check",
+        );
+        const bucketAclXml = await bucketAclResponse.text();
+        const hasOwnerControl = /<Permission>\s*FULL_CONTROL\s*<\/Permission>/i.test(bucketAclXml);
+        const hasPublicGrant = /<URI>[^<]*(?:AllUsers|AuthenticatedUsers)[^<]*<\/URI>/i.test(bucketAclXml);
+        if (!hasOwnerControl || hasPublicGrant) {
+          throw new Error("Backblaze B2 product-image bucket must be private.");
+        }
+        return;
+      }
+
       const head = buildSignedS3Request({ method: "HEAD", key: "", config });
       await checkedResponse(await fetcher(head.url, { method: "HEAD", headers: head.headers }), "bucket check");
 

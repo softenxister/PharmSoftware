@@ -1,0 +1,56 @@
+# Product-image sources for a Thailand pharmacy catalogue
+
+Checked on 2026-07-24.
+
+## Recommendation
+
+Do not make an LLM the primary matcher. The least expensive reliable key is the exact consumer-unit barcode/GTIN: GS1 defines a GTIN as the identifier for a trade item, and different packaging levels can have separate GTINs ([GS1 GTIN](https://www.gs1.org/standards/id-keys/gtin), [GS1 Healthcare allocation rules](https://www.gs1.org/standards/gs1-healthcare-gtin-allocation-rules-standard/current-standard)). Obtain the barcode during purchasing/import or scan it once at receiving.
+
+Use this source order:
+
+1. Image and GTIN supplied directly by the manufacturer, importer, or distributor, with written reuse rights.
+2. An authorised GS1/GDSN product-content feed.
+3. A barcode lookup in Open Products Facts/Open Beauty Facts as a licensed community-data fallback.
+4. Thai FDA for manual regulatory validation and its licensee-supplied drug images, not an unauthorised bulk scraper.
+5. DailyMed for US-market drugs only.
+6. Name-based retrieval only for records that have no usable identifier, always followed by hard-field validation and review.
+
+An image is safe to auto-accept only when the identifier, market and packaging level match and the source grants the intended use. Matching only a drug name can select the wrong strength, dose form, pack count, manufacturer, market artwork, or old package.
+
+## Source assessment
+
+| Source | What it can provide | Suitability and limits |
+| --- | --- | --- |
+| Manufacturer/importer/distributor | Exact local selling-unit artwork plus the barcode used in the pharmacy. | Best source. Preserve supplier, GTIN, market, pack level, version/effective dates, rights, and the original file rather than depending on a mutable hotlink. |
+| GS1 Verified by GS1 | GTIN ownership and core product data supplied by the identifier owner. GS1 says public data comes from brand owners and other third parties; enterprise batch/API access is available through a local GS1 office ([service and FAQ](https://www.gs1.org/services/verified-by-gs1)). | Strong identity check, but an image is not guaranteed. The free public service is limited to 30 single queries per 24 hours, its terms say GS1 does not warrant third-party information, and it is not a bulk feed ([public terms](https://www.gs1.org/docs/verified-by-gs1/public-verified-by-gs1-tou.pdf)). [GS1 Thailand](https://gs1th.org/en/service-verified-by-gs1-en/) is the appropriate contact for Thai access. |
+| GS1 GDSN | Continuously synchronised product master data through a certified data pool ([GDSN overview](https://www.gs1.org/services/gdsn)). GS1 defines a high-resolution `Product Image URL`; its image-sharing guidance supports a primary-image indicator, validity dates, product/variant metadata, and usage-rights handling ([attribute guide](https://www.gs1.org/standards/gs1-global-data-model-attribute-implementation-guide/14), [image-sharing guideline](https://www.gs1.org/standards/product-image-sharing-guideline/current-standard)). | Best scalable international route where suppliers publish images. It requires a commercial data-pool relationship; membership does not mean every GTIN has an image. Choose from GS1's [certified data-pool list](https://www.gs1.org/services/gdsn/certified-data-pools-list). |
+| Thai FDA public drug information | The current drug-detail template includes separate slots for product, primary-package, and secondary-package images. Thai FDA says keeping labels and drug photos current is the licensee's responsibility ([official drug-detail page](https://pertento.fda.moph.go.th/FDA_INFORMATION_DRUG/Home/Public_Information_Drug?Newcode=U1DR1C1022690010311C)). | Useful to verify a Thai registration and sometimes view official-submission imagery. Coverage and resolution vary by licensee. No documented, supported bulk product-image API was found in the [Thai FDA open-data catalogue](https://catalog.fda.moph.go.th/dataset/?organization=fda-drug). The FDA website policy prohibits automated/scripted access except through provided methods or explicit permission and restricts copying/resale and internal deep-linking ([policy, §§2.2, 3.3, 3.5, 4.2](https://www.fda.moph.go.th/website-policy/)). Obtain written permission/API access before automation or image reuse. |
+| DailyMed | The official v2 endpoint `/spls/{SETID}/media` returns URLs for every media file attached to a Structured Product Label; DailyMed also exposes NDC, RxCUI, packaging, and SPL resources ([API index](https://dailymed.nlm.nih.gov/dailymed/app-support-web-services.cfm), [media endpoint](https://dailymed.nlm.nih.gov/dailymed/webservices-help/v2/spls_setid_media_api.cfm)). FDA listing instructions place outer-package/front-label JPGs in the package-label principal-display section ([FDA instructions](https://www.fda.gov/drugs/electronic-drug-registration-and-listing-system-edrls/electronic-drug-registration-and-listing-instructions)). | Good free source for US label panels and some pill images, keyed by NDC/SETID—not a worldwide retail packshot service. The media endpoint returns all attached media, so the client must determine which file is the package panel versus a pill, diagram, or other label image. DailyMed says its database is not a complete listing and that only pill images submitted by labelers remain after RxImage was retired ([DailyMed home/announcement](https://dailymed.nlm.nih.gov/)). |
+| openFDA drug NDC/label APIs | Current US identifiers and searchable regulatory fields; the NDC endpoint is updated daily ([NDC API](https://open.fda.gov/apis/drug/ndc/)). | Identifier/enrichment source, not an image source. The complete [NDC field list](https://open.fda.gov/apis/drug/ndc/searchable-fields/) and [label field list](https://open.fda.gov/apis/drug/label/searchable-fields/) expose no image URL/media field. `package_label_principal_display_panel` is label content, not a supported pack-image URL. Join its `spl_set_id`/NDC to DailyMed when media is needed. |
+| Open Products Facts / Open Beauty Facts | Barcode-keyed product APIs; the documented endpoint is `GET https://{domain}/api/v2/product/{barcode}.json`, and responses can include `image_front_url` ([barcode API guide](https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/tutorials/scanning-barcodes/)). The specialised projects use the same codebase but are explicitly experimental ([specific APIs](https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/tutorials/scanning-cosmetics-pet-food-and-other-products/)). Images are offered in multiple resolutions ([image guide](https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/how-to-download-images/)). | Useful free fallback for beauty, personal-care, supplements, and general products, but data is volunteered and has no accuracy/completeness assurance. Database data is ODbL, individual contents DBCL, and images CC BY-SA; comply with attribution/share-alike and other package-art rights ([API introduction and licence](https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/)). Read requests are rate-limited, and bulk users are directed to exports/AWS image data rather than crawling. |
+| Watsons Thailand | Broad Thai health-and-beauty retail catalogue and useful manual discovery source. | Do not scrape or hotlink it for a commercial catalogue without written consent. Watsons states that site content/database rights belong to or are licensed to it, permits downloads only for personal non-commercial use, and prohibits building a business archive/database without consent ([Terms of Use, §4](https://www.watsons.co.th/en/terms-of-use)). Its copyright notice also warns against copying, publishing, storing, or image-linking without prior permission ([copyright notice](https://www.watsons.co.th/en/copyrightinfo)). Watsons also disclaims that site information is necessarily accurate, complete, or current, so it cannot by itself guarantee a true item match. |
+
+## Commercial international options
+
+- For retail package imagery, start with a [GS1-certified GDSN data pool](https://www.gs1.org/services/gdsn/certified-data-pools-list). This is the most identifier-centred international route, but coverage and image rights must be confirmed in the contract.
+- NIQ Brandbank creates digital product records and imagery from physical samples for FMCG, health/beauty, and pharma, then distributes them to retailers ([official product-data service](https://nielseniq.com/global/pl/solutions/brandbank-product-data-and-image-capture/), [imaging service](https://nielseniq.com/global/en/solutions/brandbank-imaging-solutions/)). Confirm Thailand and the pharmacy's specific catalogue coverage before purchase.
+- For US/Canadian dosage-form identification rather than retail packshots, Medi-Span's commercial Drug Image Database provides high-resolution images tied to specific manufacturers and NDCs; its current page reports coverage of thousands of prescription/OTC products and multiple delivery options ([official content-set description](https://www.wolterskluwer.com/en/solutions/medi-span/medi-span/content-sets)). It is not a substitute for Thai package artwork.
+
+There is no single official public database found that offers complete, high-resolution, reusable package images for Thai and international medicines.
+
+## Low-cost matching pipeline
+
+1. Normalise UPC/EAN/GTIN to a 14-digit storage form, validate its check digit, and retain the scanned raw value and package level.
+2. Query exact identifiers only. Do not search by name if an exact-GTIN result exists.
+3. Validate hard fields before accepting: brand owner, product/trade name, active ingredient, strength, dose form, net content/pack count, manufacturer, market/language, and package level. Any conflict is a rejection, not a lower score.
+4. Check the image really decodes, enforce minimum pixel dimensions/aspect limits, compute a content hash, and retain provenance, rights, retrieval time, and source version. Copy to controlled storage only when the licence permits it.
+5. For records without identifiers, use deterministic normalisation first: Thai/English aliases, Unicode/case cleanup, unit normalisation, ingredient/strength/dose-form/pack extraction, and removal of marketing words.
+6. If ambiguity remains, use a small multilingual text embedding model locally to retrieve perhaps the top 5 candidates. Re-rank with exact field agreements and reject conflicting strength, form, or pack values. Embeddings are cheaper and more reproducible than calling an LLM for every item.
+7. Reserve a small LLM for offline parsing of unusually messy names or explaining uncertain candidates. It must never invent an image URL or override a hard mismatch. Send uncertain/no-barcode cases to human review and learn approved aliases from those decisions.
+
+Suggested acceptance policy:
+
+- `automatic`: exact GTIN + authorised image + matching market/package level;
+- `review`: exact regulatory/NDC identity but unclear image role, or name/embedding candidate with all hard fields agreeing;
+- `reject`: strength, dose form, pack count, manufacturer/brand owner, market, or GTIN conflict;
+- `unresolved`: no licensed, verifiable image—show the approved brand-name placeholder instead of a plausible but incorrect product.

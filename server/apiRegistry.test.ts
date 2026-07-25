@@ -24,6 +24,8 @@ test("the Node server registers every migrated API method and path once", () => 
     "GET /api/product-image-review",
     "POST /api/product-image-review/:candidateId/approve",
     "POST /api/product-image-review/:candidateId/reject",
+    "GET /api/product-image-jobs/brave",
+    "POST /api/product-image-jobs/brave",
     "POST /api/product-image-jobs/run",
     "GET /api/product-images/:productId",
     "GET /api/product-image-candidates/:candidateId/preview",
@@ -47,8 +49,13 @@ test("the Node server registers every migrated API method and path once", () => 
     "POST /api/stock",
     "PATCH /api/stock",
     "DELETE /api/stock",
+<<<<<<< HEAD
     "POST /api/stock/migrations/categories",
     "POST /api/stock/migrations/measurements",
+=======
+    "POST /api/stock/photo",
+    "POST /api/stock/photos",
+>>>>>>> b87fabaa (Manaul)
     "POST /api/stock/migrations/cw",
     "POST /api/stock/migrations/distributors",
     "POST /api/stock/migrations/members",

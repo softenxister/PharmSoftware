@@ -6,6 +6,8 @@ import {
   ArrowUp,
   CheckCircle2,
   ChevronDown,
+  ChevronsUpDown,
+  Download,
   Edit3,
   MapPin,
   PackagePlus,
@@ -14,6 +16,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import type { SalesProduct, StockItemInput } from "@/server/db/types";
+import type { StockSort } from "@/server/db/stockReadQuery";
 import { useAuth } from "@/app/AuthProvider";
 import { shouldCloseDropdown } from "@/app/dropdownInteraction";
 import { usePreferences } from "@/app/PreferencesProvider";
@@ -23,6 +26,8 @@ import { getStockFilterOptionLabel } from "./stockFilterLabels";
 import {
   invalidateStockCatalog,
   loadStockPage,
+  saveStockProduct,
+  storeAllExternalStockPhotos,
   type StockSortDirection,
 } from "./stockCatalogClient";
 import { StockFilterDropdown, StockRangeFilter } from "./StockFilterDropdown";
@@ -46,6 +51,12 @@ import { StockItemDetailDialog } from "./StockItemDetailDialog";
 import styles from "./Stock.module.css";
 
 type StockState = "normal" | "low" | "overstock";
+type StockTableSortKey = Exclude<StockSort, "weekly">;
+
+interface StockTableSort {
+  key: StockTableSortKey;
+  direction: StockSortDirection;
+}
 
 interface StockItem {
   id: string;
@@ -139,6 +150,13 @@ function formatPercent(value: number): string {
   return `${value}%`;
 }
 
+function StockSortIcon({ active, direction }: { active: boolean; direction: StockSortDirection }) {
+  if (!active) return <ChevronsUpDown size={14} aria-hidden="true" />;
+  return direction === "asc"
+    ? <ArrowUp size={14} aria-hidden="true" />
+    : <ArrowDown size={14} aria-hidden="true" />;
+}
+
 type StockFilterPanel =
   | "category"
   | "dosageType"
@@ -227,14 +245,23 @@ export default function StockPage() {
   const [adjustmentSuccess, setAdjustmentSuccess] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [products, setProducts] = useState<SalesProduct[]>([]);
-  const [nameSortDirection, setNameSortDirection] = useState<StockSortDirection>("asc");
+  const [sort, setSort] = useState<StockTableSort>({ key: "name", direction: "asc" });
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [hasMoreProducts, setHasMoreProducts] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [stockRefreshVersion, setStockRefreshVersion] = useState(0);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isStoringExternalPhotos, setIsStoringExternalPhotos] = useState(false);
+  const [externalPhotoStatus, setExternalPhotoStatus] = useState<{
+    kind: "progress" | "success" | "error";
+    message: string;
+  } | null>(null);
   const filterListRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const storePhotosMenuItemRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setPage(1);
@@ -252,8 +279,8 @@ export default function StockPage() {
           page,
           pageSize: STOCK_PAGE_SIZE,
           query: debouncedQuery,
-          sort: "name",
-          sortDirection: nameSortDirection,
+          sort: sort.key,
+          sortDirection: sort.direction,
           filters: appliedFilters,
         });
         if (cancelled) return;
@@ -275,7 +302,7 @@ export default function StockPage() {
     return () => {
       cancelled = true;
     };
-  }, [appliedFilters, debouncedQuery, nameSortDirection, page, stockRefreshVersion]);
+  }, [appliedFilters, debouncedQuery, page, sort, stockRefreshVersion]);
 
   useEffect(() => {
     if (!adjustmentSuccess) return;
@@ -295,6 +322,18 @@ export default function StockPage() {
     document.addEventListener("pointerdown", closeFilterPanelOnOutsideClick);
     return () => document.removeEventListener("pointerdown", closeFilterPanelOnOutsideClick);
   }, [openFilterPanel]);
+
+  useEffect(() => {
+    if (!isMoreMenuOpen) return;
+    storePhotosMenuItemRef.current?.focus();
+    const closeMoreMenu = (event: PointerEvent) => {
+      if (shouldCloseDropdown(moreMenuRef.current, event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", closeMoreMenu);
+    return () => document.removeEventListener("pointerdown", closeMoreMenu);
+  }, [isMoreMenuOpen]);
 
   const stockItems = useMemo(() => products.map(productToStockItem), [products]);
 
@@ -326,12 +365,9 @@ export default function StockPage() {
         return { item, priority };
       })
       .filter((result): result is { item: StockItem; priority: number } => result.priority !== null)
-      .sort((a, b) => (
-        a.priority - b.priority
-        || a.item.name.localeCompare(b.item.name) * (nameSortDirection === "asc" ? 1 : -1)
-      ))
+      .sort((a, b) => a.priority - b.priority)
       .map(({ item }) => item);
-  }, [appliedFilters, nameSortDirection, query, stockItems]);
+  }, [appliedFilters, query, stockItems]);
 
   const stockCategoryFilterOptions = useMemo(
     () => buildStockCategoryOptions(),
@@ -362,10 +398,24 @@ export default function StockPage() {
     setEditingProduct(null);
     setStockWindowOpen(true);
   };
-  const toggleNameSortDirection = () => {
+  const changeSort = (key: StockTableSortKey) => {
     setPage(1);
-    setNameSortDirection((currentDirection) => currentDirection === "asc" ? "desc" : "asc");
+    setSort((currentSort) => ({
+      key,
+      direction: currentSort.key === key && currentSort.direction === "asc" ? "desc" : "asc",
+    }));
   };
+  const sortHeader = (key: StockTableSortKey, label: string) => (
+    <button
+      type="button"
+      className={`${styles.headerCell} ${styles.sortButton}`}
+      onClick={() => changeSort(key)}
+      aria-label={t("member.sortBy", { label })}
+    >
+      <span>{label}</span>
+      <StockSortIcon active={sort.key === key} direction={sort.direction} />
+    </button>
+  );
   const openEditStock = (product: SalesProduct) => {
     setEditingProduct(product);
     setStockWindowOpen(true);
@@ -495,20 +545,43 @@ export default function StockPage() {
     window.addEventListener("mouseup", handleMouseUp);
   };
   const handleSaveStock = async (item: StockItemInput) => {
+    const product = await saveStockProduct(item);
+    replaceVisibleProduct(product);
+    invalidateStockCatalog();
+    setStockRefreshVersion((version) => version + 1);
+    closeAddStock();
+  };
+  const handleStoreExternalPhotos = async () => {
+    if (isStoringExternalPhotos) return;
+    setIsMoreMenuOpen(false);
+    setExternalPhotoStatus({
+      kind: "progress",
+      message: t("stock.storingExternalPhotos"),
+    });
+    setIsStoringExternalPhotos(true);
     try {
-      const response = await fetch("/api/stock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item),
+      const result = await storeAllExternalStockPhotos();
+      setExternalPhotoStatus({
+        kind: result.failedCount > 0 ? "error" : "success",
+        message: result.eligibleCount === 0
+          ? t("stock.noExternalPhotosToStore")
+          : t("stock.externalPhotosStored", {
+            stored: result.storedCount,
+            eligible: result.eligibleCount,
+            failed: result.failedCount,
+          }),
       });
-      const data = await response.json() as { product?: SalesProduct; error?: string };
-      if (!response.ok || !data.product) throw new Error(data.error || "Unable to save stock item.");
-      replaceVisibleProduct(data.product);
       invalidateStockCatalog();
       setStockRefreshVersion((version) => version + 1);
-      closeAddStock();
     } catch (error) {
-      console.error(error);
+      setExternalPhotoStatus({
+        kind: "error",
+        message: error instanceof Error
+          ? error.message
+          : t("stock.externalPhotoStoreError"),
+      });
+    } finally {
+      setIsStoringExternalPhotos(false);
     }
   };
   const handleDeleteStock = async () => {
@@ -718,11 +791,70 @@ export default function StockPage() {
 
           <div className={styles.toolbarSpacer} />
 
-          <button type="button" className={styles.moreButton}>
-            <SlidersHorizontal size={17} />
-            <span>{t("nav.more")}</span>
-            <ChevronDown size={15} />
-          </button>
+          {externalPhotoStatus && (
+            <p
+              className={`${styles.toolbarStatus} ${
+                externalPhotoStatus.kind === "error" ? styles.toolbarStatusError : ""
+              }`}
+              role={externalPhotoStatus.kind === "error" ? "alert" : "status"}
+              title={externalPhotoStatus.message}
+            >
+              {externalPhotoStatus.message}
+            </p>
+          )}
+
+          <div className={styles.moreMenuContainer} ref={moreMenuRef}>
+            <button
+              ref={moreButtonRef}
+              type="button"
+              className={styles.moreButton}
+              aria-expanded={isMoreMenuOpen}
+              aria-controls="stock-more-menu"
+              aria-busy={isStoringExternalPhotos}
+              disabled={isStoringExternalPhotos}
+              onClick={() => setIsMoreMenuOpen((isOpen) => !isOpen)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setIsMoreMenuOpen(false);
+              }}
+            >
+              <SlidersHorizontal size={17} />
+              <span>{t("nav.more")}</span>
+              <ChevronDown size={15} />
+            </button>
+            {isMoreMenuOpen && (
+              <div
+                id="stock-more-menu"
+                className={styles.moreMenu}
+                role="menu"
+                aria-label={t("nav.stockActions")}
+                onKeyDown={(event) => {
+                  if (event.key !== "Escape") return;
+                  event.preventDefault();
+                  setIsMoreMenuOpen(false);
+                  moreButtonRef.current?.focus();
+                }}
+              >
+                <button
+                  ref={storePhotosMenuItemRef}
+                  type="button"
+                  className={styles.moreMenuItem}
+                  role="menuitem"
+                  disabled={isStoringExternalPhotos}
+                  onClick={handleStoreExternalPhotos}
+                >
+                  <Download size={17} />
+                  <span>
+                    <strong>
+                      {isStoringExternalPhotos
+                        ? t("stock.storingExternalPhotos")
+                        : t("stock.storeExternalPhotos")}
+                    </strong>
+                    <small>{t("stock.storeExternalPhotosHint")}</small>
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
 
           <button type="button" className={`${styles.toolbarAddButton} ${styles.createActionButton}`} onClick={openAddStock}>
             <PackagePlus size={17} />
@@ -748,26 +880,24 @@ export default function StockPage() {
                 <tr>
                   <th
                     className={styles.itemCol}
-                    aria-sort={nameSortDirection === "asc" ? "ascending" : "descending"}
+                    aria-sort={sort.key === "name" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
                   >
-                    <button
-                      type="button"
-                      className={`${styles.headerCell} ${styles.sortButton}`}
-                      onClick={toggleNameSortDirection}
-                      aria-label={t("member.sortBy", { label: t("stock.itemName") })}
-                    >
-                      <span>{t("stock.itemName")}</span>
-                      {nameSortDirection === "asc"
-                        ? <ArrowUp size={14} aria-hidden="true" />
-                        : <ArrowDown size={14} aria-hidden="true" />}
-                    </button>
+                    {sortHeader("name", t("stock.itemName"))}
                   </th>
-                  <th>{t("stock.minimumShort")}</th>
-                  <th>{t("stock.maximumShort")}</th>
-                  <th>{t("nav.stock")}</th>
+                  <th aria-sort={sort.key === "minimum" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+                    {sortHeader("minimum", t("stock.minimumShort"))}
+                  </th>
+                  <th aria-sort={sort.key === "maximum" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+                    {sortHeader("maximum", t("stock.maximumShort"))}
+                  </th>
+                  <th aria-sort={sort.key === "stock" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+                    {sortHeader("stock", t("nav.stock"))}
+                  </th>
                   <th>{t("stock.locationShort")}</th>
                   <th>{t("stock.discountShort")}</th>
-                  <th>{t("stock.sellPrice")}</th>
+                  <th aria-sort={sort.key === "sellPrice" ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}>
+                    {sortHeader("sellPrice", t("stock.sellPrice"))}
+                  </th>
                   <th className={styles.actionCol} aria-label={t("stock.itemActions")} />
                 </tr>
               </thead>

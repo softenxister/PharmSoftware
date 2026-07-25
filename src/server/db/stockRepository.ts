@@ -14,6 +14,12 @@ import {
   type StockItemDetailPatch,
 } from "./stockItemDetail";
 import { normalizeProductCategory } from "@/server/import/productCategoryNormalization";
+import {
+  persistManualProductImageImport,
+  prepareManualProductImageImport,
+} from "@/server/product-images/manualImport";
+import { isPlaceholderProductImageUrl } from "@/server/product-images/placeholder";
+import { parseManualProductImageUrl } from "@/server/product-images/secureFetch";
 
 export type PurchasedStockLineInput = {
   productId: string;
@@ -151,7 +157,10 @@ async function assertBarcodesAvailable(
   if (conflict) throw new Error(`Barcode ${conflict} is already assigned to another item.`);
 }
 
-async function upsertStockItem(tx: Prisma.TransactionClient, input: StockItemInput): Promise<string> {
+async function upsertStockItem(
+  tx: Prisma.TransactionClient,
+  input: StockItemInput,
+): Promise<string> {
   const savedItem = createSavedStockItem(input);
   const barcode = savedItem.barcode;
   const itemName = input.itemName.trim();
@@ -362,9 +371,11 @@ function stockProductWhere(input: StockReadQuery): Prisma.ProductWhereInput {
   return { isActive: true, ...(and.length > 0 ? { AND: and } : {}) };
 }
 
-function hasAggregateStockReadFilters(input: StockReadQuery): boolean {
+function requiresAggregateStockRead(input: StockReadQuery): boolean {
   const { filters } = input;
-  return filters.expiryWindows.length > 0
+  return input.sort === "stock"
+    || input.sort === "sellPrice"
+    || filters.expiryWindows.length > 0
     || filters.stockLevels.length > 0
     || filters.stockRange !== null;
 }
@@ -374,6 +385,18 @@ function lowerValues(values: string[]): string[] {
 }
 
 const totalStockSql = Prisma.sql`COALESCE(SUM(batch."availableStock"), 0)`;
+const firstSellPriceSql = Prisma.sql`
+  COALESCE(
+    (
+      SELECT price_batch."sellPriceThb"
+      FROM "ProductBatch" price_batch
+      WHERE price_batch."productId" = product.id
+      ORDER BY price_batch."expiryDate" ASC, price_batch."batchNo" ASC
+      LIMIT 1
+    ),
+    0
+  )
+`;
 const nearestExpirySql = Prisma.sql`
   MIN(
     CASE
@@ -411,6 +434,29 @@ function expiryWindowCondition(window: string): Prisma.Sql {
     return Prisma.sql`${nearestExpirySql} BETWEEN CURRENT_DATE + 181 AND CURRENT_DATE + 365`;
   }
   return Prisma.sql`${nearestExpirySql} > CURRENT_DATE + 365`;
+}
+
+function filteredStockOrderBy(input: StockReadQuery): Prisma.Sql {
+  if (input.sort === "weekly") {
+    return Prisma.sql`product."weeklySold" DESC, product."itemName" ASC, product.id ASC`;
+  }
+
+  const direction = input.sortDirection === "desc" ? Prisma.sql`DESC` : Prisma.sql`ASC`;
+  if (input.sort === "minimum") {
+    return Prisma.sql`product."minimumStock" ${direction}, product."itemName" ASC, product.id ASC`;
+  }
+  if (input.sort === "maximum") {
+    return Prisma.sql`product."maximumStock" ${direction}, product."itemName" ASC, product.id ASC`;
+  }
+  if (input.sort === "stock") {
+    return Prisma.sql`${totalStockSql} ${direction}, product."itemName" ASC, product.id ASC`;
+  }
+  if (input.sort === "sellPrice") {
+    return Prisma.sql`${firstSellPriceSql} ${direction}, product."itemName" ASC, product.id ASC`;
+  }
+  return input.sortDirection === "desc"
+    ? Prisma.sql`product."itemName" DESC, product.id DESC`
+    : Prisma.sql`product."itemName" ASC, product.id ASC`;
 }
 
 async function readFilteredStockProductIds(
@@ -466,11 +512,7 @@ async function readFilteredStockProductIds(
     having.push(Prisma.sql`${totalStockSql} <= ${filters.stockRange.max}`);
   }
 
-  const orderBy = input.sort === "weekly"
-    ? Prisma.sql`product."weeklySold" DESC, product."itemName" ASC, product.id ASC`
-    : input.sortDirection === "desc"
-      ? Prisma.sql`product."itemName" DESC, product.id DESC`
-      : Prisma.sql`product."itemName" ASC, product.id ASC`;
+  const orderBy = filteredStockOrderBy(input);
   const offset = (input.page - 1) * input.pageSize;
   const rows = await prisma.$queryRaw<Array<{ id: string; total: number }>>(Prisma.sql`
     SELECT product.id, COUNT(*) OVER()::integer AS total
@@ -525,7 +567,7 @@ export async function readStockProduct(productId: string): Promise<SalesProduct 
 }
 
 export async function readStockProducts(input: StockReadQuery): Promise<StockProductPage> {
-  if (input.productIds.length === 0 && hasAggregateStockReadFilters(input)) {
+  if (input.productIds.length === 0 && requiresAggregateStockRead(input)) {
     const filtered = await readFilteredStockProductIds(input);
     if (filtered.ids.length === 0) {
       return {
@@ -556,7 +598,11 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
   const where = stockProductWhere(input);
   const orderBy: Prisma.ProductOrderByWithRelationInput[] = input.sort === "weekly"
     ? [{ weeklySold: "desc" }, { itemName: "asc" }, { id: "asc" }]
-    : [{ itemName: input.sortDirection }, { id: input.sortDirection }];
+    : input.sort === "minimum"
+      ? [{ minimumStock: input.sortDirection }, { itemName: "asc" }, { id: "asc" }]
+      : input.sort === "maximum"
+        ? [{ maximumStock: input.sortDirection }, { itemName: "asc" }, { id: "asc" }]
+        : [{ itemName: input.sortDirection }, { id: input.sortDirection }];
   const [total, products] = await Promise.all([
     prisma.product.count({ where }),
     prisma.product.findMany({
@@ -577,6 +623,14 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
   };
 }
 
+export class StockProductNotFoundError extends Error {}
+
+export type BulkStockPhotoStorageResult = {
+  eligibleCount: number;
+  storedCount: number;
+  failedCount: number;
+};
+
 export async function saveStockItem(input: StockItemInput): Promise<SalesProduct> {
   const productId = await prisma.$transaction((tx) => upsertStockItem(tx, input));
   const product = await readStockProduct(productId);
@@ -589,6 +643,86 @@ export async function saveStockItems(inputs: StockItemInput[]): Promise<number> 
     for (const input of inputs) await upsertStockItem(tx, input);
   });
   return inputs.length;
+}
+
+export async function storeStockProductPhoto(
+  productId: string,
+  photoUrl: string,
+  reviewedBy: string,
+): Promise<SalesProduct> {
+  const product = await prisma.product.findFirst({
+    where: { id: productId, isActive: true },
+    select: { id: true },
+  });
+  if (!product) throw new StockProductNotFoundError("Stock item was not found.");
+
+  const prepared = await prepareManualProductImageImport(product.id, photoUrl);
+  if (!prepared) throw new Error("A public external photo URL is required.");
+  await prisma.$transaction((tx) => persistManualProductImageImport(tx, {
+    ...prepared,
+    productId: product.id,
+    reviewedBy,
+  }));
+  const savedProduct = await readStockProduct(product.id);
+  if (!savedProduct) throw new StockProductNotFoundError("Stock item was not found.");
+  return savedProduct;
+}
+
+const STOCK_PHOTO_IMPORT_CONCURRENCY = 3;
+
+function validatedExternalPhotoUrl(photoUrl: string): string | null {
+  try {
+    const source = parseManualProductImageUrl(photoUrl);
+    if (!source || isPlaceholderProductImageUrl(source.toString())) return null;
+    return source.toString();
+  } catch {
+    return null;
+  }
+}
+
+export async function storeAllExternalStockPhotos(
+  reviewedBy: string,
+): Promise<BulkStockPhotoStorageResult> {
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      imageUrl: { startsWith: "https://" },
+    },
+    select: { id: true, imageUrl: true },
+    orderBy: [{ itemName: "asc" }, { id: "asc" }],
+  });
+  const eligibleProducts = products.flatMap((product) => {
+    const photoUrl = validatedExternalPhotoUrl(product.imageUrl);
+    return photoUrl ? [{ productId: product.id, photoUrl }] : [];
+  });
+  let nextIndex = 0;
+  let storedCount = 0;
+  let failedCount = 0;
+
+  async function importNextPhoto(): Promise<void> {
+    while (nextIndex < eligibleProducts.length) {
+      const product = eligibleProducts[nextIndex];
+      nextIndex += 1;
+      try {
+        await storeStockProductPhoto(product.productId, product.photoUrl, reviewedBy);
+        storedCount += 1;
+      } catch {
+        failedCount += 1;
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(STOCK_PHOTO_IMPORT_CONCURRENCY, eligibleProducts.length) },
+      () => importNextPhoto(),
+    ),
+  );
+  return {
+    eligibleCount: eligibleProducts.length,
+    storedCount,
+    failedCount,
+  };
 }
 
 export async function updateStockItemDetail(

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assertPublicAddress,
+  fetchValidatedManualProductImage,
   fetchValidatedProductImage,
+  parseManualProductImageUrl,
   validateProviderImageUrl,
 } from "./secureFetch";
 
@@ -71,4 +73,43 @@ test("secure fetch validates DNS, streams bytes, and rejects cross-host redirect
       }),
     },
   ), /redirect/i);
+});
+
+test("manual image URLs accept public HTTPS sources and ignore managed product-image URLs", async () => {
+  assert.equal(
+    parseManualProductImageUrl(" https://cdn.example.com/products/item.png ").toString(),
+    "https://cdn.example.com/products/item.png",
+  );
+  assert.equal(parseManualProductImageUrl("/api/product-images/product-1?v=abc"), null);
+  assert.equal(parseManualProductImageUrl("   "), null);
+  assert.throws(() => parseManualProductImageUrl("http://cdn.example.com/item.png"), /HTTPS/i);
+  assert.throws(() => parseManualProductImageUrl("https://user:password@cdn.example.com/item.png"), /authority/i);
+  assert.throws(() => parseManualProductImageUrl("https://cdn.example.com:8443/item.png"), /authority/i);
+
+  const validPng = new Uint8Array(24);
+  validPng.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  validPng.set([0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52], 8);
+  new DataView(validPng.buffer).setUint32(16, 500);
+  new DataView(validPng.buffer).setUint32(20, 500);
+
+  const fetched = await fetchValidatedManualProductImage(
+    "https://cdn.example.com/products/item.png",
+    {
+      lookup: async () => [{ address: "8.8.8.8", family: 4 }],
+      fetch: async () => new Response(validPng, {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      }),
+    },
+  );
+  assert.equal(fetched?.metadata.mimeType, "image/png");
+  assert.equal(fetched?.metadata.width, 500);
+
+  await assert.rejects(() => fetchValidatedManualProductImage(
+    "https://internal.example/item.png",
+    {
+      lookup: async () => [{ address: "10.0.0.5", family: 4 }],
+      fetch: async () => new Response(validPng),
+    },
+  ), /non-public/i);
 });

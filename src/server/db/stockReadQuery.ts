@@ -16,7 +16,8 @@ const VALID_EXPIRY_WINDOWS = new Set([
 ]);
 const VALID_STOCK_LEVELS = new Set(["Out of Stock", "Low Stock", "Normal Stock", "Overstock"]);
 
-export type StockSort = "name" | "weekly";
+export const STOCK_SORTS = ["name", "weekly", "minimum", "maximum", "stock", "sellPrice"] as const;
+export type StockSort = (typeof STOCK_SORTS)[number];
 export type StockSortDirection = "asc" | "desc";
 
 export type StockReadFilters = {
@@ -75,7 +76,10 @@ export function parseStockReadQuery(url: string): StockReadQuery {
   const page = positiveInteger(params.get("page"), 1);
   const requestedPageSize = positiveInteger(params.get("pageSize"), DEFAULT_STOCK_PAGE_SIZE);
   const query = (params.get("q") ?? "").trim().slice(0, MAX_STOCK_QUERY_LENGTH);
-  const sort: StockSort = params.get("sort") === "weekly" ? "weekly" : "name";
+  const requestedSort = params.get("sort");
+  const sort: StockSort = STOCK_SORTS.includes(requestedSort as StockSort)
+    ? requestedSort as StockSort
+    : "name";
   const sortDirection: StockSortDirection = params.get("direction") === "desc" ? "desc" : "asc";
   const productIds = [...new Set(
     (params.get("ids") ?? "")

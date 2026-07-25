@@ -1,4 +1,9 @@
 const MAX_BRAND_LENGTH = 48;
+const PLACEHOLDER_IMAGE_HOSTS = [
+  "placehold.co",
+  "placeholder.com",
+  "placehold.it",
+] as const;
 
 function escapeXml(value: string): string {
   return value
@@ -20,8 +25,25 @@ export function resolvePlaceholderBrand(brandName: string | null | undefined): s
     : `${characters.slice(0, MAX_BRAND_LENGTH - 1).join("")}…`;
 }
 
-export function productImageUrl(productId: string): string {
-  return `/api/product-images/${encodeURIComponent(productId)}`;
+export function productImageUrl(productId: string, version?: string): string {
+  const url = `/api/product-images/${encodeURIComponent(productId)}`;
+  const cleanVersion = version?.trim();
+  return cleanVersion ? `${url}?v=${encodeURIComponent(cleanVersion)}` : url;
+}
+
+export function isPlaceholderProductImageUrl(source: string): boolean {
+  let hostname: string;
+  try {
+    hostname = new URL(source).hostname.toLocaleLowerCase("en-US");
+  } catch {
+    return false;
+  }
+  return PLACEHOLDER_IMAGE_HOSTS.some(
+    (placeholderHost) => (
+      hostname === placeholderHost
+      || hostname.endsWith(`.${placeholderHost}`)
+    ),
+  );
 }
 
 export function createUnresolvedProductSvg(brandName: string | null | undefined): string {
