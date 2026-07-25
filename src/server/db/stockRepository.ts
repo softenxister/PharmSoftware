@@ -13,6 +13,7 @@ import {
   hasForbiddenStockDiscountChange,
   type StockItemDetailPatch,
 } from "./stockItemDetail";
+import { stockImageUpdateDecision } from "./stockImageUpdate";
 import { normalizeProductCategory } from "@/server/import/productCategoryNormalization";
 import {
   cleanupManualProductImageObjects,
@@ -203,12 +204,12 @@ async function upsertStockItem(
     || current.brandName !== mapped.brandName
     || current.manufacturerId !== manufacturer.id
   );
-  const imageIdentityChanged = Boolean(current) && (
-    compositionIdentityChanged
-    || current.imageUrl !== mapped.imageUrl
-  );
+  const imageUpdate = stockImageUpdateDecision({
+    productIdentityChanged: compositionIdentityChanged,
+    imageUrlChanged: Boolean(current) && current.imageUrl !== mapped.imageUrl,
+  });
 
-  if (imageIdentityChanged) {
+  if (imageUpdate.discardImageRecords) {
     await tx.productImageAsset.deleteMany({ where: { productId: mapped.id } });
     await tx.productImageCandidate.deleteMany({ where: { productId: mapped.id } });
     await tx.productIdentifier.deleteMany({ where: { productId: mapped.id } });
@@ -235,7 +236,7 @@ async function upsertStockItem(
         compositionRetryAt: null,
         compositionError: null,
       } : {}),
-      ...(imageIdentityChanged ? {
+      ...(imageUpdate.resetImageResolution ? {
         imageResolutionStatus: "PENDING",
         imageCheckedAt: null,
         imageRetryAt: null,
