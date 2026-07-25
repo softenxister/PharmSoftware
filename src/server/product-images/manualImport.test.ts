@@ -3,6 +3,7 @@ import test from "node:test";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   buildManualProductImagePersistenceData,
+  cleanupManualProductImageObjects,
   ManualProductImageImportError,
   persistManualProductImageImport,
   prepareManualProductImageImport,
@@ -114,4 +115,23 @@ test("manual image import failures expose a safe actionable error", async () => 
       && error.message === "Photo could not be imported from that URL."
     ),
   );
+});
+
+test("manual image replacement cleanup keeps only the current object for that product", async () => {
+  const calls: Array<{ prefix: string; keepKey: string }> = [];
+
+  await cleanupManualProductImageObjects(
+    "product/one",
+    "product-images/product%2Fone/new-current.webp",
+    {
+      deleteOtherObjects: async (prefix, keepKey) => {
+        calls.push({ prefix, keepKey });
+      },
+    },
+  );
+
+  assert.deepEqual(calls, [{
+    prefix: "product-images/product%2Fone/",
+    keepKey: "product-images/product%2Fone/new-current.webp",
+  }]);
 });

@@ -8,6 +8,7 @@ import type { ValidatedProductImage } from "./resolver";
 import { productImageUrl } from "./placeholder";
 import {
   buildProductImageStorageKey,
+  buildProductImageStoragePrefix,
   createS3ProductImageStorage,
   loadS3Config,
 } from "./s3Storage";
@@ -55,6 +56,15 @@ async function verifiedStorage() {
     });
   }
   return verifiedStoragePromise;
+}
+
+export async function cleanupManualProductImageObjects(
+  productId: string,
+  keepKey: string,
+  storage?: Pick<ReturnType<typeof createS3ProductImageStorage>, "deleteOtherObjects">,
+): Promise<void> {
+  const target = storage ?? await verifiedStorage();
+  await target.deleteOtherObjects(buildProductImageStoragePrefix(productId), keepKey);
 }
 
 export function buildManualProductImagePersistenceData(

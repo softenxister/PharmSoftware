@@ -15,6 +15,7 @@ import {
 } from "./stockItemDetail";
 import { normalizeProductCategory } from "@/server/import/productCategoryNormalization";
 import {
+  cleanupManualProductImageObjects,
   persistManualProductImageImport,
   prepareManualProductImageImport,
 } from "@/server/product-images/manualImport";
@@ -663,6 +664,7 @@ export async function storeStockProductPhoto(
     productId: product.id,
     reviewedBy,
   }));
+  await cleanupManualProductImageObjects(product.id, prepared.storageKey);
   const savedProduct = await readStockProduct(product.id);
   if (!savedProduct) throw new StockProductNotFoundError("Stock item was not found.");
   return savedProduct;

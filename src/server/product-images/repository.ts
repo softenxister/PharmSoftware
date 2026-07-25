@@ -35,6 +35,7 @@ import {
 } from "./resolver";
 import {
   buildProductImageStorageKey,
+  buildProductImageStoragePrefix,
   createS3ProductImageStorage,
   loadS3Config,
 } from "./s3Storage";
@@ -268,6 +269,10 @@ async function activateCandidate(input: {
       },
     });
   });
+  await storage.deleteOtherObjects(
+    buildProductImageStoragePrefix(input.productId),
+    storageKey,
+  );
 }
 
 function toResolvableProduct(row: {

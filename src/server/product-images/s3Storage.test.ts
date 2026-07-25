@@ -40,11 +40,18 @@ test("requires all Backblaze B2 credentials when any B2 setting is present", () 
   }), /not configured/i);
 });
 
-test("builds checksum-addressed object keys with safe extensions", () => {
+test("builds checksum-addressed object keys under one product-specific prefix", () => {
   const hash = "a".repeat(64);
   assert.equal(productImageExtension("image/jpeg"), "jpg");
   assert.equal(productImageExtension("image/png"), "png");
-  assert.equal(buildProductImageStorageKey("product/one", hash, "image/webp"), `product-images/product%2Fone/${hash}.webp`);
+  assert.equal(
+    buildProductImageStorageKey("product/one", hash, "image/webp"),
+    `product-images/product%2Fone/${hash}.webp`,
+  );
+  assert.equal(
+    buildProductImageStorageKey("product/one", "b".repeat(64), "image/jpeg"),
+    `product-images/product%2Fone/${"b".repeat(64)}.jpg`,
+  );
   assert.throws(() => buildProductImageStorageKey("p1", "not-a-hash", "image/png"));
 });
 
@@ -135,4 +142,74 @@ test("rejects a public Backblaze B2 bucket", async () => {
   });
 
   await assert.rejects(() => storage.verifyPrivateBucket(), /must be private/i);
+});
+
+test("permanently removes every old Backblaze version while preserving the latest current image", async () => {
+  const requests: Array<{ method: string; url: string }> = [];
+  const storage = createS3ProductImageStorage({
+    config: {
+      provider: "backblaze-b2",
+      region: "us-west-004",
+      bucket: "pharm-product-images",
+      accessKeyId: "key-id",
+      secretAccessKey: "application-key",
+      endpoint: "https://s3.us-west-004.backblazeb2.com",
+    },
+    fetch: async (input, init) => {
+      const method = init?.method ?? "GET";
+      const url = String(input);
+      requests.push({ method, url });
+      if (method === "GET" && url.includes("versions=")) {
+        return new Response(`
+          <ListVersionsResult>
+            <IsTruncated>false</IsTruncated>
+            <Version>
+              <Key>product-images/product-1/new-current.webp</Key>
+              <VersionId>current-version</VersionId>
+              <IsLatest>true</IsLatest>
+            </Version>
+            <Version>
+              <Key>product-images/product-1/new-current.webp</Key>
+              <VersionId>previous-current-version</VersionId>
+              <IsLatest>false</IsLatest>
+            </Version>
+            <Version>
+              <Key>product-images/product-1/old-one.png</Key>
+              <VersionId>old-one-version</VersionId>
+              <IsLatest>true</IsLatest>
+            </Version>
+            <DeleteMarker>
+              <Key>product-images/product-1/old-two.jpg</Key>
+              <VersionId>old-two-delete-marker</VersionId>
+              <IsLatest>true</IsLatest>
+            </DeleteMarker>
+          </ListVersionsResult>
+        `);
+      }
+      return new Response(null, { status: 204 });
+    },
+  });
+
+  await storage.deleteOtherObjects(
+    "product-images/product-1/",
+    "product-images/product-1/new-current.webp",
+  );
+
+  assert.deepEqual(
+    requests.filter((request) => request.method === "DELETE"),
+    [
+      {
+        method: "DELETE",
+        url: "https://s3.us-west-004.backblazeb2.com/pharm-product-images/product-images/product-1/new-current.webp?versionId=previous-current-version",
+      },
+      {
+        method: "DELETE",
+        url: "https://s3.us-west-004.backblazeb2.com/pharm-product-images/product-images/product-1/old-one.png?versionId=old-one-version",
+      },
+      {
+        method: "DELETE",
+        url: "https://s3.us-west-004.backblazeb2.com/pharm-product-images/product-images/product-1/old-two.jpg?versionId=old-two-delete-marker",
+      },
+    ],
+  );
 });

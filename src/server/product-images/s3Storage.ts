@@ -10,7 +10,7 @@ export type S3Config = {
 };
 
 type BuildSignedRequestInput = {
-  method: "GET" | "PUT" | "HEAD";
+  method: "DELETE" | "GET" | "PUT" | "HEAD";
   key: string;
   body?: Uint8Array;
   contentType?: string;
@@ -104,7 +104,12 @@ export function productImageExtension(mimeType: string): string {
 
 export function buildProductImageStorageKey(productId: string, sha256: string, mimeType: string): string {
   if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error("Product image checksum is invalid.");
-  return `product-images/${encodeURIComponent(productId)}/${sha256}.${productImageExtension(mimeType)}`;
+  return `${buildProductImageStoragePrefix(productId)}${sha256}.${productImageExtension(mimeType)}`;
+}
+
+export function buildProductImageStoragePrefix(productId: string): string {
+  if (!productId.trim()) throw new Error("Product id is required for image storage.");
+  return `product-images/${encodeURIComponent(productId)}/`;
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -188,6 +193,48 @@ export function buildSignedS3Request(input: BuildSignedRequestInput): {
 async function checkedResponse(response: Response, operation: string): Promise<Response> {
   if (!response.ok) throw new Error(`Amazon S3 ${operation} failed with HTTP ${response.status}.`);
   return response;
+}
+
+function decodedXmlText(value: string): string {
+  return value
+    .replace(/&#x([0-9a-f]+);/gi, (_, digits: string) => String.fromCodePoint(Number.parseInt(digits, 16)))
+    .replace(/&#([0-9]+);/g, (_, digits: string) => String.fromCodePoint(Number.parseInt(digits, 10)))
+    .replace(/&quot;/g, "\"")
+    .replace(/&apos;/g, "'")
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&");
+}
+
+function xmlValues(xml: string, tag: string): string[] {
+  const values: string[] = [];
+  const pattern = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "gi");
+  for (const match of xml.matchAll(pattern)) values.push(decodedXmlText(match[1]));
+  return values;
+}
+
+type StoredObjectVersion = {
+  key: string;
+  versionId: string;
+  isLatest: boolean;
+  isDeleteMarker: boolean;
+};
+
+function storedObjectVersions(xml: string): StoredObjectVersion[] {
+  const versions: StoredObjectVersion[] = [];
+  const pattern = /<(Version|DeleteMarker)>([\s\S]*?)<\/\1>/gi;
+  for (const match of xml.matchAll(pattern)) {
+    const key = xmlValues(match[2], "Key")[0];
+    const versionId = xmlValues(match[2], "VersionId")[0];
+    if (!key || !versionId) continue;
+    versions.push({
+      key,
+      versionId,
+      isLatest: xmlValues(match[2], "IsLatest")[0]?.trim().toLowerCase() === "true",
+      isDeleteMarker: match[1].toLowerCase() === "deletemarker",
+    });
+  }
+  return versions;
 }
 
 export function createS3ProductImageStorage(options: {
@@ -275,6 +322,98 @@ export function createS3ProductImageStorage(options: {
       return checkedResponse(await fetcher(request.url, {
         headers: request.headers,
       }), "read");
+    },
+
+    async deleteOtherObjects(prefix: string, keepKey: string): Promise<void> {
+      if (!prefix.startsWith("product-images/") || !prefix.endsWith("/")) {
+        throw new Error("Product image storage prefix is invalid.");
+      }
+      if (!keepKey.startsWith(prefix)) {
+        throw new Error("Current product image key is outside its product prefix.");
+      }
+
+      if (config.provider === "backblaze-b2") {
+        const storedVersions: StoredObjectVersion[] = [];
+        let keyMarker: string | undefined;
+        let versionIdMarker: string | undefined;
+        do {
+          const query: Record<string, string> = {
+            versions: "",
+            prefix,
+          };
+          if (keyMarker) query["key-marker"] = keyMarker;
+          if (versionIdMarker) query["version-id-marker"] = versionIdMarker;
+          const list = buildSignedS3Request({ method: "GET", key: "", query, config });
+          const response = await checkedResponse(
+            await fetcher(list.url, { headers: list.headers }),
+            "product image version listing",
+          );
+          const xml = await response.text();
+          storedVersions.push(
+            ...storedObjectVersions(xml).filter((version) => version.key.startsWith(prefix)),
+          );
+          if (!/<IsTruncated>\s*true\s*<\/IsTruncated>/i.test(xml)) break;
+          keyMarker = xmlValues(xml, "NextKeyMarker")[0];
+          versionIdMarker = xmlValues(xml, "NextVersionIdMarker")[0];
+          if (!keyMarker) {
+            throw new Error("Backblaze B2 product image listing did not provide a key marker.");
+          }
+        } while (keyMarker);
+
+        const currentVersions = storedVersions.filter((version) => (
+          version.key === keepKey
+          && version.isLatest
+          && !version.isDeleteMarker
+        ));
+        if (currentVersions.length !== 1) {
+          throw new Error("Backblaze B2 did not return exactly one current product image.");
+        }
+        for (const version of storedVersions) {
+          if (version === currentVersions[0]) continue;
+          const request = buildSignedS3Request({
+            method: "DELETE",
+            key: version.key,
+            query: { versionId: version.versionId },
+            config,
+          });
+          await checkedResponse(await fetcher(request.url, {
+            method: "DELETE",
+            headers: request.headers,
+          }), "version delete");
+        }
+        return;
+      }
+
+      const storedKeys: string[] = [];
+      let continuationToken: string | undefined;
+      do {
+        const query: Record<string, string> = {
+          "list-type": "2",
+          prefix,
+        };
+        if (continuationToken) query["continuation-token"] = continuationToken;
+        const list = buildSignedS3Request({ method: "GET", key: "", query, config });
+        const response = await checkedResponse(
+          await fetcher(list.url, { headers: list.headers }),
+          "product image listing",
+        );
+        const xml = await response.text();
+        storedKeys.push(...xmlValues(xml, "Key").filter((key) => key.startsWith(prefix)));
+        if (!/<IsTruncated>\s*true\s*<\/IsTruncated>/i.test(xml)) break;
+        continuationToken = xmlValues(xml, "NextContinuationToken")[0];
+        if (!continuationToken) {
+          throw new Error("Amazon S3 product image listing did not provide a continuation token.");
+        }
+      } while (continuationToken);
+
+      for (const key of storedKeys) {
+        if (key === keepKey) continue;
+        const request = buildSignedS3Request({ method: "DELETE", key, config });
+        await checkedResponse(await fetcher(request.url, {
+          method: "DELETE",
+          headers: request.headers,
+        }), "delete");
+      }
     },
   };
 }
