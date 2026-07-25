@@ -25,6 +25,7 @@ import {
   invalidateStockCatalog,
   loadStockPage,
   saveStockProduct,
+  saveStockProductPhotoUrl,
   type StockSortDirection,
 } from "./stockCatalogClient";
 import { StockFilterDropdown, StockRangeFilter } from "./StockFilterDropdown";
@@ -45,6 +46,7 @@ import { getStockMeasurementLabel } from "@/lib/productMeasurement";
 import { StockEntryForm } from "./StockEntryForm";
 import { StockBatchAdjustmentDialog } from "./StockBatchAdjustmentDialog";
 import { StockItemDetailDialog } from "./StockItemDetailDialog";
+import { isStockPhotoUrlOnlyChange } from "./stockPhotoUrlChange";
 import styles from "./Stock.module.css";
 
 type StockState = "normal" | "low" | "overstock";
@@ -521,6 +523,16 @@ export default function StockPage() {
     window.addEventListener("mouseup", handleMouseUp);
   };
   const handleSaveStock = async (item: StockItemInput) => {
+    if (
+      editingProduct
+      && isStockPhotoUrlOnlyChange(productToStockItemInput(editingProduct), item)
+    ) {
+      const result = await saveStockProductPhotoUrl(editingProduct.id, item.photoUrl);
+      replaceVisibleProduct({ ...editingProduct, imageUrl: result.imageUrl });
+      invalidateStockCatalog();
+      closeAddStock();
+      return;
+    }
     const product = await saveStockProduct(item);
     replaceVisibleProduct(product);
     invalidateStockCatalog();

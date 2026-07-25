@@ -7,6 +7,7 @@ import {
   loadStockProductsByIds,
   saveStockProduct,
   searchStockCatalog,
+  saveStockProductPhotoUrl,
   storeStockProductPhoto,
 } from "./stockCatalogClient";
 import type { StockItemInput } from "@/server/db/types";
@@ -279,4 +280,38 @@ test("photo storage is an explicit request separate from the fast stock save", a
     photoUrl: "https://cdn.example.com/item.png",
   });
   assert.equal(stored.imageUrl, "/api/product-images/p-test?v=stored-checksum");
+});
+
+test("a photo URL-only edit uses the fast patch endpoint without downloading", async () => {
+  let requestUrl = "";
+  let requestMethod = "";
+  let requestBody = "";
+  const fetcher: typeof fetch = async (url, init) => {
+    requestUrl = String(url);
+    requestMethod = init?.method ?? "";
+    requestBody = String(init?.body);
+    return Response.json({
+      result: {
+        productId: "p-test",
+        imageUrl: "https://images.example.com/new.jpg",
+      },
+    });
+  };
+
+  const result = await saveStockProductPhotoUrl(
+    "p-test",
+    "https://images.example.com/new.jpg",
+    fetcher,
+  );
+
+  assert.equal(requestUrl, "/api/stock/photo-url");
+  assert.equal(requestMethod, "PATCH");
+  assert.deepEqual(JSON.parse(requestBody), {
+    productId: "p-test",
+    photoUrl: "https://images.example.com/new.jpg",
+  });
+  assert.deepEqual(result, {
+    productId: "p-test",
+    imageUrl: "https://images.example.com/new.jpg",
+  });
 });

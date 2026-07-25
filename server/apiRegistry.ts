@@ -29,6 +29,7 @@ import * as stock from "@/app/api/stock/route";
 import * as productCategoryNormalization from "@/app/api/stock/migrations/categories/route";
 import * as productMeasurementNormalization from "@/app/api/stock/migrations/measurements/route";
 import * as stockPhoto from "@/app/api/stock/photo/route";
+import * as stockPhotoUrl from "@/app/api/stock/photo-url/route";
 import * as stockPhotos from "@/app/api/stock/photos/route";
 import * as cwStockMigration from "@/app/api/stock/migrations/cw/route";
 import * as distributorDataMigration from "@/app/api/stock/migrations/distributors/route";
@@ -107,6 +108,7 @@ export const apiRoutes: readonly ApiRoute[] = [
     handler: handler(productMeasurementNormalization.POST),
   },
   { method: "POST", path: "/api/stock/photo", handler: handler(stockPhoto.POST) },
+  { method: "PATCH", path: "/api/stock/photo-url", handler: handler(stockPhotoUrl.PATCH) },
   { method: "POST", path: "/api/stock/photos", handler: handler(stockPhotos.POST) },
   { method: "POST", path: "/api/stock/migrations/cw", handler: handler(cwStockMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/distributors", handler: handler(distributorDataMigration.POST) },

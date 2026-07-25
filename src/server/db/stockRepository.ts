@@ -637,6 +637,23 @@ export type BulkStockPhotoStorageResult = {
   cleanupWarningCount: number;
 };
 
+export async function updateStockProductPhotoUrl(
+  productId: string,
+  photoUrl: string,
+): Promise<{ productId: string; imageUrl: string } | null> {
+  const updated = await prisma.product.updateMany({
+    where: { id: productId, isActive: true },
+    data: {
+      imageUrl: photoUrl,
+      imageResolutionStatus: "PENDING",
+      imageCheckedAt: null,
+      imageRetryAt: null,
+      imageResolutionError: null,
+    },
+  });
+  return updated.count === 1 ? { productId, imageUrl: photoUrl } : null;
+}
+
 export async function saveStockItem(input: StockItemInput): Promise<SalesProduct> {
   const productId = await prisma.$transaction((tx) => upsertStockItem(tx, input));
   const product = await readStockProduct(productId);

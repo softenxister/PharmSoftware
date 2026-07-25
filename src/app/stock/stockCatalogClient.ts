@@ -187,3 +187,34 @@ export async function storeStockProductPhoto(
   }
   return payload.product;
 }
+
+export async function saveStockProductPhotoUrl(
+  productId: string,
+  photoUrl: string,
+  fetcher: typeof fetch = fetch,
+): Promise<{ productId: string; imageUrl: string }> {
+  const response = await fetcher("/api/stock/photo-url", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productId, photoUrl }),
+  });
+  const data: unknown = await response.json().catch(() => null);
+  const payload = data && typeof data === "object"
+    ? data as { result?: unknown; error?: unknown }
+    : {};
+  const result = payload.result && typeof payload.result === "object"
+    ? payload.result as { productId?: unknown; imageUrl?: unknown }
+    : null;
+  if (
+    !response.ok
+    || !result
+    || typeof result.productId !== "string"
+    || typeof result.imageUrl !== "string"
+  ) {
+    const message = typeof payload.error === "string" && payload.error.trim()
+      ? payload.error
+      : "Unable to save this photo URL.";
+    throw new Error(message);
+  }
+  return { productId: result.productId, imageUrl: result.imageUrl };
+}
