@@ -84,7 +84,10 @@ test("manual image URLs accept public HTTPS sources and ignore managed product-i
   assert.equal(parseManualProductImageUrl("   "), null);
   assert.throws(() => parseManualProductImageUrl("http://cdn.example.com/item.png"), /HTTPS/i);
   assert.throws(() => parseManualProductImageUrl("https://user:password@cdn.example.com/item.png"), /authority/i);
-  assert.throws(() => parseManualProductImageUrl("https://cdn.example.com:8443/item.png"), /authority/i);
+  assert.equal(
+    parseManualProductImageUrl("https://cdn.example.com:8443/item.png")?.toString(),
+    "https://cdn.example.com:8443/item.png",
+  );
 
   const validPng = new Uint8Array(24);
   validPng.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);

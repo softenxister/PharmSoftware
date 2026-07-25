@@ -107,7 +107,7 @@ export function validateProviderImageUrl(source: string, allowedHosts: readonly 
   const url = new URL(source);
   const hostname = url.hostname.toLocaleLowerCase("en-US");
   if (url.protocol !== "https:") throw new Error("Product image URL must use HTTPS.");
-  if (url.username || url.password || url.port) throw new Error("Product image URL contains unsupported authority data.");
+  if (url.username || url.password) throw new Error("Product image URL contains unsupported authority data.");
   if (!allowedHosts.some((allowed) => hostname === allowed.toLocaleLowerCase("en-US"))) {
     throw new Error("Product image hostname is not allowed for this provider.");
   }
