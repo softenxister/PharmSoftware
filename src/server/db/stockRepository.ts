@@ -19,8 +19,8 @@ import {
   persistManualProductImageImport,
   prepareManualProductImageImport,
 } from "@/server/product-images/manualImport";
-import { isPlaceholderProductImageUrl } from "@/server/product-images/placeholder";
-import { parseManualProductImageUrl } from "@/server/product-images/secureFetch";
+import { productImageUrl } from "@/server/product-images/placeholder";
+import { classifyBulkProductImageUrl } from "@/server/product-images/storageMaintenance";
 
 export type PurchasedStockLineInput = {
   productId: string;
@@ -628,8 +628,12 @@ export class StockProductNotFoundError extends Error {}
 
 export type BulkStockPhotoStorageResult = {
   eligibleCount: number;
+  processedCount: number;
   storedCount: number;
+  repairedCount: number;
   failedCount: number;
+  remainingCount: number;
+  cleanupWarningCount: number;
 };
 
 export async function saveStockItem(input: StockItemInput): Promise<SalesProduct> {
@@ -664,50 +668,113 @@ export async function storeStockProductPhoto(
     productId: product.id,
     reviewedBy,
   }));
-  await cleanupManualProductImageObjects(product.id, prepared.storageKey);
+  try {
+    await cleanupManualProductImageObjects(product.id, prepared.storageKey);
+  } catch {
+    // The new image and database record are already valid. A separate maintenance
+    // action can retry old-version cleanup without reverting the successful import.
+  }
   const savedProduct = await readStockProduct(product.id);
   if (!savedProduct) throw new StockProductNotFoundError("Stock item was not found.");
   return savedProduct;
 }
 
 const STOCK_PHOTO_IMPORT_CONCURRENCY = 3;
+const STOCK_PHOTO_IMPORT_BATCH_SIZE = 500;
 
-function validatedExternalPhotoUrl(photoUrl: string): string | null {
-  try {
-    const source = parseManualProductImageUrl(photoUrl);
-    if (!source || isPlaceholderProductImageUrl(source.toString())) return null;
-    return source.toString();
-  } catch {
-    return null;
-  }
-}
+const bulkPhotoCandidateWhere: Prisma.ProductWhereInput = {
+  isActive: true,
+  OR: [
+    { imageUrl: { startsWith: "https://" } },
+    {
+      AND: [
+        { imageUrl: { startsWith: "http://" } },
+        { imageUrl: { contains: "/api/product-images/" } },
+      ],
+    },
+  ],
+  NOT: [
+    { imageUrl: { contains: "placehold.co" } },
+    { imageUrl: { contains: "placeholder.com" } },
+    { imageUrl: { contains: "placehold.it" } },
+  ],
+};
 
 export async function storeAllExternalStockPhotos(
   reviewedBy: string,
 ): Promise<BulkStockPhotoStorageResult> {
-  const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      imageUrl: { startsWith: "https://" },
-    },
-    select: { id: true, imageUrl: true },
-    orderBy: [{ itemName: "asc" }, { id: "asc" }],
-  });
+  const [candidateCount, products] = await Promise.all([
+    prisma.product.count({ where: bulkPhotoCandidateWhere }),
+    prisma.product.findMany({
+      where: bulkPhotoCandidateWhere,
+      select: {
+        id: true,
+        imageUrl: true,
+        imageAsset: {
+          select: { storageKey: true, sha256: true, sourceImageUrl: true },
+        },
+      },
+      orderBy: [{ itemName: "asc" }, { id: "asc" }],
+      take: STOCK_PHOTO_IMPORT_BATCH_SIZE,
+    }),
+  ]);
   const eligibleProducts = products.flatMap((product) => {
-    const photoUrl = validatedExternalPhotoUrl(product.imageUrl);
-    return photoUrl ? [{ productId: product.id, photoUrl }] : [];
+    const classification = classifyBulkProductImageUrl(product.id, product.imageUrl);
+    return classification ? [{ ...product, classification }] : [];
   });
   let nextIndex = 0;
   let storedCount = 0;
-  let failedCount = 0;
+  let repairedCount = 0;
+  let failedCount = products.length - eligibleProducts.length;
+  let cleanupWarningCount = 0;
 
   async function importNextPhoto(): Promise<void> {
     while (nextIndex < eligibleProducts.length) {
       const product = eligibleProducts[nextIndex];
       nextIndex += 1;
       try {
-        await storeStockProductPhoto(product.productId, product.photoUrl, reviewedBy);
+        const canonicalUrl = product.imageAsset
+          ? productImageUrl(product.id, product.imageAsset.sha256)
+          : productImageUrl(product.id);
+        if (
+          product.classification.kind === "managed"
+          || (
+            product.imageAsset
+            && product.classification.kind === "external"
+            && product.imageAsset.sourceImageUrl === product.classification.sourceUrl
+          )
+        ) {
+          await prisma.product.update({
+            where: { id: product.id },
+            data: { imageUrl: canonicalUrl },
+          });
+          repairedCount += 1;
+          if (product.imageAsset) {
+            try {
+              await cleanupManualProductImageObjects(product.id, product.imageAsset.storageKey);
+            } catch {
+              cleanupWarningCount += 1;
+            }
+          }
+          continue;
+        }
+
+        const prepared = await prepareManualProductImageImport(
+          product.id,
+          product.classification.sourceUrl,
+        );
+        if (!prepared) throw new Error("A public external photo URL is required.");
+        await prisma.$transaction((tx) => persistManualProductImageImport(tx, {
+          ...prepared,
+          productId: product.id,
+          reviewedBy,
+        }));
         storedCount += 1;
+        try {
+          await cleanupManualProductImageObjects(product.id, prepared.storageKey);
+        } catch {
+          cleanupWarningCount += 1;
+        }
       } catch {
         failedCount += 1;
       }
@@ -721,9 +788,13 @@ export async function storeAllExternalStockPhotos(
     ),
   );
   return {
-    eligibleCount: eligibleProducts.length,
+    eligibleCount: candidateCount,
+    processedCount: products.length,
     storedCount,
+    repairedCount,
     failedCount,
+    remainingCount: Math.max(0, candidateCount - products.length),
+    cleanupWarningCount,
   };
 }
 

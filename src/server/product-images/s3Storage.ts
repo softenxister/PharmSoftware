@@ -213,7 +213,7 @@ function xmlValues(xml: string, tag: string): string[] {
   return values;
 }
 
-type StoredObjectVersion = {
+export type StoredObjectVersion = {
   key: string;
   versionId: string;
   isLatest: boolean;
@@ -235,6 +235,12 @@ function storedObjectVersions(xml: string): StoredObjectVersion[] {
     });
   }
   return versions;
+}
+
+function validateProductImagePrefix(prefix: string): void {
+  if (!prefix.startsWith("product-images/") || (prefix !== "product-images/" && !prefix.endsWith("/"))) {
+    throw new Error("Product image storage prefix is invalid.");
+  }
 }
 
 export function createS3ProductImageStorage(options: {
@@ -324,41 +330,62 @@ export function createS3ProductImageStorage(options: {
       }), "read");
     },
 
-    async deleteOtherObjects(prefix: string, keepKey: string): Promise<void> {
-      if (!prefix.startsWith("product-images/") || !prefix.endsWith("/")) {
-        throw new Error("Product image storage prefix is invalid.");
+    async listObjectVersions(prefix = "product-images/"): Promise<StoredObjectVersion[]> {
+      validateProductImagePrefix(prefix);
+      if (config.provider !== "backblaze-b2") {
+        throw new Error("Versioned product image cleanup requires Backblaze B2.");
       }
+      const versions: StoredObjectVersion[] = [];
+      let keyMarker: string | undefined;
+      let versionIdMarker: string | undefined;
+      do {
+        const query: Record<string, string> = { versions: "", prefix };
+        if (keyMarker) query["key-marker"] = keyMarker;
+        if (versionIdMarker) query["version-id-marker"] = versionIdMarker;
+        const list = buildSignedS3Request({ method: "GET", key: "", query, config });
+        const response = await checkedResponse(
+          await fetcher(list.url, { headers: list.headers }),
+          "product image version listing",
+        );
+        const xml = await response.text();
+        versions.push(...storedObjectVersions(xml).filter((version) => version.key.startsWith(prefix)));
+        if (!/<IsTruncated>\s*true\s*<\/IsTruncated>/i.test(xml)) break;
+        keyMarker = xmlValues(xml, "NextKeyMarker")[0];
+        versionIdMarker = xmlValues(xml, "NextVersionIdMarker")[0];
+        if (!keyMarker) {
+          throw new Error("Backblaze B2 product image listing did not provide a key marker.");
+        }
+      } while (keyMarker);
+      return versions;
+    },
+
+    async deleteObjectVersion(version: Pick<StoredObjectVersion, "key" | "versionId">): Promise<void> {
+      if (!version.key.startsWith("product-images/") || !version.versionId) {
+        throw new Error("Product image object version is invalid.");
+      }
+      if (config.provider !== "backblaze-b2") {
+        throw new Error("Versioned product image cleanup requires Backblaze B2.");
+      }
+      const request = buildSignedS3Request({
+        method: "DELETE",
+        key: version.key,
+        query: { versionId: version.versionId },
+        config,
+      });
+      await checkedResponse(await fetcher(request.url, {
+        method: "DELETE",
+        headers: request.headers,
+      }), "version delete");
+    },
+
+    async deleteOtherObjects(prefix: string, keepKey: string): Promise<void> {
+      validateProductImagePrefix(prefix);
       if (!keepKey.startsWith(prefix)) {
         throw new Error("Current product image key is outside its product prefix.");
       }
 
       if (config.provider === "backblaze-b2") {
-        const storedVersions: StoredObjectVersion[] = [];
-        let keyMarker: string | undefined;
-        let versionIdMarker: string | undefined;
-        do {
-          const query: Record<string, string> = {
-            versions: "",
-            prefix,
-          };
-          if (keyMarker) query["key-marker"] = keyMarker;
-          if (versionIdMarker) query["version-id-marker"] = versionIdMarker;
-          const list = buildSignedS3Request({ method: "GET", key: "", query, config });
-          const response = await checkedResponse(
-            await fetcher(list.url, { headers: list.headers }),
-            "product image version listing",
-          );
-          const xml = await response.text();
-          storedVersions.push(
-            ...storedObjectVersions(xml).filter((version) => version.key.startsWith(prefix)),
-          );
-          if (!/<IsTruncated>\s*true\s*<\/IsTruncated>/i.test(xml)) break;
-          keyMarker = xmlValues(xml, "NextKeyMarker")[0];
-          versionIdMarker = xmlValues(xml, "NextVersionIdMarker")[0];
-          if (!keyMarker) {
-            throw new Error("Backblaze B2 product image listing did not provide a key marker.");
-          }
-        } while (keyMarker);
+        const storedVersions = await this.listObjectVersions(prefix);
 
         const currentVersions = storedVersions.filter((version) => (
           version.key === keepKey
@@ -370,16 +397,7 @@ export function createS3ProductImageStorage(options: {
         }
         for (const version of storedVersions) {
           if (version === currentVersions[0]) continue;
-          const request = buildSignedS3Request({
-            method: "DELETE",
-            key: version.key,
-            query: { versionId: version.versionId },
-            config,
-          });
-          await checkedResponse(await fetcher(request.url, {
-            method: "DELETE",
-            headers: request.headers,
-          }), "version delete");
+          await this.deleteObjectVersion(version);
         }
         return;
       }

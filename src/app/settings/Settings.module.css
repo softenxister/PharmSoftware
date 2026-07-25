@@ -1708,6 +1708,127 @@
   padding: 16px 18px 18px;
 }
 
+.imageStorageMaintenance {
+  min-width: 0;
+  margin-top: 12px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  background: var(--app-surface-muted);
+  padding: 11px;
+}
+
+.imageStorageHeading,
+.imageStorageActions article,
+.imageCleanupPreview {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.imageStorageHeading h3 {
+  margin: 0;
+  color: var(--settings-green-dark);
+  font-size: 13px;
+}
+
+.imageStorageHeading p {
+  margin: 2px 0 0;
+  color: var(--settings-muted);
+  font-size: 10.5px;
+}
+
+.imageStorageHeading > span {
+  flex: 0 0 auto;
+  color: var(--settings-muted);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.imageStorageActions {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.imageStorageActions article {
+  min-height: 64px;
+  border: 1px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+  padding: 8px 9px;
+}
+
+.imageStorageActions article > div:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.imageStorageActions article > div:first-child > svg {
+  flex: 0 0 auto;
+  color: var(--settings-green);
+}
+
+.imageStorageActions article > div:first-child > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.imageStorageActions strong,
+.imageStorageActions small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.imageStorageActions strong {
+  color: var(--settings-green-dark);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.imageStorageActions small {
+  margin-top: 2px;
+  color: var(--settings-muted);
+  font-size: 9.5px;
+  line-height: 1.25;
+}
+
+.imageStorageActions article > button,
+.imageStorageButtons {
+  flex: 0 0 auto;
+}
+
+.imageStorageButtons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.imageStorageActions button {
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.imageCleanupPreview {
+  margin-top: 8px;
+  border-top: 1px solid var(--app-border);
+  color: var(--settings-muted);
+  font-size: 10.5px;
+  padding-top: 8px;
+}
+
+.imageCleanupPreview > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .imageSummary {
   display: grid;
   grid-template-columns: repeat(4, minmax(110px, 1fr));
@@ -2369,6 +2490,10 @@
 
   .imageReviewBody {
     padding: 12px;
+  }
+
+  .imageStorageActions {
+    grid-template-columns: 1fr;
   }
 
   .imageReviewToolbar {

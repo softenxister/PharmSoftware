@@ -7,7 +7,6 @@ import {
   loadStockProductsByIds,
   saveStockProduct,
   searchStockCatalog,
-  storeAllExternalStockPhotos,
   storeStockProductPhoto,
 } from "./stockCatalogClient";
 import type { StockItemInput } from "@/server/db/types";
@@ -280,30 +279,4 @@ test("photo storage is an explicit request separate from the fast stock save", a
     photoUrl: "https://cdn.example.com/item.png",
   });
   assert.equal(stored.imageUrl, "/api/product-images/p-test?v=stored-checksum");
-});
-
-test("bulk photo storage uses one explicit stock-photo collection request", async () => {
-  let requestedUrl = "";
-  let requestedMethod = "";
-  const fetcher: typeof fetch = async (url, init) => {
-    requestedUrl = String(url);
-    requestedMethod = init?.method ?? "";
-    return Response.json({
-      result: {
-        eligibleCount: 4,
-        storedCount: 3,
-        failedCount: 1,
-      },
-    });
-  };
-
-  const result = await storeAllExternalStockPhotos(fetcher);
-
-  assert.equal(requestedUrl, "/api/stock/photos");
-  assert.equal(requestedMethod, "POST");
-  assert.deepEqual(result, {
-    eligibleCount: 4,
-    storedCount: 3,
-    failedCount: 1,
-  });
 });

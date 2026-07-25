@@ -1,16 +1,16 @@
-import { isAuthenticationError, requireAuthenticatedUser } from "@/server/auth/pharmUser";
+import { requireStoreOwner } from "@/server/auth/pharmUser";
 import { storeAllExternalStockPhotos } from "@/server/db/stockRepository";
 
 export async function POST() {
+  let userId: string;
   try {
-    const user = await requireAuthenticatedUser();
-    return Response.json({
-      result: await storeAllExternalStockPhotos(user.id),
-    });
-  } catch (error) {
-    if (isAuthenticationError(error)) {
-      return Response.json({ error: error.message }, { status: 401 });
-    }
+    userId = (await requireStoreOwner()).id;
+  } catch {
+    return Response.json({ error: "Product image storage permission denied." }, { status: 403 });
+  }
+  try {
+    return Response.json({ result: await storeAllExternalStockPhotos(userId) });
+  } catch {
     return Response.json(
       { error: "Unable to store external stock photos." },
       { status: 500 },

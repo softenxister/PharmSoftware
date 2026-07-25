@@ -28,6 +28,8 @@ test("the Node server registers every migrated API method and path once", () => 
     "POST /api/product-image-jobs/brave",
     "POST /api/product-image-jobs/run",
     "GET /api/product-images/:productId",
+    "GET /api/product-image-storage",
+    "POST /api/product-image-storage",
     "GET /api/product-image-candidates/:candidateId/preview",
     "GET /api/distributors",
     "GET /api/purchase-corrections",

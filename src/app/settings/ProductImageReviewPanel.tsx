@@ -1,7 +1,16 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Images, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Images,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { invalidateStockCatalog } from "@/app/stock/stockCatalogClient";
 import { ProductImageCandidateDetail } from "./ProductImageCandidateDetail";
@@ -17,6 +26,12 @@ import {
   type ProductImageReviewData,
   type ProductImageReviewItem,
 } from "./productImageReview";
+import {
+  cleanStoredImageDuplicates,
+  previewStoredImageCleanup,
+  storeExternalProductImages,
+  type ProductImageCleanupPreview,
+} from "./productImageStorageClient";
 import styles from "./Settings.module.css";
 
 const EMPTY_DATA: ProductImageReviewData = {
@@ -58,6 +73,9 @@ export function ProductImageReviewPanel() {
   const [braveLoading, setBraveLoading] = useState(true);
   const [braveEligibility, setBraveEligibility] = useState(EMPTY_BRAVE_ELIGIBILITY);
   const [busy, setBusy] = useState(false);
+  const [storageBusy, setStorageBusy] = useState<"store" | "preview" | "clean" | null>(null);
+  const [cleanupCursor, setCleanupCursor] = useState<string | null>(null);
+  const [cleanupPreview, setCleanupPreview] = useState<ProductImageCleanupPreview | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -193,6 +211,85 @@ export function ProductImageReviewPanel() {
     }
   };
 
+  const storeExternalPhotos = async () => {
+    if (storageBusy) return;
+    setStorageBusy("store");
+    setError("");
+    setNotice("");
+    try {
+      const result = await storeExternalProductImages();
+      setNotice(t("productImages.storageRunSummary", {
+        processed: result.processedCount,
+        eligible: result.eligibleCount,
+        stored: result.storedCount,
+        repaired: result.repairedCount,
+        failed: result.failedCount,
+        remaining: result.remainingCount,
+        warnings: result.cleanupWarningCount,
+      }));
+      invalidateStockCatalog();
+    } catch (storageError) {
+      setError(storageError instanceof Error
+        ? storageError.message
+        : t("productImages.storageError"));
+    } finally {
+      setStorageBusy(null);
+    }
+  };
+
+  const previewCleanup = async (cursor = cleanupCursor) => {
+    if (storageBusy) return;
+    setStorageBusy("preview");
+    setError("");
+    setNotice("");
+    try {
+      const preview = await previewStoredImageCleanup(cursor);
+      setCleanupCursor(preview.batchCursor);
+      setCleanupPreview(preview);
+    } catch (storageError) {
+      setError(storageError instanceof Error
+        ? storageError.message
+        : t("productImages.cleanupPreviewError"));
+    } finally {
+      setStorageBusy(null);
+    }
+  };
+
+  const cleanDuplicates = async () => {
+    if (storageBusy || !cleanupPreview || cleanupPreview.oldVersionCount === 0) return;
+    setStorageBusy("clean");
+    setError("");
+    setNotice("");
+    try {
+      const result = await cleanStoredImageDuplicates(cleanupPreview.batchCursor);
+      setNotice(t("productImages.cleanupRunSummary", {
+        deleted: result.deletedVersionCount,
+        failed: result.cleanupFailedCount,
+        orphaned: result.orphanedObjectCount,
+        unsafe: result.unsafeProductCount,
+      }));
+      setCleanupPreview({
+        ...result,
+        duplicateProductCount: result.cleanupFailedCount > 0 ? result.duplicateProductCount : 0,
+        oldVersionCount: result.cleanupFailedCount,
+      });
+    } catch (storageError) {
+      setError(storageError instanceof Error
+        ? storageError.message
+        : t("productImages.cleanupError"));
+    } finally {
+      setStorageBusy(null);
+    }
+  };
+
+  const previewNextCleanupBatch = () => {
+    if (!cleanupPreview?.nextCursor || storageBusy) return;
+    const nextCursor = cleanupPreview.nextCursor;
+    setCleanupCursor(nextCursor);
+    setCleanupPreview(null);
+    void previewCleanup(nextCursor);
+  };
+
   return (
     <section className={`${styles.panel} ${styles.imageReviewPanel}`}>
       <div className={styles.panelHeader}>
@@ -221,6 +318,79 @@ export function ProductImageReviewPanel() {
       </div>
       <div className={styles.imageReviewBody}>
         <div className={styles.ownerOnlyNotice}><ShieldCheck size={16} /><span><strong>{t("productImages.ownerOnly")}</strong> {t("productImages.ownerOnlyHint")}</span></div>
+
+        <section className={styles.imageStorageMaintenance} aria-labelledby="image-storage-maintenance-title">
+          <div className={styles.imageStorageHeading}>
+            <div>
+              <h3 id="image-storage-maintenance-title">{t("productImages.storageTitle")}</h3>
+              <p>{t("productImages.storageDescription")}</p>
+            </div>
+            <span>{t("productImages.batchLimit")}</span>
+          </div>
+          <div className={styles.imageStorageActions}>
+            <article>
+              <div><Download size={17} /><span><strong>{t("productImages.storeExternal")}</strong><small>{t("productImages.storeExternalHint")}</small></span></div>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => void storeExternalPhotos()}
+                disabled={storageBusy !== null}
+              >
+                {storageBusy === "store"
+                  ? t("productImages.storingExternal")
+                  : t("productImages.storeExternalAction")}
+              </button>
+            </article>
+            <article>
+              <div><Trash2 size={17} /><span><strong>{t("productImages.cleanupDuplicates")}</strong><small>{t("productImages.cleanupHint")}</small></span></div>
+              <div className={styles.imageStorageButtons}>
+                <button
+                  type="button"
+                  className={styles.secondaryActionButton}
+                  onClick={() => void previewCleanup()}
+                  disabled={storageBusy !== null}
+                >
+                  {storageBusy === "preview"
+                    ? t("productImages.cleanupInspecting")
+                    : t("productImages.cleanupPreview")}
+                </button>
+                {cleanupPreview && (
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void cleanDuplicates()}
+                    disabled={storageBusy !== null || cleanupPreview.oldVersionCount === 0}
+                  >
+                    {storageBusy === "clean"
+                      ? t("productImages.cleanupRunning")
+                      : t("productImages.cleanupConfirm", { count: cleanupPreview.oldVersionCount })}
+                  </button>
+                )}
+              </div>
+            </article>
+          </div>
+          {cleanupPreview && (
+            <div className={styles.imageCleanupPreview} role="status">
+              <span>{t("productImages.cleanupPreviewSummary", {
+                scanned: cleanupPreview.scannedCount,
+                products: cleanupPreview.duplicateProductCount,
+                versions: cleanupPreview.oldVersionCount,
+                orphaned: cleanupPreview.orphanedObjectCount,
+                unsafe: cleanupPreview.unsafeProductCount,
+              })}</span>
+              {cleanupPreview.nextCursor && (
+                <button
+                  type="button"
+                  className={styles.secondaryActionButton}
+                  onClick={previewNextCleanupBatch}
+                  disabled={storageBusy !== null}
+                >
+                  {t("productImages.cleanupNextBatch")}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
 
         <div className={styles.imageSummary} aria-label={t("productImages.summary")}>
           {([

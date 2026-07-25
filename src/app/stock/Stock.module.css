@@ -576,27 +576,6 @@
   flex: 1;
 }
 
-.toolbarStatus {
-  min-width: 0;
-  max-width: 330px;
-  margin: 0;
-  overflow: hidden;
-  color: var(--stock-primary-dark);
-  font-size: 11.5px;
-  font-weight: 720;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.toolbarStatusError {
-  color: var(--stock-danger);
-}
-
-.moreMenuContainer {
-  position: relative;
-  flex: 0 0 auto;
-}
-
 .moreButton {
   display: inline-flex;
   height: 38px;
@@ -623,70 +602,6 @@
 .moreButton:disabled {
   color: var(--app-muted);
   cursor: wait;
-}
-
-.moreMenu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 12;
-  width: 310px;
-  border: 1px solid var(--stock-border);
-  border-radius: 7px;
-  background: var(--stock-surface);
-  box-shadow: 0 10px 24px rgba(20, 35, 25, 0.14);
-  padding: 6px;
-}
-
-.moreMenuItem {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  align-items: flex-start;
-  gap: 10px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--stock-primary-dark);
-  cursor: pointer;
-  font: inherit;
-  padding: 9px 10px;
-  text-align: left;
-}
-
-.moreMenuItem:hover:not(:disabled),
-.moreMenuItem:focus-visible {
-  background: var(--stock-primary-soft);
-  outline: none;
-}
-
-.moreMenuItem:disabled {
-  color: var(--app-muted);
-  cursor: wait;
-}
-
-.moreMenuItem > svg {
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-
-.moreMenuItem > span {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.moreMenuItem strong {
-  font-size: 12.5px;
-  font-weight: 820;
-}
-
-.moreMenuItem small {
-  color: var(--stock-muted);
-  font-size: 10.5px;
-  font-weight: 650;
-  line-height: 1.35;
 }
 
 .toolbarAddButton {

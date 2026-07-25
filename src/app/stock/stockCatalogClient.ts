@@ -15,12 +15,6 @@ export type StockPage = {
 };
 
 export type StockSortDirection = "asc" | "desc";
-export type BulkStockPhotoStorageResult = {
-  eligibleCount: number;
-  storedCount: number;
-  failedCount: number;
-};
-
 export type StockPageOptions = {
   page?: number;
   pageSize?: number;
@@ -192,32 +186,4 @@ export async function storeStockProductPhoto(
     throw new Error(message);
   }
   return payload.product;
-}
-
-function isBulkStockPhotoStorageResult(value: unknown): value is BulkStockPhotoStorageResult {
-  if (!value || typeof value !== "object") return false;
-  const result = value as Partial<BulkStockPhotoStorageResult>;
-  return Number.isSafeInteger(result.eligibleCount)
-    && Number(result.eligibleCount) >= 0
-    && Number.isSafeInteger(result.storedCount)
-    && Number(result.storedCount) >= 0
-    && Number.isSafeInteger(result.failedCount)
-    && Number(result.failedCount) >= 0;
-}
-
-export async function storeAllExternalStockPhotos(
-  fetcher: typeof fetch = fetch,
-): Promise<BulkStockPhotoStorageResult> {
-  const response = await fetcher("/api/stock/photos", { method: "POST" });
-  const data: unknown = await response.json().catch(() => null);
-  const payload = data && typeof data === "object"
-    ? data as { result?: unknown; error?: unknown }
-    : {};
-  if (!response.ok || !isBulkStockPhotoStorageResult(payload.result)) {
-    const message = typeof payload.error === "string" && payload.error.trim()
-      ? payload.error
-      : "Unable to store external stock photos.";
-    throw new Error(message);
-  }
-  return payload.result;
 }

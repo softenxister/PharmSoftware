@@ -15,6 +15,7 @@ import * as productImageReview from "@/app/api/product-image-review/route";
 import * as productImageApprove from "@/app/api/product-image-review/[candidateId]/approve/route";
 import * as productImageReject from "@/app/api/product-image-review/[candidateId]/reject/route";
 import * as productImages from "@/app/api/product-images/[productId]/route";
+import * as productImageStorage from "@/app/api/product-image-storage/route";
 import * as distributors from "@/app/api/distributors/route";
 import * as purchaseCorrections from "@/app/api/purchase-corrections/route";
 import * as purchase from "@/app/api/purchase/route";
@@ -72,6 +73,8 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "POST", path: "/api/product-image-jobs/brave", handler: handler(productImageBraveJobs.POST) },
   { method: "POST", path: "/api/product-image-jobs/run", handler: handler(productImageJobs.POST) },
   { method: "GET", path: "/api/product-images/:productId", handler: handler(productImages.GET) },
+  { method: "GET", path: "/api/product-image-storage", handler: handler(productImageStorage.GET) },
+  { method: "POST", path: "/api/product-image-storage", handler: handler(productImageStorage.POST) },
   { method: "GET", path: "/api/product-image-candidates/:candidateId/preview", handler: handler(productImageCandidatePreview.GET) },
   { method: "GET", path: "/api/distributors", handler: handler(distributors.GET) },
   { method: "GET", path: "/api/purchase-corrections", handler: handler(purchaseCorrections.GET) },
