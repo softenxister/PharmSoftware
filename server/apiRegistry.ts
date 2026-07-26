@@ -32,6 +32,7 @@ import * as stockPhoto from "@/app/api/stock/photo/route";
 import * as stockPhotoUrl from "@/app/api/stock/photo-url/route";
 import * as stockPhotos from "@/app/api/stock/photos/route";
 import * as cwStockMigration from "@/app/api/stock/migrations/cw/route";
+import * as lotExpiryMigration from "@/app/api/stock/migrations/lots/route";
 import * as distributorDataMigration from "@/app/api/stock/migrations/distributors/route";
 import * as memberDataMigration from "@/app/api/stock/migrations/members/route";
 import * as storePosSettings from "@/app/api/store-pos-settings/route";
@@ -111,6 +112,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "PATCH", path: "/api/stock/photo-url", handler: handler(stockPhotoUrl.PATCH) },
   { method: "POST", path: "/api/stock/photos", handler: handler(stockPhotos.POST) },
   { method: "POST", path: "/api/stock/migrations/cw", handler: handler(cwStockMigration.POST) },
+  { method: "POST", path: "/api/stock/migrations/lots", handler: handler(lotExpiryMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/distributors", handler: handler(distributorDataMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/members", handler: handler(memberDataMigration.POST) },
   { method: "GET", path: "/api/store-pos-settings", handler: handler(storePosSettings.GET) },

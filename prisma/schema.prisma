@@ -336,7 +336,7 @@ model ProductBarcodeAlias {
 model ProductBatch {
   id             String   @id @default(cuid())
   productId      String
-  batchNo        String
+  batchNo        String?
   expiryDate     String
   sellPriceThb   Decimal  @db.Decimal(14, 2)
   availableStock Decimal  @db.Decimal(14, 3)
@@ -344,7 +344,7 @@ model ProductBatch {
   updatedAt      DateTime @updatedAt
   product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, batchNo])
+  @@unique([productId, batchNo, expiryDate])
   @@index([productId])
   @@index([productId, expiryDate])
   @@index([expiryDate])
@@ -506,7 +506,7 @@ model StockAdjustmentLine {
   id                String          @id
   stockAdjustmentId String
   productId         String
-  batchNo           String
+  batchNo           String?
   previousQuantity  Decimal         @db.Decimal(14, 3)
   newQuantity       Decimal         @db.Decimal(14, 3)
   delta             Decimal         @db.Decimal(14, 3)
@@ -530,7 +530,7 @@ model PurchaseLine {
   freeUnit           String
   freeUnitMultiplier Decimal      @db.Decimal(14, 3)
   freeQuantity       Decimal      @db.Decimal(14, 3)
-  batchNo            String
+  batchNo            String?
   expiryDate         String
   purchaseBill       PurchaseBill @relation(fields: [purchaseBillId], references: [id], onDelete: Cascade)
   product            Product      @relation(fields: [productId], references: [id])

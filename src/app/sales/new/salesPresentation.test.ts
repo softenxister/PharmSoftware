@@ -1,13 +1,113 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  allocateSaleQuantityAcrossBatches,
   buildProductDescription,
   buildSellPackOptions,
   calculateSalePricing,
   createReminderFromDefaultDosage,
+  formatBatchExpiry,
+  groupSaleLinesForDisplay,
+  normalizeThaiKeyboardBarcodeInput,
+  normalizeThaiKeyboardNumericInput,
   resolvePaidSaleNextStep,
   shouldUseSellPackDropdown,
+  totalAvailableSaleQuantity,
 } from "./salesPresentation";
+
+test("batch expiry displays the full localized date in English and Thai", () => {
+  assert.equal(formatBatchExpiry("en", "2031-06-04"), "04 JUN 2031");
+  assert.equal(formatBatchExpiry("th", "2031-04-04"), "04 เม.ย. 2031");
+});
+
+test("Thai keyboard number-row output is normalized for barcode searches in every app language", () => {
+  assert.equal(normalizeThaiKeyboardBarcodeInput("ๅ/-ภถุึคตจ"), "1234567890");
+  assert.equal(normalizeThaiKeyboardBarcodeInput("คคถคึตึภๅจจๅ/"), "8858797410012");
+  assert.equal(normalizeThaiKeyboardBarcodeInput("คคถุจต*จ*ภๅจต"), "8856093034109");
+  assert.equal(normalizeThaiKeyboardBarcodeInput("คคถุจต_จ_ภๅจต"), "8856093034109");
+  assert.equal(normalizeThaiKeyboardBarcodeInput("๙๘๗๖๕"), "98765");
+});
+
+test("Thai product names remain unchanged", () => {
+  assert.equal(normalizeThaiKeyboardBarcodeInput("ถุงมือ"), "ถุงมือ");
+  assert.equal(normalizeThaiKeyboardBarcodeInput("ยาแก้ไอ 5 ขวบ"), "ยาแก้ไอ 5 ขวบ");
+});
+
+test("Thai keyboard number keys become visible digits in quantity input in every app language", () => {
+  assert.equal(normalizeThaiKeyboardNumericInput("ภถุ"), "456");
+  assert.equal(normalizeThaiKeyboardNumericInput("๔๕๖"), "456");
+  assert.equal(normalizeThaiKeyboardNumericInput("1ภ"), "14");
+});
+
+test("sale quantity is allocated across dated and blank batches", () => {
+  const batches = [
+    { id: "blank", stock: 10 },
+    { id: "dated", stock: 3 },
+  ];
+
+  assert.equal(totalAvailableSaleQuantity(batches, (batch) => batch.stock), 13);
+  assert.deepEqual(
+    allocateSaleQuantityAcrossBatches(batches, batches[1], 13, (batch) => batch.stock),
+    [
+      { batch: batches[1], quantity: 3 },
+      { batch: batches[0], quantity: 10 },
+    ],
+  );
+});
+
+test("sale quantity allocation never exceeds available stock", () => {
+  const batches = [
+    { id: "blank", stock: 10 },
+    { id: "dated", stock: 3 },
+  ];
+
+  assert.deepEqual(
+    allocateSaleQuantityAcrossBatches(batches, batches[1], 20, (batch) => batch.stock),
+    [
+      { batch: batches[1], quantity: 3 },
+      { batch: batches[0], quantity: 10 },
+    ],
+  );
+});
+
+test("batch-split cart stock displays as one row using the earliest dated batch", () => {
+  const lines = [
+    { itemId: "p-1", pack: "piece", batchNo: "", expiry: "", qty: 10 },
+    { itemId: "p-1", pack: "piece", batchNo: "LATE", expiry: "2031-06-04", qty: 2 },
+    { itemId: "p-1", pack: "piece", batchNo: "EARLY", expiry: "2030-04-04", qty: 1 },
+  ];
+
+  assert.deepEqual(
+    groupSaleLinesForDisplay(
+      lines,
+      (line) => `${line.itemId}|${line.pack}`,
+      (line) => line.qty,
+      (line) => line.expiry,
+    ),
+    [{
+      key: "p-1|piece",
+      lines,
+      representative: lines[2],
+      quantity: 13,
+    }],
+  );
+});
+
+test("a blank batch displays when it is the only batch for the item", () => {
+  const lines = [
+    { itemId: "p-1", pack: "piece", batchNo: "", expiry: "", qty: 10 },
+  ];
+
+  assert.equal(
+    groupSaleLinesForDisplay(
+      lines,
+      (line) => `${line.itemId}|${line.pack}`,
+      (line) => line.qty,
+      (line) => line.expiry,
+    )[0]?.representative,
+    lines[0],
+  );
+});
 
 test("stock is appended to product details instead of displayed below price", () => {
   assert.equal(buildProductDescription({

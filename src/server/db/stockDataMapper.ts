@@ -1,15 +1,13 @@
 import type { ProductBatch, SavedStockItem, SalesProduct } from "./types";
 import { savedStockToSalesProduct } from "./stockItemMapper";
+import { normalizeExpiryDate } from "@/lib/expiryDate";
+export { normalizeExpiryDate };
 
 export type StockProductOverride = {
   productId: string;
   barcode: string;
   batches: ProductBatch[];
 };
-
-export function normalizeExpiryDate(value: string): string {
-  return value.trim();
-}
 
 export function mergeStockSeedData(
   seedProducts: SalesProduct[],

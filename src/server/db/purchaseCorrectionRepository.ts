@@ -6,6 +6,8 @@ import type {
   CorrectionRequestInput,
   StockAdjustmentInput,
 } from "./purchaseCorrectionValidation";
+import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
+import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 export type PurchaseCorrectionStatus = "pending" | "approved" | "rejected";
 
@@ -180,17 +182,21 @@ export async function applyStockAdjustment(
     const adjustmentId = `stock-adjustment-${randomUUID()}`;
     const changedLines: Array<{
       productId: string;
-      batchNo: string;
+      batchNo: string | null;
+      expiryDate: string;
       previousQuantity: number;
       newQuantity: number;
     }> = [];
 
     for (const line of input.lines) {
+      const batchNo = normalizeOptionalBatchNo(line.batchNo);
+      const expiryDate = normalizeExpiryDate(line.expiryDate);
       const batches = await tx.$queryRaw<Array<{ availableStock: unknown }>>(Prisma.sql`
         SELECT "availableStock"
         FROM "ProductBatch"
         WHERE "productId" = ${line.productId}
-          AND "batchNo" = ${line.batchNo}
+          AND "batchNo" IS NOT DISTINCT FROM ${batchNo}
+          AND "expiryDate" = ${expiryDate}
         FOR UPDATE
       `);
       if (!batches[0]) throw new Error("Purchase stock batch was not found.");
@@ -201,11 +207,13 @@ export async function applyStockAdjustment(
         UPDATE "ProductBatch"
         SET "availableStock" = ${line.newQuantity}, "updatedAt" = CURRENT_TIMESTAMP
         WHERE "productId" = ${line.productId}
-          AND "batchNo" = ${line.batchNo}
+          AND "batchNo" IS NOT DISTINCT FROM ${batchNo}
+          AND "expiryDate" = ${expiryDate}
       `);
       changedLines.push({
         productId: line.productId,
-        batchNo: line.batchNo,
+        batchNo,
+        expiryDate,
         previousQuantity,
         newQuantity: line.newQuantity,
       });

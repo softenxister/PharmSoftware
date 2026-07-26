@@ -15,6 +15,8 @@ import type { SalesProduct } from "@/server/db/types";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { localizeUnitExpression } from "@/app/i18n/productUnits";
 import { invalidateStockCatalog, loadStockProductsByIds } from "../stockCatalogClient";
+import { displayBatchField } from "@/lib/batchPresentation";
+import { displayIsoExpiryDate } from "@/lib/expiryDate";
 import styles from "./StockAdjustment.module.css";
 
 type PharmUser = {
@@ -39,7 +41,8 @@ type PurchaseLine = {
   id: string;
   productId: string;
   itemName: string;
-  batchNo: string;
+  batchNo: string | null;
+  expiryDate: string;
   unit: string;
 };
 
@@ -58,6 +61,7 @@ type AdjustmentLine = {
   productId: string;
   itemName: string;
   batchNo: string;
+  expiryDate: string;
   currentQuantity: number;
   newQuantity: string;
   stockUnit: string;
@@ -93,15 +97,24 @@ function buildAdjustmentLines(bill: PurchaseBill, catalog: SalesProduct[]): Adju
   const lines = new Map<string, AdjustmentLine>();
   for (const purchaseLine of bill.lines) {
     const product = catalog.find(candidate => candidate.id === purchaseLine.productId);
-    const batch = product?.batches.find(candidate => candidate.batchNo === purchaseLine.batchNo);
-    const key = `${purchaseLine.productId}::${purchaseLine.batchNo}`;
+    const batchNo = purchaseLine.batchNo ?? "";
+    const batch = product?.batches.find(candidate => (
+      candidate.batchNo === batchNo
+      && candidate.expiryDate === purchaseLine.expiryDate
+    ));
+    const key = JSON.stringify([
+      purchaseLine.productId,
+      batchNo,
+      purchaseLine.expiryDate,
+    ]);
     if (lines.has(key)) continue;
     const currentQuantity = batch?.availableStock ?? 0;
     lines.set(key, {
       key,
       productId: purchaseLine.productId,
       itemName: purchaseLine.itemName,
-      batchNo: purchaseLine.batchNo,
+      batchNo,
+      expiryDate: purchaseLine.expiryDate,
       currentQuantity,
       newQuantity: String(currentQuantity),
       stockUnit: product?.pack.childUnit || purchaseLine.unit,
@@ -245,6 +258,7 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
           lines: changedLines.map(line => ({
             productId: line.productId,
             batchNo: line.batchNo,
+            expiryDate: line.expiryDate,
             newQuantity: parseAdjustmentQuantity(line.newQuantity),
           })),
         }),
@@ -411,7 +425,13 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
                       const delta = next === null ? 0 : next - line.currentQuantity;
                       return (
                         <tr key={line.key} className={!line.found ? styles.invalidRow : ""}>
-                          <td><strong>{line.itemName}</strong><small>Batch {line.batchNo || "missing"} · {localizeUnitExpression(preferences.locale, line.stockUnit)}</small></td>
+                          <td>
+                            <strong>{line.itemName}</strong>
+                            <small>
+                              Batch {displayBatchField(line.batchNo)} · Exp {displayIsoExpiryDate(line.expiryDate)} ·{" "}
+                              {localizeUnitExpression(preferences.locale, line.stockUnit)}
+                            </small>
+                          </td>
                           <td><span className={styles.quantityValue}>{line.currentQuantity.toLocaleString("en-US")}</span></td>
                           <td>
                             <input
@@ -420,7 +440,7 @@ export function StockAdjustment({ initialPurchaseId, initialRequestId }: StockAd
                               step="any"
                               value={line.newQuantity}
                               disabled={!line.found || isSaving}
-                              aria-label={`New stock for ${line.itemName}, batch ${line.batchNo}`}
+                              aria-label={`New stock for ${line.itemName}, batch ${displayBatchField(line.batchNo)}, expiry ${displayIsoExpiryDate(line.expiryDate)}`}
                               onChange={event => setLines(current => current.map(candidate => candidate.key === line.key
                                 ? { ...candidate, newQuantity: event.target.value }
                                 : candidate))}

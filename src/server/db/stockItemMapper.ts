@@ -1,6 +1,7 @@
 import type { SavedStockItem, SalesProduct, StockItemInput } from "./types";
 import { canonicalizeProductUnit } from "@/app/i18n/productUnits";
 import { productImageUrl } from "@/server/product-images/placeholder";
+import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 type RelatedLineProduct = Pick<SalesProduct, "id" | "itemName" | "barcode" | "location">;
 
@@ -56,7 +57,7 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
   const subUnit = canonicalizeProductUnit(item.subUnit?.trim() || item.unit.trim());
   const unit = canonicalizeProductUnit(item.unit);
   const lotNo = item.lotNo?.trim() || `NEW-${primaryBarcode.slice(-6) || "000000"}`;
-  const expiryDate = item.expiryDate?.trim() || "";
+  const expiryDate = normalizeExpiryDate(item.expiryDate);
   const imageUrl = item.photoUrl.trim() || productImageUrl(item.id);
   const validPackagingRows = item.packagingRows.filter((row) => {
     const quantity = Number(row.childQuantity);
@@ -122,7 +123,7 @@ export function createSavedStockItem(input: StockItemInput, currentItem?: SavedS
     barcodes: baseBarcodes.slice(1),
     itemName: input.itemName.trim(),
     lotNo: input.lotNo.trim(),
-    expiryDate: input.expiryDate.trim(),
+    expiryDate: normalizeExpiryDate(input.expiryDate),
     location: input.location.trim(),
     manufacturer: input.manufacturer.trim(),
     sellPrice: input.sellPrice.trim(),

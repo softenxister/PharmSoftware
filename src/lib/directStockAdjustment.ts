@@ -1,3 +1,5 @@
+import { isIsoExpiryDate } from "@/lib/expiryDate";
+
 export const MAX_DIRECT_STOCK_LINES = 100;
 export const MAX_DIRECT_STOCK_QUANTITY = 999_999_999;
 
@@ -5,12 +7,14 @@ export type DirectStockAdjustmentInput = {
   productId: string;
   lines: Array<{
     batchNo: string;
+    expiryDate: string;
     newQuantity: number;
   }>;
 };
 
 export type StockAdjustmentDraftLine = {
   batchNo: string;
+  expiryDate: string;
   currentQuantity: number;
   newQuantity: string;
 };
@@ -19,6 +23,9 @@ const isBoundedString = (value: unknown, maximumLength: number): value is string
   typeof value === "string"
   && value.trim().length > 0
   && value.trim().length <= maximumLength;
+
+const isOptionalBoundedString = (value: unknown, maximumLength: number): value is string =>
+  typeof value === "string" && value.trim().length <= maximumLength;
 
 const isValidQuantity = (value: unknown): value is number =>
   typeof value === "number"
@@ -40,10 +47,15 @@ export function isValidDirectStockAdjustmentInput(
   return input.lines.every((candidate) => {
     if (!candidate || typeof candidate !== "object") return false;
     const line = candidate as Record<string, unknown>;
-    if (!isBoundedString(line.batchNo, 200) || !isValidQuantity(line.newQuantity)) return false;
+    if (
+      !isOptionalBoundedString(line.batchNo, 200)
+      || !isIsoExpiryDate(line.expiryDate, { allowEmpty: true })
+      || !isValidQuantity(line.newQuantity)
+    ) return false;
     const batchNo = line.batchNo.trim();
-    if (batchNumbers.has(batchNo)) return false;
-    batchNumbers.add(batchNo);
+    const batchIdentity = `${batchNo}\0${line.expiryDate.trim()}`;
+    if (batchNumbers.has(batchIdentity)) return false;
+    batchNumbers.add(batchIdentity);
     return true;
   });
 }

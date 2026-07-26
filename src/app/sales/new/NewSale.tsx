@@ -9,7 +9,11 @@ import { MemberAvatar } from '@/app/member/MemberAvatarView';
 import styles from './NewSale.module.css';
 import type { ProductPack, SalesProduct } from '@/server/db/types';
 import type { PharmUser } from '@/server/auth/pharmUser';
-import { invalidateStockCatalog, loadStockProductsByIds, searchStockCatalog } from '@/app/stock/stockCatalogClient';
+import {
+  loadStockProductsByIds,
+  refreshStockProductsByIds,
+  searchStockCatalog,
+} from '@/app/stock/stockCatalogClient';
 import { requiresPosConfirmation } from '@/app/settings/posPreferences';
 import {
   getPaymentMethodShortcut,
@@ -19,14 +23,24 @@ import {
 } from '@/app/settings/storePosSettings';
 import { usePosPreferences } from '@/app/settings/usePosPreferences';
 import { useStorePosSettings } from '@/app/settings/useStorePosSettings';
+import {
+  displayBatchField,
+  nearestAvailableExpiryBatch,
+} from '@/lib/batchPresentation';
 import { PosConfirmationDialog } from './PosConfirmationDialog';
 import {
+  allocateSaleQuantityAcrossBatches,
   buildProductDescription,
   buildSellPackOptions,
   calculateSalePricing,
   createReminderFromDefaultDosage,
+  formatBatchExpiry,
+  groupSaleLinesForDisplay,
+  normalizeThaiKeyboardBarcodeInput,
+  normalizeThaiKeyboardNumericInput,
   resolvePaidSaleNextStep,
   shouldUseSellPackDropdown,
+  totalAvailableSaleQuantity,
   type SellPackOption,
 } from './salesPresentation';
 import { resolveSaleShortcut, subscribeSaleShortcuts } from './salesShortcuts';
@@ -145,7 +159,7 @@ type InvoiceCreated = {
 };
 
 type PendingConfirmation =
-  | { kind: 'remove-item'; lineId: string; itemName: string }
+  | { kind: 'remove-item'; cartKey: string; itemName: string }
   | { kind: 'cancel-sale' };
 
 type SalesApiResponse = {
@@ -250,7 +264,7 @@ function productsToCatalog(products: SalesProduct[]): CatalogItem[] {
       ...(ingredient.thaiName ? { thaiName: ingredient.thaiName } : {}),
     })),
     batches: product.batches.map((batch) => ({
-      batchId: `${product.id}-${batch.batchNo}`,
+      batchId: `${product.id}-${batch.batchNo}-${batch.expiryDate}`,
       batchNo: batch.batchNo,
       exp: batch.expiryDate,
       sellPrice: batch.sellPriceThb,
@@ -272,29 +286,31 @@ function formatBaht(n: number): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function parseExpiryDate(value: string): Date {
-  const dayFirst = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (dayFirst) {
-    return new Date(Number(dayFirst[3]), Number(dayFirst[2]) - 1, Number(dayFirst[1]));
-  }
-
-  return new Date(value);
-}
-
 function nearestExpiryBatch(batches: Batch[]): Batch | null {
-  const inStock = batches.filter((b) => b.stock > 0);
-  if (inStock.length === 0) return null;
-  return [...inStock].sort((a, b) => parseExpiryDate(a.exp).getTime() - parseExpiryDate(b.exp).getTime())[0];
+  return nearestAvailableExpiryBatch(
+    batches,
+    (batch) => batch.exp,
+    (batch) => batch.stock,
+  );
 }
 
 function nearestExpiryBatchForPack(batches: Batch[], pack: SellPack): Batch | null {
-  const inStock = batches.filter((b) => availableStockForPack(b, pack) > 0);
-  if (inStock.length === 0) return null;
-  return [...inStock].sort((a, b) => parseExpiryDate(a.exp).getTime() - parseExpiryDate(b.exp).getTime())[0];
+  return nearestAvailableExpiryBatch(
+    batches,
+    (batch) => batch.exp,
+    (batch) => availableStockForPack(batch, pack),
+  );
 }
 
 function availableStockForPack(batch: Batch, pack: SellPack): number {
   return Math.floor(batch.stock / pack.priceMultiplier);
+}
+
+function totalAvailableStockForPack(batches: Batch[], pack: SellPack): number {
+  return totalAvailableSaleQuantity(
+    batches,
+    (batch) => availableStockForPack(batch, pack),
+  );
 }
 
 function sellPriceForPack(batch: Batch, pack: SellPack): number {
@@ -305,6 +321,10 @@ function lineUnitPrice(line: CartLine): number {
   return Number.isFinite(line.unitPrice)
     ? line.unitPrice
     : line.batch.sellPrice * line.packMultiplier;
+}
+
+function cartLineGroupKey(line: CartLine): string {
+  return `${line.itemId}\u0000${line.packLabel}\u0000${line.packMultiplier}`;
 }
 
 function catalogItemForLine(line: CartLine, catalog: CatalogItem[]): CatalogItem | undefined {
@@ -327,7 +347,8 @@ function maxQtyForCartLine(line: CartLine, catalog: CatalogItem[]): number {
   if (!catalogItem || !pack) {
     return Math.max(1, Math.floor(line.batch.stock / line.packMultiplier));
   }
-  return Math.max(1, catalogItem.batches.reduce((sum, batch) => sum + availableStockForPack(batch, pack), 0));
+  const currentBatch = catalogItem.batches.find((batch) => batch.batchId === line.batch.batchId) ?? line.batch;
+  return Math.max(1, availableStockForPack(currentBatch, pack));
 }
 
 function mergeCartLinesByItemPack(lines: CartLine[], catalog: CatalogItem[]): { lines: CartLine[]; changed: boolean } {
@@ -336,7 +357,7 @@ function mergeCartLinesByItemPack(lines: CartLine[], catalog: CatalogItem[]): { 
   let changed = false;
 
   lines.forEach((line) => {
-    const key = `${line.itemId}|${line.packLabel}|${line.packMultiplier}`;
+    const key = `${line.itemId}|${line.packLabel}|${line.packMultiplier}|${line.batch.batchId}`;
     const existingIndex = lineIndexByKey.get(key);
     if (existingIndex === undefined) {
       lineIndexByKey.set(key, mergedLines.length);
@@ -354,6 +375,60 @@ function mergeCartLinesByItemPack(lines: CartLine[], catalog: CatalogItem[]): { 
   });
 
   return { lines: mergedLines, changed };
+}
+
+function replaceCartGroupQuantity(
+  lines: CartLine[],
+  item: CatalogItem,
+  pack: SellPack,
+  preferredBatch: Batch,
+  requestedQuantity: number,
+): CartLine[] {
+  const targetKey = `${item.id}\u0000${pack.displayLabel}\u0000${pack.priceMultiplier}`;
+  const existingLines = lines.filter((line) => cartLineGroupKey(line) === targetKey);
+  const maxQuantity = totalAvailableStockForPack(item.batches, pack);
+  if (maxQuantity <= 0 || !Number.isFinite(requestedQuantity)) return lines;
+  const desiredQuantity = Math.min(
+    maxQuantity,
+    Math.max(1, Math.floor(requestedQuantity)),
+  );
+  const allocations = allocateSaleQuantityAcrossBatches(
+    item.batches,
+    preferredBatch,
+    desiredQuantity,
+    (batch) => availableStockForPack(batch, pack),
+  );
+  const timestamp = Date.now();
+  const allocatedLines = allocations.map(({ batch, quantity }, index): CartLine => {
+    const existingLine = existingLines.find((line) => line.batch.batchId === batch.batchId);
+    return {
+      lineId: existingLine?.lineId
+        ?? `${item.id}-${pack.key}-${batch.batchId}-${timestamp}-${index}`,
+      itemId: item.id,
+      itemName: item.name,
+      packLabel: pack.displayLabel,
+      packMultiplier: pack.priceMultiplier,
+      unitPrice: sellPriceForPack(batch, pack),
+      loc: item.loc,
+      batch,
+      qty: quantity,
+    };
+  });
+
+  const nextLines: CartLine[] = [];
+  let insertedAllocations = false;
+  for (const line of lines) {
+    if (cartLineGroupKey(line) === targetKey) {
+      if (!insertedAllocations) {
+        nextLines.push(...allocatedLines);
+        insertedAllocations = true;
+      }
+      continue;
+    }
+    nextLines.push(line);
+  }
+  if (!insertedAllocations) nextLines.push(...allocatedLines);
+  return nextLines;
 }
 
 /** Ranks barcode and item-name matches ahead of lower-priority manufacturer matches. */
@@ -578,10 +653,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       ? t('newSale.allergyWarning', { ingredients: matches.map((ingredient) => ingredient.canonicalName).join(', ') })
       : '';
   };
-  const formatExpiry = (value: string) => {
-    const date = parseExpiryDate(value);
-    return Number.isNaN(date.getTime()) ? value : formatDate(date, { month: 'short', year: '2-digit' });
-  };
+  const formatExpiry = (value: string) => formatBatchExpiry(appPreferences.locale, value);
   const [searchParams] = useSearchParams();
   const pendingBillId = searchParams.get('billId');
   const { preferences } = usePosPreferences(user);
@@ -650,6 +722,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const [saleSubmitting, setSaleSubmitting] = useState(false);
   const [saleSubmitError, setSaleSubmitError] = useState('');
   const newSaleButtonRef = useRef<HTMLButtonElement | null>(null);
+  const pendingStockRefreshIdsRef = useRef<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [billingDevice, setBillingDevice] = useState('Front Counter Thermal Printer');
   const [cashDrawerDevice, setCashDrawerDevice] = useState('Front Counter Cash Drawer');
@@ -677,16 +750,16 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     });
   }, [customerMatches.length]);
 
+  const itemSearchQuery = normalizeThaiKeyboardBarcodeInput(itemQuery).trim();
   const itemMatches = useMemo(() => {
-    const q = itemQuery.trim();
-    if (!q) return [];
+    if (!itemSearchQuery) return [];
     return catalog
-      .map((item) => ({ item, priority: getItemSearchPriority(item, q) }))
+      .map((item) => ({ item, priority: getItemSearchPriority(item, itemSearchQuery) }))
       .filter((result): result is { item: CatalogItem; priority: number } => result.priority !== null)
       .sort((a, b) => a.priority - b.priority || a.item.name.localeCompare(b.item.name))
       .slice(0, 8)
       .map(({ item }) => item);
-  }, [catalog, itemQuery]);
+  }, [catalog, itemSearchQuery]);
 
   useEffect(() => {
     setHighlightedItemIndex(0);
@@ -703,8 +776,14 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     setPaymentMethod((current) => resolveConfiguredPaymentMethod(current, storeSettings.paymentMethods));
   }, [storeSettings.paymentMethods]);
 
+  const cartDisplayGroups = useMemo(() => groupSaleLinesForDisplay(
+    cartLines,
+    cartLineGroupKey,
+    (line) => line.qty,
+    (line) => line.batch.exp,
+  ), [cartLines]);
   const totalQty = useMemo(() => cartLines.reduce((sum, l) => sum + l.qty, 0), [cartLines]);
-  const uniqueItemCount = cartLines.length;
+  const uniqueItemCount = cartDisplayGroups.length;
   const pricingLines = useMemo(() => cartLines.map((line) => ({
     quantity: line.qty,
     unitPrice: lineUnitPrice(line),
@@ -733,8 +812,14 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const canSaveSale = cartLines.length > 0 && Number.isFinite(netPayable) && netPayable > 0;
   const canOpenInvoiceBreakdown = canSaveSale;
   const reminderEligibleLines = useMemo(() => {
-    return cartLines.filter((line) => totalTabsForLine(line, catalog) > 0);
-  }, [cartLines, catalog]);
+    return cartDisplayGroups
+      .map((group) => ({
+        ...group.representative,
+        lineId: group.key,
+        qty: group.quantity,
+      }))
+      .filter((line) => totalTabsForLine(line, catalog) > 0);
+  }, [cartDisplayGroups, catalog]);
 
   const weeklyTopItemIds = useMemo(
     () => [...catalog]
@@ -768,7 +853,11 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     : t('newSale.topWeekly');
 
   const recommendedBatchId = useMemo(
-    () => (editor ? nearestExpiryBatch(editor.item.batches)?.batchId ?? null : null),
+    () => (
+      editor
+        ? nearestExpiryBatchForPack(editor.item.batches, editor.sellPack)?.batchId ?? null
+        : null
+    ),
     [editor]
   );
 
@@ -777,7 +866,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     const timeout = window.setTimeout(async () => {
       setItemSearchLoading(true);
       try {
-        const products = await searchStockCatalog(itemQuery);
+        const products = await searchStockCatalog(itemSearchQuery);
         if (!cancelled) {
           setCatalog((currentCatalog) => mergeCatalogItems(currentCatalog, productsToCatalog(products)));
         }
@@ -786,13 +875,13 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       } finally {
         if (!cancelled) setItemSearchLoading(false);
       }
-    }, itemQuery.trim() ? 150 : 0);
+    }, itemSearchQuery ? 150 : 0);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [itemQuery]);
+  }, [itemSearchQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -892,7 +981,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   /* ── Handlers ───────────────────────────────────────────────────── */
 
   function openEditorForItem(item: CatalogItem) {
-    const exactBarcode = itemQuery.trim();
+    const exactBarcode = itemSearchQuery;
     const sellPack = item.sellPacks.find((pack) => pack.barcodes.includes(exactBarcode)) ?? item.sellPacks[0];
     const batch = nearestExpiryBatchForPack(item.batches, sellPack);
     if (!batch) return; // out of stock — nothing to sell
@@ -974,7 +1063,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   function handleSelectBatch(batch: Batch) {
     if (!editor) return;
-    const maxQty = availableStockForPack(batch, editor.sellPack);
+    const maxQty = totalAvailableStockForPack(editor.item.batches, editor.sellPack);
     const currentQty = parseInt(editor.qty, 10) || 1;
     setEditor({ ...editor, batch, qty: String(Math.max(1, Math.min(currentQty, maxQty || 1))), batchCardOpen: false });
     window.setTimeout(() => {
@@ -989,7 +1078,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       ? editor.batch
       : nearestExpiryBatchForPack(editor.item.batches, pack);
     if (!nextBatch) return;
-    const maxQty = availableStockForPack(nextBatch, pack);
+    const maxQty = totalAvailableStockForPack(editor.item.batches, pack);
     const currentQty = parseInt(editor.qty, 10) || 1;
     setEditor({ ...editor, sellPack: pack, batch: nextBatch, qty: String(Math.max(1, Math.min(currentQty, maxQty))) });
     window.setTimeout(() => {
@@ -1000,38 +1089,21 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
 
   function commitEditorToCart() {
     if (!editor) return;
-    const maxQty = availableStockForPack(editor.batch, editor.sellPack);
+    const maxQty = totalAvailableStockForPack(editor.item.batches, editor.sellPack);
     if (maxQty <= 0) return;
     const qty = Math.max(1, Math.min(parseInt(editor.qty, 10) || 1, maxQty));
     setCartLines((prev) => {
-      const existingLine = prev.find((line) => (
-        line.itemId === editor.item.id &&
-        line.packLabel === editor.sellPack.displayLabel &&
-        line.packMultiplier === editor.sellPack.priceMultiplier
-      ));
-
-      if (existingLine) {
-        const mergedQty = Math.min(maxQtyForCartLine(existingLine, catalog), existingLine.qty + qty);
-        return prev.map((line) => {
-          if (line.lineId !== existingLine.lineId) return line;
-          return { ...line, qty: mergedQty };
-        });
-      }
-
-      return [
-        ...prev,
-        {
-          lineId: `${editor.item.id}-${editor.sellPack.key}-${Date.now()}`,
-          itemId: editor.item.id,
-          itemName: editor.item.name,
-          packLabel: editor.sellPack.displayLabel,
-          packMultiplier: editor.sellPack.priceMultiplier,
-          unitPrice: sellPriceForPack(editor.batch, editor.sellPack),
-          loc: editor.item.loc,
-          batch: editor.batch,
-          qty,
-        },
-      ];
+      const targetKey = `${editor.item.id}\u0000${editor.sellPack.displayLabel}\u0000${editor.sellPack.priceMultiplier}`;
+      const existingLines = prev.filter((line) => cartLineGroupKey(line) === targetKey);
+      const existingQuantity = existingLines.reduce((sum, line) => sum + line.qty, 0);
+      const desiredQuantity = Math.min(maxQty, existingQuantity + qty);
+      return replaceCartGroupQuantity(
+        prev,
+        editor.item,
+        editor.sellPack,
+        editor.batch,
+        desiredQuantity,
+      );
     });
     setEditor(null);
     setItemQuery('');
@@ -1041,28 +1113,28 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     }, 0);
   }
 
-  function removeCartLineImmediately(lineId: string) {
-    setCartLines((prev) => prev.filter((l) => l.lineId !== lineId));
+  function removeCartLineImmediately(cartKey: string) {
+    setCartLines((prev) => prev.filter((line) => cartLineGroupKey(line) !== cartKey));
     setCartQtyDrafts((prev) => {
       const next = { ...prev };
-      delete next[lineId];
+      delete next[cartKey];
       return next;
     });
     setReminderRows((prev) => {
       const next = { ...prev };
-      delete next[lineId];
+      delete next[cartKey];
       return next;
     });
   }
 
-  function removeCartLine(lineId: string) {
-    const line = cartLines.find((cartLine) => cartLine.lineId === lineId);
+  function removeCartLine(cartKey: string) {
+    const line = cartLines.find((cartLine) => cartLineGroupKey(cartLine) === cartKey);
     if (!line) return;
     if (requiresPosConfirmation(preferences, 'remove-item', cartLines.length > 0)) {
-      setPendingConfirmation({ kind: 'remove-item', lineId, itemName: line.itemName });
+      setPendingConfirmation({ kind: 'remove-item', cartKey, itemName: line.itemName });
       return;
     }
-    removeCartLineImmediately(lineId);
+    removeCartLineImmediately(cartKey);
   }
 
   function leaveUnsavedSale() {
@@ -1076,7 +1148,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   function confirmPendingAction() {
     if (!pendingConfirmation) return;
     if (pendingConfirmation.kind === 'remove-item') {
-      removeCartLineImmediately(pendingConfirmation.lineId);
+      removeCartLineImmediately(pendingConfirmation.cartKey);
       setPendingConfirmation(null);
       return;
     }
@@ -1084,15 +1156,27 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     navigate('/sales');
   }
 
-  function updateCartQty(lineId: string, qty: number) {
-    setCartLines((prev) => prev.map((l) => {
-      if (l.lineId !== lineId) return l;
-      const maxQty = maxQtyForCartLine(l, catalog);
-      return { ...l, qty: Math.min(maxQty, Math.max(1, qty)) };
-    }));
+  function updateCartQty(cartKey: string, qty: number) {
+    setCartLines((prev) => {
+      const group = groupSaleLinesForDisplay(
+        prev.filter((line) => cartLineGroupKey(line) === cartKey),
+        cartLineGroupKey,
+        (line) => line.qty,
+        (line) => line.batch.exp,
+      )[0];
+      if (!group) return prev;
+      const line = group.representative;
+      const item = catalogItemForLine(line, catalog);
+      const pack = item?.sellPacks.find((sellPack) => (
+        sellPack.displayLabel === line.packLabel
+        && sellPack.priceMultiplier === line.packMultiplier
+      ));
+      if (!item || !pack) return prev;
+      return replaceCartGroupQuantity(prev, item, pack, line.batch, qty);
+    });
     setCartQtyDrafts((prev) => {
       const next = { ...prev };
-      delete next[lineId];
+      delete next[cartKey];
       return next;
     });
   }
@@ -1212,7 +1296,26 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
     return { type: discountType, value };
   }
 
+  async function refreshSoldProductStock(productIds: string[]) {
+    const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))];
+    if (ids.length === 0) return;
+    pendingStockRefreshIdsRef.current = ids;
+    try {
+      const refreshedProducts = await refreshStockProductsByIds(ids);
+      setCatalog((currentCatalog) => mergeCatalogItems(
+        currentCatalog,
+        productsToCatalog(refreshedProducts),
+      ));
+      pendingStockRefreshIdsRef.current = [];
+    } catch (error) {
+      console.error('Unable to refresh stock after the completed sale.', error);
+    }
+  }
+
   function resetForNewWalkIn() {
+    if (pendingStockRefreshIdsRef.current.length > 0) {
+      void refreshSoldProductStock(pendingStockRefreshIdsRef.current);
+    }
     setCartLines([]);
     setCartQtyDrafts({});
     setReminderRows({});
@@ -1265,7 +1368,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       date: billDateTime.toISOString(),
       customerName: customer?.name ?? 'Walk-in Customer',
       isMember: customer?.isMember ?? false,
-      itemCount: cartLines.length,
+      itemCount: uniqueItemCount,
       paymentMethod,
       purchaseMethod,
       netTotal: effectiveNetPayable,
@@ -1343,13 +1446,14 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         throw new Error(saleData.error || 'Unable to update stock for this sale.');
       }
 
-      invalidateStockCatalog();
       savedSale = saleData.sale;
     } catch (error) {
       setSaleSubmitError(error instanceof Error ? error.message : 'Unable to update stock for this sale.');
       setSaleSubmitting(false);
       return;
     }
+
+    await refreshSoldProductStock(cartLines.map((line) => line.itemId));
 
     if (!Number.isNaN(paid) && paid >= nextNetPayable) {
       openCashDrawer('customer payment submitted');
@@ -1778,7 +1882,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       aria-haspopup="listbox"
                       aria-expanded={editor.batchCardOpen}
                     >
-                      <span>{editor.batch.batchNo}</span>
+                      <span>{displayBatchField(editor.batch.batchNo)}</span>
                       <IconChevronDown className={editor.batchCardOpen ? styles.chevronOpen : ''} />
                     </button>
                   </div>
@@ -1812,8 +1916,8 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       }
                     }}
                     onChange={(e) => {
-                      const digitsOnly = e.target.value.replace(/\D/g, '');
-                      const maxQty = availableStockForPack(editor.batch, editor.sellPack);
+                      const digitsOnly = normalizeThaiKeyboardNumericInput(e.target.value).replace(/\D/g, '');
+                      const maxQty = totalAvailableStockForPack(editor.item.batches, editor.sellPack);
                       const clampedQty = digitsOnly
                         ? String(Math.min(maxQty || 1, Math.max(1, parseInt(digitsOnly, 10))))
                         : '';
@@ -1843,7 +1947,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       onClick={() => handleSelectBatch(b)}
                     >
                       <span className={styles.batchOptionNo}>
-                        {b.batchNo}
+                        {displayBatchField(b.batchNo)}
                         {b.batchId === recommendedBatchId && <span className={styles.recommendedTag}>{t('newSale.nearestExpiry')}</span>}
                       </span>
                       <span className={styles.batchOptionRow}><span className={styles.muted}>{t('newSale.expiryShort')}</span> {formatExpiry(b.exp)}</span>
@@ -1877,13 +1981,18 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                 </tr>
               </thead>
               <tbody>
-                {cartLines.map((line) => {
+                {cartDisplayGroups.map((group) => {
+                  const line = group.representative;
                   const catalogItem = catalogItemForLine(line, catalog);
                   const allergyWarning = catalogItem ? allergyWarningForItem(catalogItem) : '';
+                  const lineTotal = group.lines.reduce(
+                    (total, batchLine) => total + batchLine.qty * lineUnitPrice(batchLine),
+                    0,
+                  );
                   return (
-                  <tr key={line.lineId}>
+                  <tr key={group.key}>
                     <td>
-                      <button type="button" className={styles.binButton} onClick={() => removeCartLine(line.lineId)} aria-label={`Remove ${line.itemName}`}>
+                      <button type="button" className={styles.binButton} onClick={() => removeCartLine(group.key)} aria-label={`Remove ${line.itemName}`}>
                         <IconBin />
                       </button>
                     </td>
@@ -1895,7 +2004,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       <span className={styles.packCellUnit}>{localizeUnit(line.packLabel)}</span>
                     </td>
                     {storeSettings.showProductLocation && <td className={styles.muted}>{line.loc}</td>}
-                    <td className={styles.muted}>{line.batch.batchNo}</td>
+                    <td className={styles.muted}>{displayBatchField(line.batch.batchNo)}</td>
                     <td className={styles.muted}>{formatExpiry(line.batch.exp)}</td>
                     <td className={styles.alignRight}>฿{formatBaht(lineUnitPrice(line))}</td>
                     <td className={styles.alignRight}>
@@ -1903,7 +2012,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                         <button
                           type="button"
                           className={styles.qtyStepButton}
-                          onClick={() => updateCartQty(line.lineId, line.qty - 1)}
+                          onClick={() => updateCartQty(group.key, group.quantity - 1)}
                           aria-label={`Decrease ${line.itemName} quantity`}
                         >
                           -
@@ -1911,31 +2020,31 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                         <input
                           type="text"
                           inputMode="numeric"
-                          value={cartQtyDrafts[line.lineId] ?? String(line.qty)}
+                          value={cartQtyDrafts[group.key] ?? String(group.quantity)}
                           onFocus={(e) => e.currentTarget.select()}
                           onBlur={() => {
                             setCartQtyDrafts((prev) => {
-                              if (prev[line.lineId] !== '') return prev;
+                              if (prev[group.key] !== '') return prev;
                               const next = { ...prev };
-                              delete next[line.lineId];
+                              delete next[group.key];
                               return next;
                             });
                           }}
                           onChange={(e) => {
-                            const digitsOnly = e.target.value.replace(/\D/g, '');
+                            const digitsOnly = normalizeThaiKeyboardNumericInput(e.target.value).replace(/\D/g, '');
                             if (!digitsOnly) {
-                              setCartQtyDrafts((prev) => ({ ...prev, [line.lineId]: '' }));
+                              setCartQtyDrafts((prev) => ({ ...prev, [group.key]: '' }));
                               return;
                             }
-                            setCartQtyDrafts((prev) => ({ ...prev, [line.lineId]: digitsOnly }));
-                            updateCartQty(line.lineId, parseInt(digitsOnly, 10));
+                            setCartQtyDrafts((prev) => ({ ...prev, [group.key]: digitsOnly }));
+                            updateCartQty(group.key, parseInt(digitsOnly, 10));
                           }}
                           className={styles.qtyStepperInput}
                         />
                         <button
                           type="button"
                           className={styles.qtyStepButton}
-                          onClick={() => updateCartQty(line.lineId, line.qty + 1)}
+                          onClick={() => updateCartQty(group.key, group.quantity + 1)}
                           aria-label={`Increase ${line.itemName} quantity`}
                         >
                           +
@@ -1943,7 +2052,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
                       </div>
                     </td>
                     <td className={styles.alignRight}>
-                      <span className={styles.lineTotal}>฿{formatBaht(line.qty * lineUnitPrice(line))}</span>
+                      <span className={styles.lineTotal}>฿{formatBaht(lineTotal)}</span>
                     </td>
                   </tr>
                   );

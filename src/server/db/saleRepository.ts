@@ -8,6 +8,7 @@ import {
   dispenseSoldStock,
   type SoldStockLineInput,
 } from "./stockRepository";
+import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 export type SaleLineInput = {
   lineId: string;
@@ -84,6 +85,41 @@ function resolvedLineUnitPrice(line: SaleLineInput): number {
     : Number(line.batch.sellPrice) * Number(line.packMultiplier);
 }
 
+export function summarizeSaleLines(lines: SaleLineInput[]) {
+  const logicalItems = new Set<string>();
+  const receiptLines = new Map<string, {
+    itemId: string;
+    itemName: string;
+    quantity: number;
+    unitPrice: number;
+  }>();
+
+  for (const line of lines) {
+    const itemId = line.itemId.trim();
+    const logicalKey = `${itemId}\u0000${line.packLabel.trim()}\u0000${Number(line.packMultiplier)}`;
+    const unitPrice = resolvedLineUnitPrice(line);
+    const receiptKey = `${logicalKey}\u0000${unitPrice}`;
+    logicalItems.add(logicalKey);
+
+    const existing = receiptLines.get(receiptKey);
+    if (existing) {
+      existing.quantity += Number(line.qty);
+    } else {
+      receiptLines.set(receiptKey, {
+        itemId,
+        itemName: line.itemName,
+        quantity: Number(line.qty),
+        unitPrice,
+      });
+    }
+  }
+
+  return {
+    itemCount: logicalItems.size,
+    receiptLines: [...receiptLines.values()],
+  };
+}
+
 function createBillIdentity(input: SaleInput, now: Date) {
   const randomSuffix = randomUUID();
   return {
@@ -109,7 +145,8 @@ export function validateSale(input: SaleInput) {
     !line?.lineId?.trim()
     || !line.itemId?.trim()
     || !line.itemName?.trim()
-    || !line.batch?.batchNo?.trim()
+    || typeof line.batch?.batchNo !== "string"
+    || typeof line.batch.exp !== "string"
     || !Number.isFinite(Number(line.qty))
     || Number(line.qty) <= 0
     || !Number.isInteger(Number(line.qty))
@@ -136,6 +173,7 @@ function stockLines(lines: SaleLineInput[]): SoldStockLineInput[] {
   return lines.map((line) => ({
     productId: line.itemId.trim(),
     batchNo: line.batch.batchNo.trim(),
+    expiryDate: normalizeExpiryDate(line.batch.exp),
     quantity: Number(line.qty),
     unitMultiplier: Number(line.packMultiplier),
   }));
@@ -195,6 +233,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
     });
     if (pricedProducts.length !== productIds.length) throw new Error("Sale item was not found in stock.");
     const discountByProduct = new Map(pricedProducts.map((product) => [product.id, product.discountPercent]));
+    const lineSummary = summarizeSaleLines(input.lines);
     const pricing = calculateSalePricing(input.lines.map((line) => ({
       quantity: Number(line.qty),
       unitPrice: resolvedLineUnitPrice(line),
@@ -233,12 +272,12 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
         openingTime: storeProfile.openingTime,
         closingTime: storeProfile.closingTime,
       } satisfies ReceiptStoreSnapshot,
-      lines: input.lines.map((line, position) => ({
+      lines: lineSummary.receiptLines.map((line, position) => ({
         position,
         itemName: line.itemName,
-        quantity: Number(line.qty),
-        originalUnitPrice: resolvedLineUnitPrice(line),
-        discountPercent: discountByProduct.get(line.itemId.trim()) ?? 0,
+        quantity: line.quantity,
+        originalUnitPrice: line.unitPrice,
+        discountPercent: discountByProduct.get(line.itemId) ?? 0,
       })),
     }) : null;
     if (nextStatus === SaleStatus.PAID) {
@@ -256,7 +295,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
       customerId: input.customer?.id || null,
       customerName: input.customer?.name || "Walk-in Customer",
       isMember: Boolean(input.customer?.isMember),
-      itemCount: input.lines.length,
+      itemCount: lineSummary.itemCount,
       totalQuantity: input.lines.reduce((sum, line) => sum + Number(line.qty), 0),
       paymentMethod: input.paymentMethod.trim(),
       purchaseMethod: input.purchaseMethod.trim(),
@@ -290,7 +329,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
           packMultiplier: line.packMultiplier,
           location: line.loc,
           batchNo: line.batch.batchNo,
-          expiryDate: line.batch.exp,
+          expiryDate: normalizeExpiryDate(line.batch.exp),
           sellPriceThb: line.batch.sellPrice,
           unitPriceThb: resolvedLineUnitPrice(line),
           quantity: line.qty,
@@ -308,7 +347,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
           packMultiplier: line.packMultiplier,
           location: line.loc,
           batchNo: line.batch.batchNo,
-          expiryDate: line.batch.exp,
+          expiryDate: normalizeExpiryDate(line.batch.exp),
           sellPriceThb: line.batch.sellPrice,
           unitPriceThb: resolvedLineUnitPrice(line),
           quantity: line.qty,
@@ -370,11 +409,13 @@ export async function readSales(): Promise<SavedSale[]> {
       unitPrice: Number(line.unitPriceThb ?? Number(line.sellPriceThb) * Number(line.packMultiplier)),
       loc: line.location,
       batch: {
-        batchId: `${line.productId}-${line.batchNo}`,
+        batchId: `${line.productId}-${line.batchNo}-${line.expiryDate}`,
         batchNo: line.batchNo,
         exp: line.expiryDate,
         sellPrice: Number(line.sellPriceThb),
-        stock: Number(line.product.batches.find((batch) => batch.batchNo === line.batchNo)?.availableStock ?? 0),
+        stock: Number(line.product.batches.find((batch) => (
+          batch.batchNo === line.batchNo && batch.expiryDate === line.expiryDate
+        ))?.availableStock ?? 0),
       },
       qty: Number(line.quantity),
     })),

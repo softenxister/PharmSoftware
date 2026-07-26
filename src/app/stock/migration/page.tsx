@@ -15,6 +15,7 @@ import { useAuth } from "@/app/AuthProvider";
 import { invalidateStockCatalog } from "@/app/stock/stockCatalogClient";
 import { MigrationPreviewPanel } from "./MigrationPreviewPanel";
 import { MemberDataMigrationCard } from "./MemberDataMigrationCard";
+import { LotExpiryMigrationCard } from "./LotExpiryMigrationCard";
 import { DistributorDataMigrationCard } from "./DistributorDataMigrationCard";
 import { ProductCategoryNormalizationCard } from "./ProductCategoryNormalizationCard";
 import { ProductMeasurementNormalizationCard } from "./ProductMeasurementNormalizationCard";
@@ -128,7 +129,7 @@ export default function StockMigrationPage() {
           )}
 
           <section className={styles.datasetSection} aria-labelledby="available-data-title">
-            <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>CW datasets</p><h2 id="available-data-title">Choose what to migrate</h2></div><span>3 of 3 available</span></div>
+            <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>CW datasets</p><h2 id="available-data-title">Choose what to migrate</h2></div><span>4 of 4 available</span></div>
 
             <article className={styles.activeDataset}>
               <div className={styles.datasetHeader}>
@@ -162,6 +163,7 @@ export default function StockMigrationPage() {
               )}
             </article>
 
+            <LotExpiryMigrationCard canImport={canImport} onStepChange={setActiveStep} />
             <MemberDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
             <DistributorDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
           </section>
@@ -172,7 +174,7 @@ export default function StockMigrationPage() {
           {error && <div ref={errorRef} className={styles.errorNotice} role="alert"><ArchiveRestore size={18} /><span><strong>Import did not complete.</strong>{error}</span></div>}
           {preview && <MigrationPreviewPanel preview={preview} result={result} confirmed={confirmed} busy={busy === "import"} onConfirmedChange={setConfirmed} onImport={handleImport} />}
 
-          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>Stock uses CW product codes and barcodes. Members update by member code, with duplicate phones shown as warnings. Distributors match by CW code first, then exact name to attach a missing code.</p></div></aside>
+          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>Stock uses CW product codes and barcodes. Lot and expiry imports require an exact CW product-code match and report unmatched codes. Members update by member code. Distributors match by CW code first, then exact name.</p></div></aside>
         </div>
       </div>
     </section>

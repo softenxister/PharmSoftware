@@ -1,3 +1,5 @@
+import { isIsoExpiryDate } from "@/lib/expiryDate";
+
 type ValidationOptions = {
   requireId?: boolean;
 };
@@ -8,25 +10,16 @@ const isNonEmptyString = (value: unknown): value is string =>
 const isFinitePositiveNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
 
-const isValidDate = (value: unknown) => {
-  if (typeof value !== "string") return false;
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
-  if (!match) return false;
-
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3]);
-  if (year < 1900 || month < 1 || month > 12 || day < 1) return false;
-  return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
-};
+const isOptionalBatchNo = (value: unknown) =>
+  value === null || (typeof value === "string" && value.trim().length <= 200);
 
 const isValidPurchaseLine = (value: unknown) => {
   if (!value || typeof value !== "object") return false;
   const line = value as Record<string, unknown>;
   return ["id", "productId", "barcode", "itemName", "unit", "freeUnit"]
     .every((field) => isNonEmptyString(line[field]))
-    && typeof line.batchNo === "string"
-    && isValidDate(line.expiryDate)
+    && isOptionalBatchNo(line.batchNo)
+    && isIsoExpiryDate(line.expiryDate)
     && isFinitePositiveNumber(line.unitMultiplier)
     && isFinitePositiveNumber(line.quantity)
     && isFinitePositiveNumber(line.cost)

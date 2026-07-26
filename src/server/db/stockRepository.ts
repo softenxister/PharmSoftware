@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import { randomUUID } from "node:crypto";
 import type { SalesProduct, StockItemInput } from "./types";
 import type { StockReadQuery } from "./stockReadQuery";
 import { prisma } from "./prisma";
@@ -22,11 +23,13 @@ import {
 } from "@/server/product-images/manualImport";
 import { productImageUrl } from "@/server/product-images/placeholder";
 import { classifyBulkProductImageUrl } from "@/server/product-images/storageMaintenance";
+import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
+import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 export type PurchasedStockLineInput = {
   productId: string;
   barcode: string;
-  batchNo: string;
+  batchNo: string | null;
   expiryDate: string;
   quantity: number;
   unitMultiplier: number;
@@ -38,6 +41,7 @@ export type PurchasedStockLineInput = {
 export type SoldStockLineInput = {
   productId: string;
   batchNo: string;
+  expiryDate: string;
   quantity: number;
   unitMultiplier: number;
 };
@@ -62,6 +66,14 @@ const productGraph = {
 };
 
 type StockProductRow = Prisma.ProductGetPayload<{ include: typeof productGraph }>;
+
+function batchIdentityKey(
+  productId: string,
+  batchNo: string | null | undefined,
+  expiryDate: string,
+): string {
+  return JSON.stringify([productId, normalizeOptionalBatchNo(batchNo), normalizeExpiryDate(expiryDate)]);
+}
 
 function productRowToSalesProduct(
   product: StockProductRow,
@@ -122,10 +134,10 @@ function productRowToSalesProduct(
       sourceUrl,
     })),
     batches: product.batches.map((batch) => ({
-      batchNo: batch.batchNo,
-      expiryDate: batch.expiryDate,
+      batchNo: batch.batchNo ?? "",
+      expiryDate: normalizeExpiryDate(batch.expiryDate),
       sellPriceThb: Number(batch.sellPriceThb),
-      costThb: batchCosts.get(`${product.id}::${batch.batchNo}`),
+      costThb: batchCosts.get(batchIdentityKey(product.id, batch.batchNo, batch.expiryDate)),
       availableStock: Number(batch.availableStock),
     })),
   };
@@ -307,17 +319,44 @@ async function upsertStockItem(
 
   const batch = mapped.batches[0];
   if (batch) {
-    await tx.productBatch.upsert({
-      where: { productId_batchNo: { productId: mapped.id, batchNo: batch.batchNo } },
-      update: { expiryDate: batch.expiryDate, sellPriceThb: batch.sellPriceThb },
-      create: {
+    const batchNo = normalizeOptionalBatchNo(batch.batchNo);
+    const expiryDate = normalizeExpiryDate(batch.expiryDate);
+    const exactBatch = await tx.productBatch.findFirst({
+      where: {
         productId: mapped.id,
-        batchNo: batch.batchNo,
-        expiryDate: batch.expiryDate,
-        sellPriceThb: batch.sellPriceThb,
-        availableStock: batch.availableStock,
+        batchNo,
+        expiryDate,
       },
+      select: { id: true },
     });
+    if (exactBatch) {
+      await tx.productBatch.update({
+        where: { id: exactBatch.id },
+        data: { sellPriceThb: batch.sellPriceThb },
+      });
+    } else {
+      const sameLotBatches = await tx.productBatch.findMany({
+        where: { productId: mapped.id, batchNo },
+        select: { id: true },
+        take: 2,
+      });
+      if (batchNo !== null && sameLotBatches.length === 1) {
+        await tx.productBatch.update({
+          where: { id: sameLotBatches[0].id },
+          data: { expiryDate, sellPriceThb: batch.sellPriceThb },
+        });
+      } else {
+        await tx.productBatch.create({
+          data: {
+            productId: mapped.id,
+            batchNo,
+            expiryDate,
+            sellPriceThb: batch.sellPriceThb,
+            availableStock: batch.availableStock,
+          },
+        });
+      }
+    }
   }
   return mapped.id;
 }
@@ -537,19 +576,28 @@ async function readFilteredStockProductIds(
 
 async function readBatchCosts(productIds: string[]): Promise<ReadonlyMap<string, number>> {
   if (productIds.length === 0) return new Map();
-  const purchaseLines = await prisma.$queryRaw<Array<{ productId: string; batchNo: string; cost: unknown }>>(Prisma.sql`
-    SELECT DISTINCT ON (line."productId", line."batchNo")
+  const purchaseLines = await prisma.$queryRaw<Array<{
+    productId: string;
+    batchNo: string | null;
+    expiryDate: string;
+    cost: unknown;
+  }>>(Prisma.sql`
+    SELECT DISTINCT ON (line."productId", line."batchNo", line."expiryDate")
       line."productId",
       line."batchNo",
+      line."expiryDate",
       line."cost"
     FROM "PurchaseLine" line
     INNER JOIN "PurchaseBill" bill ON bill."id" = line."purchaseBillId"
     WHERE line."productId" IN (${Prisma.join(productIds)})
-    ORDER BY line."productId", line."batchNo", bill."purchasedAt" DESC, bill."createdAt" DESC
+    ORDER BY line."productId", line."batchNo", line."expiryDate", bill."purchasedAt" DESC, bill."createdAt" DESC
   `);
   const batchCosts = new Map<string, number>();
   for (const line of purchaseLines) {
-    batchCosts.set(`${line.productId}::${line.batchNo}`, Number(line.cost));
+    batchCosts.set(
+      batchIdentityKey(line.productId, line.batchNo, line.expiryDate),
+      Number(line.cost),
+    );
   }
   return batchCosts;
 }
@@ -892,23 +940,27 @@ export async function receivePurchasedStock(
     }
 
     const fallbackBatch = product.batches[0];
-    const batchNo = line.batchNo.trim()
-      || fallbackBatch?.batchNo
-      || `PUR-${new Date().toISOString().slice(0, 10)}`;
-    await tx.productBatch.upsert({
-      where: { productId_batchNo: { productId: product.id, batchNo } },
-      update: {
-        expiryDate: line.expiryDate.trim() || fallbackBatch?.expiryDate || "",
-        availableStock: { increment: stockQty },
-      },
-      create: {
-        productId: product.id,
-        batchNo,
-        expiryDate: line.expiryDate.trim() || fallbackBatch?.expiryDate || "",
-        sellPriceThb: Number(fallbackBatch?.sellPriceThb ?? line.cost) || 0,
-        availableStock: stockQty,
-      },
-    });
+    const batchNo = normalizeOptionalBatchNo(line.batchNo);
+    const expiryDate = normalizeExpiryDate(line.expiryDate);
+    if (!expiryDate) throw new Error(`Expiry date is required for ${product.itemName}.`);
+
+    const sellPriceThb = Number(fallbackBatch?.sellPriceThb ?? line.cost) || 0;
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO "ProductBatch" (
+        "id", "productId", "batchNo", "expiryDate", "sellPriceThb", "availableStock"
+      ) VALUES (
+        ${`product-batch-${randomUUID()}`},
+        ${product.id},
+        ${batchNo},
+        ${expiryDate},
+        ${sellPriceThb},
+        ${stockQty}
+      )
+      ON CONFLICT ("productId", "batchNo", "expiryDate")
+      DO UPDATE SET
+        "availableStock" = "ProductBatch"."availableStock" + EXCLUDED."availableStock",
+        "updatedAt" = CURRENT_TIMESTAMP
+    `);
   }
 }
 
@@ -925,20 +977,27 @@ export async function dispenseSoldStock(
       throw new Error("Sale item quantity is invalid.");
     }
 
+    const batchNo = normalizeOptionalBatchNo(line.batchNo);
+    const expiryDate = normalizeExpiryDate(line.expiryDate);
     const result = await tx.productBatch.updateMany({
       where: {
         productId: product.id,
-        batchNo: line.batchNo.trim(),
+        batchNo,
+        expiryDate,
         availableStock: { gte: soldQty },
       },
       data: { availableStock: { decrement: soldQty } },
     });
 
     if (result.count === 0) {
-      const batch = await tx.productBatch.findUnique({
-        where: { productId_batchNo: { productId: product.id, batchNo: line.batchNo.trim() } },
+      const batch = await tx.productBatch.findFirst({
+        where: {
+          productId: product.id,
+          batchNo,
+          expiryDate,
+        },
       });
-      if (!batch) throw new Error(`Batch ${line.batchNo} was not found in stock.`);
+      if (!batch) throw new Error(`Batch ${batchNo ?? "-"} was not found in stock.`);
       throw new Error(`Insufficient stock for ${product.itemName}.`);
     }
   }

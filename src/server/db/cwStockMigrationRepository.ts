@@ -181,7 +181,7 @@ async function upsertMigrationBatches(
         "id", "productId", "batchNo", "expiryDate", "sellPriceThb", "availableStock", "updatedAt"
       )
       VALUES ${Prisma.join(values)}
-      ON CONFLICT ("productId", "batchNo") DO UPDATE SET
+      ON CONFLICT ("productId", "batchNo", "expiryDate") DO UPDATE SET
         "sellPriceThb" = EXCLUDED."sellPriceThb",
         "availableStock" = EXCLUDED."availableStock",
         "updatedAt" = CURRENT_TIMESTAMP

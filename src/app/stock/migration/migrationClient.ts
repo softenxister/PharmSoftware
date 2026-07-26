@@ -45,6 +45,54 @@ export type MigrationResult = {
   stockReplacedCount: number;
 };
 
+export type LotExpiryMigrationBatch = {
+  lotNo: string;
+  expiryDate: string;
+  amount: number;
+  unit: string;
+  generatedLotNo: boolean;
+  sourceRows: number[];
+};
+
+export type LotExpiryMigrationRow = {
+  sourceRow: number;
+  sequence: number;
+  externalProductCode: string;
+  itemName: string;
+  reportedAmount: number;
+  unit: string;
+  remainderAmount: number;
+  batches: LotExpiryMigrationBatch[];
+  status: "matched" | "unmatched" | "conflict";
+  matchedProductId: string | null;
+  matchedItemName: string | null;
+  sellPriceThb: number | null;
+  issue: string | null;
+};
+
+export type LotExpiryMigrationPreview = {
+  sourceSoftware: "CW";
+  confirmationToken: string;
+  summary: {
+    totalProducts: number;
+    matchedProducts: number;
+    unmatchedProducts: number;
+    conflictProducts: number;
+    totalBatches: number;
+    generatedLotCount: number;
+    remainderProducts: number;
+  };
+  rows: LotExpiryMigrationRow[];
+};
+
+export type LotExpiryMigrationResult = {
+  migrationId: string;
+  replacedProductCount: number;
+  createdBatchCount: number;
+  skippedUnmatchedCount: number;
+  skippedConflictCount: number;
+};
+
 export type MemberMigrationRow = {
   rowNumber: number;
   memberCode: string;
@@ -176,6 +224,40 @@ export async function submitCwMigration<T>(
   const payload = await response.json().catch(() => ({})) as ApiError & { data?: T };
   if (!response.ok) throw new Error(payload.error?.message ?? "The CW migration request failed.");
   if (!payload.data) throw new Error("The CW migration response was incomplete.");
+  return payload.data;
+}
+
+export async function submitLotExpiryMigration<T>(
+  action: "preview" | "import",
+  file: File,
+  confirmationToken?: string,
+  fetcher: typeof fetch = fetch,
+): Promise<T> {
+  const body = new FormData();
+  body.set("action", action);
+  body.set("file", file);
+  if (confirmationToken) body.set("confirmationToken", confirmationToken);
+
+  let response: Response;
+  try {
+    response = await fetcher("/api/stock/migrations/lots", {
+      method: "POST",
+      body,
+    });
+  } catch (error) {
+    throw new Error(
+      "The API server is unavailable. Start the Pharm API service and try again.",
+      { cause: error },
+    );
+  }
+  if ([502, 503, 504].includes(response.status)) {
+    throw new Error("The API server is unavailable. Start the Pharm API service and try again.");
+  }
+  const payload = await response.json().catch(() => ({})) as ApiError & { data?: T };
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "The lot and expiry migration request failed.");
+  }
+  if (!payload.data) throw new Error("The lot and expiry migration response was incomplete.");
   return payload.data;
 }
 

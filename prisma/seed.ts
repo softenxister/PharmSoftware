@@ -128,7 +128,13 @@ async function seedProducts() {
 
     for (const batch of product.batches) {
       await prisma.productBatch.upsert({
-        where: { productId_batchNo: { productId: product.id, batchNo: batch.batchNo } },
+        where: {
+          productId_batchNo_expiryDate: {
+            productId: product.id,
+            batchNo: batch.batchNo,
+            expiryDate: batch.expiryDate,
+          },
+        },
         update: {
           expiryDate: batch.expiryDate,
           sellPriceThb: batch.sellPriceThb,

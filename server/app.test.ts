@@ -31,6 +31,16 @@ test("stock migration accepts multipart-sized bodies up to its 5 MB file limit",
   assert.equal(response.status, 401, "the stock route should receive the request instead of the 2 MB middleware rejecting it");
 });
 
+test("lot and expiry migration accepts multipart-sized bodies up to its 5 MB file limit", async () => {
+  const response = await createServerApp().request("http://pharm.test/api/stock/migrations/lots", {
+    method: "POST",
+    headers: { "content-type": "application/octet-stream" },
+    body: "x".repeat(3 * 1024 * 1024),
+  });
+
+  assert.equal(response.status, 401, "the lot route should receive the request instead of the 2 MB middleware rejecting it");
+});
+
 test("product measurement normalization rejects unauthenticated database writes", async () => {
   const response = await createServerApp().request(
     "http://pharm.test/api/stock/migrations/measurements",

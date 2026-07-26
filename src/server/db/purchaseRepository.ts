@@ -5,6 +5,8 @@ import {
   type PurchasedStockLineInput,
 } from "./stockRepository";
 import { canTransitionPurchaseStatus } from "@/lib/purchaseWorkflow";
+import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
+import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 export type PurchaseBillStatus = "received" | "draft" | "partial";
 
@@ -67,8 +69,8 @@ function purchaseLinesToSavedLines(lines: PurchaseBillRow["lines"]): SavedPurcha
     freeUnit: line.freeUnit,
     freeUnitMultiplier: Number(line.freeUnitMultiplier),
     freeQuantity: Number(line.freeQuantity),
-    batchNo: line.batchNo,
-    expiryDate: line.expiryDate,
+    batchNo: normalizeOptionalBatchNo(line.batchNo),
+    expiryDate: normalizeExpiryDate(line.expiryDate),
   }));
 }
 
@@ -152,8 +154,8 @@ export async function savePurchaseBill(input: PurchaseBillInput): Promise<SavePu
       freeUnit: line.freeUnit,
       freeUnitMultiplier: line.freeUnitMultiplier,
       freeQuantity: line.freeQuantity,
-      batchNo: line.batchNo,
-      expiryDate: line.expiryDate,
+      batchNo: normalizeOptionalBatchNo(line.batchNo),
+      expiryDate: normalizeExpiryDate(line.expiryDate),
     }));
 
     if (input.id) {

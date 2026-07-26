@@ -19,12 +19,19 @@ const validBill = {
     freeUnitMultiplier: 1,
     freeQuantity: 0,
     batchNo: "LOT-1",
-    expiryDate: "31/12/2027",
+    expiryDate: "2027-12-31",
   }],
 };
 
 test("validates a complete purchase draft payload", () => {
   assert.equal(isValidPurchaseBillInput(validBill), true);
+});
+
+test("allows a null batch number when the expiry date is present", () => {
+  assert.equal(isValidPurchaseBillInput({
+    ...validBill,
+    lines: [{ ...validBill.lines[0], batchNo: null }],
+  }), true);
 });
 
 test("requires an id when updating a purchase bill", () => {
@@ -44,6 +51,14 @@ test("rejects invalid totals, line quantities, and expiry dates", () => {
   }), false);
   assert.equal(isValidPurchaseBillInput({
     ...validBill,
-    lines: [{ ...validBill.lines[0], expiryDate: "31/04/2027" }],
+    lines: [{ ...validBill.lines[0], expiryDate: "2027-04-31" }],
+  }), false);
+  assert.equal(isValidPurchaseBillInput({
+    ...validBill,
+    lines: [{ ...validBill.lines[0], expiryDate: "31/12/2027" }],
+  }), false);
+  assert.equal(isValidPurchaseBillInput({
+    ...validBill,
+    lines: [{ ...validBill.lines[0], expiryDate: null }],
   }), false);
 });

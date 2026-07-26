@@ -640,7 +640,7 @@ const english = {
   "stockForm.barcode": "Barcode",
   "stockForm.barcodes": "Barcodes",
   "stockForm.barcodesPlaceholder": "Separate multiple barcodes with commas",
-  "stockForm.unitSellPrice": "Unit sell price",
+  "stockForm.unitSellPrice": "price",
   "stockForm.generateBarcode": "Generate barcode",
   "stockForm.itemDetail": "Item detail",
   "stockForm.location": "Location",

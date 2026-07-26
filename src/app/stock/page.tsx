@@ -426,15 +426,21 @@ export default function StockPage() {
   };
   const handleStockAdjustmentUpdated = (
     productId: string,
-    quantities: Array<{ batchNo: string; availableStock: number }>,
+    quantities: Array<{ batchNo: string; expiryDate: string; availableStock: number }>,
   ) => {
-    const quantityByBatch = new Map(quantities.map((quantity) => [quantity.batchNo, quantity.availableStock]));
+    const quantityByBatch = new Map(quantities.map((quantity) => [
+      `${quantity.batchNo}\0${quantity.expiryDate}`,
+      quantity.availableStock,
+    ]));
     const nextProducts = products.map((product) => product.id !== productId ? product : ({
       ...product,
-      batches: product.batches.map((batch) => quantityByBatch.has(batch.batchNo) ? ({
-        ...batch,
-        availableStock: quantityByBatch.get(batch.batchNo) ?? batch.availableStock,
-      }) : batch),
+      batches: product.batches.map((batch) => {
+        const batchIdentity = `${batch.batchNo}\0${batch.expiryDate}`;
+        return quantityByBatch.has(batchIdentity) ? ({
+          ...batch,
+          availableStock: quantityByBatch.get(batchIdentity) ?? batch.availableStock,
+        }) : batch;
+      }),
     }));
     setProducts(nextProducts);
     setAdjustmentProduct(null);

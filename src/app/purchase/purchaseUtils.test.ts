@@ -5,28 +5,35 @@ import {
   formatDateDisplay,
   formatExpiryDateInput,
   isValidExpiryDate,
+  toDatabaseExpiryDate,
 } from "./purchaseUtils";
 
-test("expiry date input inserts dd/mm/yyyy separators", () => {
+test("expiry date input inserts DD-MM-YY separators", () => {
   assert.equal(formatExpiryDateInput("3"), "3");
-  assert.equal(formatExpiryDateInput("311"), "31/1");
-  assert.equal(formatExpiryDateInput("31122"), "31/12/2");
-  assert.equal(formatExpiryDateInput("31/12/2027"), "31/12/2027");
+  assert.equal(formatExpiryDateInput("311"), "31-1");
+  assert.equal(formatExpiryDateInput("31122"), "31-12-2");
+  assert.equal(formatExpiryDateInput("31-12-29"), "31-12-29");
 });
 
-test("expiry date input converts a complete Buddhist year to Christian year", () => {
-  assert.equal(formatExpiryDateInput("31/12/2569"), "31/12/2026");
+test("pasted full years convert to the short Christian-year display", () => {
+  assert.equal(formatExpiryDateInput("31/12/2569"), "31-12-26");
+  assert.equal(formatExpiryDateInput("2029-12-02"), "02-12-29");
 });
 
-test("stored ISO dates display as a full dd/mm/yyyy date", () => {
-  assert.equal(formatDateDisplay("2027-01-31"), "31/01/2027");
+test("stored ISO dates display as DD-MM-YY on purchase cards", () => {
+  assert.equal(formatDateDisplay("2027-01-31"), "31-01-27");
+});
+
+test("purchase display dates convert to canonical database dates", () => {
+  assert.equal(toDatabaseExpiryDate("31-01-27"), "2027-01-31");
+  assert.equal(toDatabaseExpiryDate("02-12-29"), "2029-12-02");
 });
 
 test("expiry validation rejects impossible and incomplete dates", () => {
-  assert.equal(isValidExpiryDate("29/02/2028"), true);
-  assert.equal(isValidExpiryDate("29/02/2027"), false);
-  assert.equal(isValidExpiryDate("31/04/2027"), false);
-  assert.equal(isValidExpiryDate("31/12/27"), false);
+  assert.equal(isValidExpiryDate("29-02-28"), true);
+  assert.equal(isValidExpiryDate("29-02-27"), false);
+  assert.equal(isValidExpiryDate("31-04-27"), false);
+  assert.equal(isValidExpiryDate("31-12-2"), false);
 });
 
 test("purchase save is blocked for empty or invalid totals", () => {

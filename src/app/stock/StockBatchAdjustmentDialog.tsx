@@ -8,6 +8,8 @@ import {
   calculateStockAdjustment,
   MAX_DIRECT_STOCK_QUANTITY,
 } from "@/lib/directStockAdjustment";
+import { displayBatchField } from "@/lib/batchPresentation";
+import { displayIsoExpiryDate } from "@/lib/expiryDate";
 import type { SalesProduct } from "@/server/db/types";
 import styles from "./Stock.module.css";
 
@@ -16,7 +18,7 @@ type StockBatchAdjustmentDialogProps = {
   onClose: () => void;
   onUpdated: (
     productId: string,
-    quantities: Array<{ batchNo: string; availableStock: number }>,
+    quantities: Array<{ batchNo: string; expiryDate: string; availableStock: number }>,
   ) => void;
 };
 
@@ -36,6 +38,7 @@ export function StockBatchAdjustmentDialog({
   const firstInputRef = useRef<HTMLInputElement>(null);
   const [drafts, setDrafts] = useState(() => product.batches.map((batch) => ({
     batchNo: batch.batchNo,
+    expiryDate: batch.expiryDate,
     currentQuantity: batch.availableStock,
     newQuantity: String(batch.availableStock),
   })));
@@ -70,11 +73,13 @@ export function StockBatchAdjustmentDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSubmitting, onClose]);
 
-  const handleQuantityChange = (batchNo: string, value: string) => {
+  const handleQuantityChange = (batchNo: string, expiryDate: string, value: string) => {
     if (!/^\d*$/.test(value)) return;
     setError("");
     setDrafts((current) => current.map((draft) => (
-      draft.batchNo === batchNo ? { ...draft, newQuantity: value } : draft
+      draft.batchNo === batchNo && draft.expiryDate === expiryDate
+        ? { ...draft, newQuantity: value }
+        : draft
     )));
   };
 
@@ -82,7 +87,11 @@ export function StockBatchAdjustmentDialog({
     if (!calculation.isValid || !calculation.hasChanges || isSubmitting) return;
     const lines = calculation.lines.flatMap((line) => (
       line.change !== 0 && line.parsedQuantity !== null
-        ? [{ batchNo: line.batchNo, newQuantity: line.parsedQuantity }]
+        ? [{
+            batchNo: line.batchNo,
+            expiryDate: line.expiryDate,
+            newQuantity: line.parsedQuantity,
+          }]
         : []
     ));
     if (lines.length === 0) return;
@@ -97,7 +106,7 @@ export function StockBatchAdjustmentDialog({
       });
       const data = await response.json() as {
         productId?: string;
-        quantities?: Array<{ batchNo: string; availableStock: number }>;
+        quantities?: Array<{ batchNo: string; expiryDate: string; availableStock: number }>;
         error?: string;
       };
       if (!response.ok) {
@@ -106,6 +115,7 @@ export function StockBatchAdjustmentDialog({
       const hasValidQuantities = Array.isArray(data.quantities) && data.quantities.every((quantity) => (
         quantity
         && typeof quantity.batchNo === "string"
+        && typeof quantity.expiryDate === "string"
         && Number.isSafeInteger(quantity.availableStock)
         && quantity.availableStock >= 0
       ));
@@ -181,9 +191,9 @@ export function StockBatchAdjustmentDialog({
                 const calculated = calculation.lines[index];
                 const change = calculated?.change ?? null;
                 return (
-                  <tr key={batch.batchNo}>
-                    <td className={styles.adjustmentBatch}>{batch.batchNo}</td>
-                    <td>{batch.expiryDate || "—"}</td>
+                  <tr key={`${batch.batchNo}\0${batch.expiryDate}`}>
+                    <td className={styles.adjustmentBatch}>{displayBatchField(batch.batchNo)}</td>
+                    <td>{displayIsoExpiryDate(batch.expiryDate)}</td>
                     <td>฿{formatNumber(batch.sellPriceThb, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td>{batch.costThb === undefined ? "—" : `฿${formatNumber(batch.costThb, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</td>
                     <td className={styles.adjustmentCurrentQuantity}>{formatNumber(batch.availableStock)}</td>
@@ -195,8 +205,14 @@ export function StockBatchAdjustmentDialog({
                         inputMode="numeric"
                         autoComplete="off"
                         value={drafts[index]?.newQuantity ?? ""}
-                        onChange={(event) => handleQuantityChange(batch.batchNo, event.target.value)}
-                        aria-label={t("stock.newQuantityFor", { batch: batch.batchNo })}
+                        onChange={(event) => handleQuantityChange(
+                          batch.batchNo,
+                          batch.expiryDate,
+                          event.target.value,
+                        )}
+                        aria-label={t("stock.newQuantityFor", {
+                          batch: displayBatchField(batch.batchNo),
+                        })}
                         aria-invalid={calculated?.parsedQuantity === null}
                         disabled={isSubmitting}
                         maxLength={String(MAX_DIRECT_STOCK_QUANTITY).length}

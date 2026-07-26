@@ -2,8 +2,56 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   submitProductCategoryNormalization,
+  submitLotExpiryMigration,
   submitProductMeasurementNormalization,
 } from "./migration/migrationClient";
+
+test("lot and expiry migration posts the XLSX and confirmation to its endpoint", async () => {
+  let requestedUrl = "";
+  let requestedMethod = "";
+  let requestedBody: FormData | null = null;
+  const fetcher: typeof fetch = async (input, init) => {
+    requestedUrl = String(input);
+    requestedMethod = init?.method ?? "";
+    requestedBody = init?.body as FormData;
+    return new Response(JSON.stringify({ data: { replacedProductCount: 1 } }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  const file = new File(["xlsx"], "StockBal_MfgExp.xlsx");
+
+  const result = await submitLotExpiryMigration<{ replacedProductCount: number }>(
+    "import",
+    file,
+    "a".repeat(64),
+    fetcher,
+  );
+
+  assert.equal(requestedUrl, "/api/stock/migrations/lots");
+  assert.equal(requestedMethod, "POST");
+  assert.equal(requestedBody?.get("action"), "import");
+  assert.equal(requestedBody?.get("file"), file);
+  assert.equal(requestedBody?.get("confirmationToken"), "a".repeat(64));
+  assert.deepEqual(result, { replacedProductCount: 1 });
+});
+
+test("lot and expiry migration reports when the API server is unavailable", async () => {
+  const fetcher: typeof fetch = async () => new Response("Bad Gateway", {
+    status: 502,
+    headers: { "Content-Type": "text/plain" },
+  });
+
+  await assert.rejects(
+    submitLotExpiryMigration(
+      "preview",
+      new File(["xlsx"], "StockBal_MfgExp.xlsx"),
+      undefined,
+      fetcher,
+    ),
+    /API server is unavailable/i,
+  );
+});
 
 test("product category normalization posts to the migration endpoint and returns its summary", async () => {
   let requestedUrl = "";

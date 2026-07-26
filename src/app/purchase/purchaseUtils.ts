@@ -9,44 +9,20 @@ export type UploadedRow = {
   free: number;
 };
 
-const BUDDHIST_YEAR_OFFSET = 543;
+import {
+  formatPurchaseExpiryDate,
+  formatPurchaseExpiryInput,
+  isPurchaseExpiryDate,
+  normalizeExpiryDate,
+} from "@/lib/expiryDate";
 
-const toChristianYear = (year: number) => year >= 2400 ? year - BUDDHIST_YEAR_OFFSET : year;
+export const formatExpiryDateInput = formatPurchaseExpiryInput;
 
-export const formatExpiryDateInput = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  const day = digits.slice(0, 2);
-  const month = digits.slice(2, 4);
-  const rawYear = digits.slice(4, 8);
-  const year = rawYear.length === 4 ? String(toChristianYear(Number(rawYear))) : rawYear;
+export const formatDateDisplay = formatPurchaseExpiryDate;
 
-  if (digits.length <= 2) return day;
-  if (digits.length <= 4) return `${day}/${month}`;
-  return `${day}/${month}/${year}`;
-};
+export const isValidExpiryDate = isPurchaseExpiryDate;
 
-export const formatDateDisplay = (dateValue: string) => {
-  if (!dateValue) return "";
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue.trim());
-  if (isoMatch) {
-    const [, rawYear, month, day] = isoMatch;
-    return `${day}/${month}/${toChristianYear(Number(rawYear))}`;
-  }
-  return formatExpiryDateInput(dateValue);
-};
-
-export const isValidExpiryDate = (value: string) => {
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
-  if (!match) return false;
-
-  const day = Number(match[1]);
-  const month = Number(match[2]);
-  const year = Number(match[3]);
-  if (year < 1900 || month < 1 || month > 12 || day < 1) return false;
-
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return day <= daysInMonth;
-};
+export const toDatabaseExpiryDate = normalizeExpiryDate;
 
 export const canSavePurchase = (lineCount: number, netTotal: number) =>
   Number.isInteger(lineCount) && lineCount > 0 && Number.isFinite(netTotal) && netTotal > 0;

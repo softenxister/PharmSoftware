@@ -19,6 +19,7 @@ import {
   formatExpiryDateInput,
   getDistributorMatches,
   isValidExpiryDate,
+  toDatabaseExpiryDate,
 } from "../purchaseUtils";
 import { DateField } from "@/features/events/components/purchase/DateField";
 import { DistributorField } from "@/features/events/components/purchase/DistributorField";
@@ -80,7 +81,7 @@ type EditablePurchaseBill = {
     freeUnit: string;
     freeUnitMultiplier: number;
     freeQuantity: number;
-    batchNo: string;
+    batchNo: string | null;
     expiryDate: string;
   }>;
 };
@@ -294,8 +295,8 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
     setLineQty("");
     setLineCost(firstBatch?.sellPriceThb ? String(firstBatch.sellPriceThb) : "");
     setFreeQty("");
-    setLotNo(firstBatch?.batchNo ?? "");
-    setExpiryDate(formatDateDisplay(firstBatch?.expiryDate ?? ""));
+    setLotNo("");
+    setExpiryDate("");
   }, []);
 
   function handleItemSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
@@ -446,8 +447,8 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
             freeUnit: line.freeUnit,
             freeUnitMultiplier: line.freeUnitMultiplier,
             freeQuantity: parsePositiveNumber(line.freeQty),
-            batchNo: line.lotNo,
-            expiryDate: line.expiryDate,
+            batchNo: line.lotNo.trim() || null,
+            expiryDate: toDatabaseExpiryDate(line.expiryDate),
           })),
         }),
       });
@@ -570,7 +571,7 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
           freeQty: line.freeQuantity > 0 ? String(line.freeQuantity) : "",
           freeUnit: line.freeUnit,
           freeUnitMultiplier: line.freeUnitMultiplier,
-          lotNo: line.batchNo,
+          lotNo: line.batchNo ?? "",
           expiryDate: formatDateDisplay(line.expiryDate),
         })));
       } catch (error) {
@@ -1102,9 +1103,8 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                           <input
                             type="text"
                             inputMode="numeric"
-                            placeholder="dd/mm/yyyy"
+                            placeholder="DD-MM-YY"
                             value={expiryDate}
-                            maxLength={10}
                             aria-invalid={expiryDate.length > 0 && !isValidExpiryDate(expiryDate)}
                             onChange={event => setExpiryDate(formatExpiryDateInput(event.target.value))}
                             onBlur={() => setExpiryDate(formatDateDisplay(expiryDate))}

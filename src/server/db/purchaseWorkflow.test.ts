@@ -47,7 +47,12 @@ test("a normal correction request requires a purchase id and a useful reason", (
 });
 
 test("a stock adjustment requires a reason and at least one finite non-negative quantity", () => {
-  const validLine = { productId: "product-1", batchNo: "LOT-1", newQuantity: 18 };
+  const validLine = {
+    productId: "product-1",
+    batchNo: "LOT-1",
+    expiryDate: "2028-01-01",
+    newQuantity: 18,
+  };
   assert.equal(isValidStockAdjustmentInput({
     purchaseBillId: "purchase-1",
     reason: "Correct quantity after invoice review",
@@ -56,7 +61,7 @@ test("a stock adjustment requires a reason and at least one finite non-negative 
   assert.equal(isValidStockAdjustmentInput({
     purchaseBillId: "purchase-1",
     reason: "Correct quantity after invoice review",
-    lines: [{ productId: "product-1", batchNo: "LOT-1", newQuantity: -1 }],
+    lines: [{ ...validLine, newQuantity: -1 }],
   }), false);
   assert.equal(isValidStockAdjustmentInput({
     purchaseBillId: "purchase-1",
@@ -67,5 +72,48 @@ test("a stock adjustment requires a reason and at least one finite non-negative 
     purchaseBillId: "purchase-1",
     reason: "Correct quantity after invoice review",
     lines: [validLine, validLine],
+  }), false);
+  assert.equal(isValidStockAdjustmentInput({
+    purchaseBillId: "purchase-1",
+    reason: "Correct quantity after invoice review",
+    lines: [{ ...validLine, expiryDate: "2029-01-01" }, validLine],
+  }), true);
+  assert.equal(isValidStockAdjustmentInput({
+    purchaseBillId: "purchase-1",
+    reason: "Correct quantity after invoice review",
+    lines: [{ productId: "product-1", batchNo: "LOT-1", newQuantity: 18 }],
+  }), false);
+});
+
+test("a purchase stock correction accepts a null batch with a required expiry", () => {
+  assert.equal(isValidStockAdjustmentInput({
+    purchaseBillId: "purchase-1",
+    reason: "Correct quantity after invoice review",
+    lines: [{
+      productId: "product-1",
+      batchNo: null,
+      expiryDate: "2028-01-01",
+      newQuantity: 18,
+    }],
+  }), true);
+  assert.equal(isValidStockAdjustmentInput({
+    purchaseBillId: "purchase-1",
+    reason: "Correct quantity after invoice review",
+    lines: [{
+      productId: "product-1",
+      batchNo: null,
+      expiryDate: "",
+      newQuantity: 18,
+    }],
+  }), false);
+  assert.equal(isValidStockAdjustmentInput({
+    purchaseBillId: "purchase-1",
+    reason: "Correct quantity after invoice review",
+    lines: [{
+      productId: "product-1",
+      batchNo: null,
+      expiryDate: "02/12/2029",
+      newQuantity: 18,
+    }],
   }), false);
 });

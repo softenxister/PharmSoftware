@@ -5,6 +5,7 @@ import {
   invalidateStockCatalog,
   loadStockPage,
   loadStockProductsByIds,
+  refreshStockProductsByIds,
   saveStockProduct,
   searchStockCatalog,
   saveStockProductPhotoUrl,
@@ -102,6 +103,40 @@ test("product id hydration deduplicates ids and never requests an unbounded cata
   assert.deepEqual(await loadStockProductsByIds(["p-test", "p-test", "p-other"], fetcher), [product]);
   assert.equal(requestCount, 1);
   assert.equal(requestedUrl, "/api/stock?page=1&pageSize=2&sort=name&ids=p-test%2Cp-other");
+});
+
+test("paid-sale stock refresh bypasses cached product quantities", async () => {
+  invalidateStockCatalog();
+  let availableStock = 119;
+  let requestCount = 0;
+  const fetcher: typeof fetch = async () => {
+    requestCount += 1;
+    return new Response(JSON.stringify({
+      products: [{
+        ...product,
+        batches: [{
+          batchNo: "LOT-1",
+          expiryDate: "2031-03-13",
+          sellPriceThb: 50,
+          availableStock,
+        }],
+      }],
+      page: 1,
+      pageSize: 1,
+      total: 1,
+      hasMore: false,
+    }), { status: 200 });
+  };
+
+  const beforeSale = await loadStockProductsByIds(["p-test"], fetcher);
+  availableStock = 99;
+  const cachedAfterSale = await loadStockProductsByIds(["p-test"], fetcher);
+  const refreshedAfterSale = await refreshStockProductsByIds(["p-test"], fetcher);
+
+  assert.equal(beforeSale[0]?.batches[0]?.availableStock, 119);
+  assert.equal(cachedAfterSale[0]?.batches[0]?.availableStock, 119);
+  assert.equal(refreshedAfterSale[0]?.batches[0]?.availableStock, 99);
+  assert.equal(requestCount, 2);
 });
 
 test("stock page loads request descending item-name order", async () => {

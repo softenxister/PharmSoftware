@@ -37,10 +37,11 @@ const savedItem: SavedStockItem = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
-test("normalizeExpiryDate keeps supported stored formats stable", () => {
+test("normalizeExpiryDate converts supported values to canonical ISO storage", () => {
   assert.equal(normalizeExpiryDate("2027-01-31"), "2027-01-31");
-  assert.equal(normalizeExpiryDate("30/12/2027"), "30/12/2027");
-  assert.equal(normalizeExpiryDate("  30/12/2027  "), "30/12/2027");
+  assert.equal(normalizeExpiryDate("30/12/2027"), "2027-12-30");
+  assert.equal(normalizeExpiryDate("  30/12/2027  "), "2027-12-30");
+  assert.equal(normalizeExpiryDate("30-12-27"), "2027-12-30");
 });
 
 test("saved stock replaces a seed product with the same barcode", () => {

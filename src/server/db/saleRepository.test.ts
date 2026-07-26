@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateSale, type SaleInput } from "./saleRepository";
+import {
+  summarizeSaleLines,
+  validateSale,
+  type SaleInput,
+} from "./saleRepository";
 
 function saleInput(overrides: Partial<SaleInput> = {}): SaleInput {
   return {
@@ -45,6 +49,40 @@ test("sales reject fractional item quantities", () => {
 
 test("pending sales can be saved without customer payment", () => {
   assert.doesNotThrow(() => validateSale(saleInput({ status: "pending", customerPaid: null })));
+});
+
+test("sales accept stock stored in a blank batch", () => {
+  const input = saleInput();
+  input.lines[0].batch = { batchNo: "", exp: "", sellPrice: 40 };
+  assert.doesNotThrow(() => validateSale(input));
+});
+
+test("batch-split sale lines count and print as one logical item", () => {
+  const input = saleInput();
+  input.lines = [
+    {
+      ...input.lines[0],
+      lineId: "line-dated",
+      qty: 3,
+      batch: { batchNo: "S685075", exp: "2029-10-09", sellPrice: 40 },
+    },
+    {
+      ...input.lines[0],
+      lineId: "line-blank",
+      qty: 10,
+      batch: { batchNo: "", exp: "", sellPrice: 40 },
+    },
+  ];
+
+  assert.deepEqual(summarizeSaleLines(input.lines), {
+    itemCount: 1,
+    receiptLines: [{
+      itemId: "p-sara",
+      itemName: "Sara Paracetamol",
+      quantity: 13,
+      unitPrice: 40,
+    }],
+  });
 });
 
 test("sales accept an independent parent-unit price", () => {

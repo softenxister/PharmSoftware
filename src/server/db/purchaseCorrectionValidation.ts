@@ -1,5 +1,16 @@
+import { isIsoExpiryDate } from "@/lib/expiryDate";
+
 const isNonEmptyString = (value: unknown, maxLength = 200): value is string =>
   typeof value === "string" && value.trim().length > 0 && value.trim().length <= maxLength;
+
+const isBoundedString = (value: unknown, maxLength = 200): value is string =>
+  typeof value === "string" && value.trim().length <= maxLength;
+
+const isOptionalBoundedString = (
+  value: unknown,
+  maxLength = 200,
+): value is string | null =>
+  value === null || isBoundedString(value, maxLength);
 
 const isUsefulReason = (value: unknown) =>
   typeof value === "string" && value.trim().length >= 8 && value.trim().length <= 500;
@@ -15,7 +26,8 @@ export type StockAdjustmentInput = {
   reason: string;
   lines: Array<{
     productId: string;
-    batchNo: string;
+    batchNo: string | null;
+    expiryDate: string;
     newQuantity: number;
   }>;
 };
@@ -37,8 +49,16 @@ export const isValidStockAdjustmentInput = (value: unknown): value is StockAdjus
   return input.lines.every((candidate) => {
     if (!candidate || typeof candidate !== "object") return false;
     const line = candidate as Record<string, unknown>;
-    if (!isNonEmptyString(line.productId) || !isNonEmptyString(line.batchNo)) return false;
-    const batchKey = `${line.productId.trim()}::${line.batchNo.trim()}`;
+    if (
+      !isNonEmptyString(line.productId)
+      || !isOptionalBoundedString(line.batchNo)
+      || !isIsoExpiryDate(line.expiryDate)
+    ) return false;
+    const batchKey = JSON.stringify([
+      line.productId.trim(),
+      line.batchNo?.trim() ?? null,
+      line.expiryDate.trim(),
+    ]);
     if (batchKeys.has(batchKey)) return false;
     batchKeys.add(batchKey);
     return typeof line.newQuantity === "number"

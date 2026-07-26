@@ -143,6 +143,14 @@ export async function loadStockProductsByIds(
   return result.products;
 }
 
+export async function refreshStockProductsByIds(
+  productIds: string[],
+  fetcher: typeof fetch = fetch,
+): Promise<SalesProduct[]> {
+  invalidateStockCatalog();
+  return loadStockProductsByIds(productIds, fetcher);
+}
+
 export async function saveStockProduct(
   input: StockItemInput,
   fetcher: typeof fetch = fetch,

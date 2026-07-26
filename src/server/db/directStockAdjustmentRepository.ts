@@ -3,6 +3,8 @@ import { Prisma } from "@/generated/prisma/client";
 import type { DirectStockAdjustmentInput } from "@/lib/directStockAdjustment";
 import type { PharmUser } from "@/server/auth/pharmUser";
 import { prisma } from "./prisma";
+import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
+import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 const DIRECT_ADJUSTMENT_AUDIT_REASON = "Direct stock quantity adjustment";
 
@@ -12,7 +14,7 @@ export async function applyDirectStockAdjustment(
 ): Promise<{
   adjustmentId: string;
   productId: string;
-  quantities: Array<{ batchNo: string; availableStock: number }>;
+  quantities: Array<{ batchNo: string; expiryDate: string; availableStock: number }>;
 }> {
   return prisma.$transaction(async (tx) => {
     const product = await tx.product.findFirst({
@@ -23,29 +25,32 @@ export async function applyDirectStockAdjustment(
 
     const adjustmentId = `stock-adjustment-${randomUUID()}`;
     const changedLines: Array<{
-      batchNo: string;
+      batchNo: string | null;
+      expiryDate: string;
       previousQuantity: number;
       newQuantity: number;
     }> = [];
 
     for (const line of input.lines) {
-      const batchNo = line.batchNo.trim();
+      const batchNo = normalizeOptionalBatchNo(line.batchNo);
+      const expiryDate = normalizeExpiryDate(line.expiryDate);
       const batches = await tx.$queryRaw<Array<{ availableStock: unknown }>>(Prisma.sql`
         SELECT "availableStock"
         FROM "ProductBatch"
         WHERE "productId" = ${product.id}
-          AND "batchNo" = ${batchNo}
+          AND "batchNo" IS NOT DISTINCT FROM ${batchNo}
+          AND "expiryDate" = ${expiryDate}
         FOR UPDATE
       `);
-      if (!batches[0]) throw new Error(`Batch ${batchNo} was not found for this stock item.`);
+      if (!batches[0]) throw new Error(`Batch ${batchNo ?? "-"} was not found for this stock item.`);
 
       const previousQuantity = Number(batches[0].availableStock);
       if (previousQuantity === line.newQuantity) continue;
-      await tx.productBatch.update({
-        where: { productId_batchNo: { productId: product.id, batchNo } },
+      await tx.productBatch.updateMany({
+        where: { productId: product.id, batchNo, expiryDate },
         data: { availableStock: line.newQuantity },
       });
-      changedLines.push({ batchNo, previousQuantity, newQuantity: line.newQuantity });
+      changedLines.push({ batchNo, expiryDate, previousQuantity, newQuantity: line.newQuantity });
     }
 
     if (changedLines.length === 0) throw new Error("Stock adjustment has no quantity changes.");
@@ -72,7 +77,8 @@ export async function applyDirectStockAdjustment(
       adjustmentId,
       productId: product.id,
       quantities: changedLines.map((line) => ({
-        batchNo: line.batchNo,
+        batchNo: line.batchNo ?? "",
+        expiryDate: line.expiryDate,
         availableStock: line.newQuantity,
       })),
     };
