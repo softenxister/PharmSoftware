@@ -9,7 +9,8 @@ out/
 dist/
 dist-server/
 build/
-/src/generated/prisma/
+/server/generated/prisma/
+*.tsbuildinfo
 
 # Local environment
 .env

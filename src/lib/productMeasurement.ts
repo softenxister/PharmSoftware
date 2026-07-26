@@ -1,5 +1,5 @@
-import { canonicalizeProductUnit } from "@/app/i18n/productUnits";
-import type { SalesProduct } from "@/server/db/types";
+import { canonicalizeProductUnit } from "@/i18n/productUnits";
+import type { SalesProduct } from "@server/db/types";
 
 export type ProductMeasurementSource = Pick<SalesProduct, "itemName" | "pack">;
 

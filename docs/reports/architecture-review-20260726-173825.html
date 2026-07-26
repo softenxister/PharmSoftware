@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review — Pharm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+        securityLevel: "loose",
+        flowchart: { curve: "basis", htmlLabels: true },
+      });
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --paper: #fafaf9;
+        --accent: #047857;
+        --leak: #dc2626;
+      }
+      html { scroll-behavior: smooth; }
+      body {
+        background:
+          radial-gradient(circle at 12% 0%, rgba(16, 185, 129, .08), transparent 28rem),
+          var(--paper);
+      }
+      .seam-line { border-top: 2px dashed #94a3b8; }
+      .deep {
+        background: linear-gradient(140deg, #0f172a, #1e293b);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, .17);
+      }
+      .module-box { box-shadow: 0 7px 20px rgba(15, 23, 42, .06); }
+      .leak-arrow { color: var(--leak); }
+      .candidate-card { box-shadow: 0 18px 55px rgba(15, 23, 42, .07); }
+      .diagram-grid { min-height: 340px; }
+      .mermaid { display: flex; justify-content: center; }
+      .mermaid svg { max-width: 100%; }
+      code { overflow-wrap: anywhere; }
+      @media (max-width: 800px) {
+        .diagram-grid { min-height: auto; }
+      }
+    </style>
+  </head>
+  <body class="text-slate-900 antialiased">
+    <main class="mx-auto max-w-6xl space-y-12 px-5 py-12 sm:px-8 lg:px-10">
+      <header class="space-y-7 border-b border-slate-200 pb-9">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Architecture review</p>
+            <h1 class="mt-2 font-serif text-4xl tracking-tight text-slate-950 sm:text-5xl">Pharm</h1>
+          </div>
+          <p class="font-mono text-sm text-slate-500">26 July 2026 · overall application scan</p>
+        </div>
+        <div class="flex flex-wrap gap-x-6 gap-y-3 text-xs text-slate-600">
+          <span class="inline-flex items-center gap-2"><i class="h-4 w-6 rounded border-2 border-slate-700 bg-white"></i>solid box = module</span>
+          <span class="inline-flex items-center gap-2"><i class="h-0 w-7 border-t-2 border-dashed border-slate-400"></i>dashed line = seam</span>
+          <span class="inline-flex items-center gap-2"><i class="font-bold text-red-600">→</i>red arrow = leakage</span>
+          <span class="inline-flex items-center gap-2"><i class="h-4 w-6 rounded bg-slate-900"></i>dark box = deep module</span>
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-12">
+
+        <article id="stock-catalog" class="candidate-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div class="border-b border-slate-100 px-6 py-6 sm:px-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 01</p>
+                <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen the Stock catalog read module</h2>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Strong</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">ports &amp; adapters</span>
+              </div>
+            </div>
+            <div class="mt-5 grid gap-1 font-mono text-xs text-slate-600 sm:grid-cols-2">
+              <code>src/app/stock/page.tsx:235</code>
+              <code>src/app/stock/page.tsx:316</code>
+              <code>src/app/stock/stockInventoryFilters.ts:22</code>
+              <code>src/app/stock/stockCatalogClient.ts:37</code>
+              <code>server/db/stockReadQuery.ts:1</code>
+              <code>server/db/stockRepository.ts:372</code>
+              <code>server/db/stockRepository.ts:428</code>
+              <code>src/app/stock/stockCatalogClient.test.ts:51</code>
+            </div>
+          </div>
+
+          <div class="grid gap-0 lg:grid-cols-2">
+            <section class="border-b border-slate-200 p-6 lg:border-b-0 lg:border-r sm:p-8">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">Before · query knowledge leaks</p>
+              <div class="diagram-grid mt-4 rounded-xl bg-stone-50 p-4">
+                <pre class="mermaid">
+flowchart TB
+  P[Stock screen] --> L[local filter and rank]
+  P --> C[Stock catalog client]
+  S[Sale / Purchase / Adjustment] --> C
+  C --> H[Stock route parser]
+  H --> R[Stock repository]
+  R --> PR[Prisma query implementation]
+  R --> SQ[SQL query implementation]
+  P -. database sort type .-> H
+  C -. duplicate query vocabulary .-> H
+  L -. filters one returned page .-> P
+  S -. manual invalidation ordering .-> C
+  classDef leak fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class P,C,H,L leak;
+                </pre>
+              </div>
+            </section>
+            <section class="p-6 sm:p-8">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">After · depth at the catalog seam</p>
+              <div class="diagram-grid mt-4 flex items-center rounded-xl bg-emerald-50/60 p-5">
+                <div class="w-full space-y-4">
+                  <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div class="rounded border border-slate-300 bg-white p-2">Stock</div>
+                    <div class="rounded border border-slate-300 bg-white p-2">Sale</div>
+                    <div class="rounded border border-slate-300 bg-white p-2">Purchase</div>
+                    <div class="rounded border border-slate-300 bg-white p-2">Adjustment</div>
+                  </div>
+                  <div class="seam-line relative pt-4 text-center">
+                    <span class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">small interface</span>
+                  </div>
+                  <div class="deep rounded-xl p-6 text-white">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">Deep module</p>
+                    <p class="mt-2 text-lg font-semibold">Stock catalog read</p>
+                    <div class="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-300">
+                      <span class="rounded bg-white/10 px-2 py-2">query invariants</span>
+                      <span class="rounded bg-white/10 px-2 py-2">cache</span>
+                      <span class="rounded bg-white/10 px-2 py-2">stable projection</span>
+                      <span class="rounded bg-white/10 px-2 py-2">freshness</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="grid gap-7 border-t border-slate-100 px-6 py-6 sm:grid-cols-[1fr_auto] sm:px-8">
+            <div class="space-y-3 text-sm">
+              <p><strong>Problem.</strong> Query semantics repeat in browser filtering, transport parsing, Prisma, and SQL; filtering one returned page can make visible rows disagree with total and hasMore.</p>
+              <p><strong>Solution.</strong> Deepen one Stock inventory module so criteria normalization, search, filtering, sorting, pagination, projection, and freshness sit behind its interface.</p>
+              <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700"><strong>Deletion test.</strong> Delete any parser, filter, or cache module and its complexity reappears in the screen, transport route, or repository; the cluster earns one deeper seam.</p>
+            </div>
+            <ul class="grid content-start gap-2 text-xs font-semibold text-slate-700">
+              <li>locality: criteria in one module</li>
+              <li>leverage: stable results, many callers</li>
+              <li>interface is the test surface</li>
+              <li>counts and rows stay aligned</li>
+            </ul>
+          </div>
+        </article>
+
+        <article id="sale-transaction" class="candidate-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div class="border-b border-slate-100 px-6 py-6 sm:px-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 02</p>
+                <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen the Sale transaction workflow</h2>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Strong</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">ports &amp; adapters</span>
+              </div>
+            </div>
+            <div class="mt-5 grid gap-1 font-mono text-xs text-slate-600 sm:grid-cols-2">
+              <code>src/app/sales/new/NewSale.tsx:289</code>
+              <code>src/app/sales/new/NewSale.tsx:779</code>
+              <code>src/app/sales/new/NewSale.tsx:939</code>
+              <code>src/app/sales/new/NewSale.tsx:1299</code>
+              <code>src/app/sales/new/salesPresentation.ts:15</code>
+              <code>src/lib/salePricing.ts:11</code>
+              <code>server/db/saleRepository.ts:88</code>
+              <code>server/db/stockRepository.ts:967</code>
+            </div>
+          </div>
+
+          <div class="grid gap-0 lg:grid-cols-2">
+            <section class="border-b border-slate-200 p-6 lg:border-b-0 lg:border-r sm:p-8">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">Before · helper tests miss coordination</p>
+              <div class="diagram-grid mt-4 rounded-xl bg-stone-50 p-4">
+                <pre class="mermaid">
+flowchart TB
+  UI[New Sale screen] --> A[batch allocation helper]
+  UI --> G[line grouping helper]
+  UI --> P[pricing helper]
+  UI --> N[next-step helper]
+  UI --> LS[local pending projection]
+  UI --> H[Sale route]
+  H --> R[Sale repository]
+  R --> P
+  R --> D[Stock dispense]
+  T[helper tests] --> A
+  T --> G
+  T --> P
+  T --> N
+  T -. coordination untested .-> UI
+  classDef leak fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class UI,T leak;
+                </pre>
+              </div>
+            </section>
+            <section class="p-6 sm:p-8">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">After · interface is the test surface</p>
+              <div class="diagram-grid mt-4 flex items-center rounded-xl bg-emerald-50/60 p-5">
+                <div class="w-full space-y-4">
+                  <div class="grid grid-cols-2 gap-3 text-center text-xs">
+                    <div class="rounded border border-slate-300 bg-white p-3">New Sale screen</div>
+                    <div class="rounded border border-slate-300 bg-white p-3">workflow tests</div>
+                  </div>
+                  <div class="seam-line relative pt-4 text-center">
+                    <span class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">same seam</span>
+                  </div>
+                  <div class="deep rounded-xl p-6 text-white">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">Deep module</p>
+                    <p class="mt-2 text-lg font-semibold">Sale transaction</p>
+                    <div class="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-300">
+                      <span class="rounded bg-white/10 px-2 py-2">batch allocation</span>
+                      <span class="rounded bg-white/10 px-2 py-2">pricing</span>
+                      <span class="rounded bg-white/10 px-2 py-2">pending → paid</span>
+                      <span class="rounded bg-white/10 px-2 py-2">stock outcome</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="grid gap-7 border-t border-slate-100 px-6 py-6 sm:grid-cols-[1fr_auto] sm:px-8">
+            <div class="space-y-3 text-sm">
+              <p><strong>Problem.</strong> Sale behavior is split among eleven exported presentation helpers, a 2,545-line screen, local pending projection, server pricing, and Stock dispensing.</p>
+              <p><strong>Solution.</strong> Deepen one Sale transaction module so allocation, validation, pricing, pending reopen, paid transition, and persistence coordinate behind one seam while the screen renders outcomes.</p>
+              <p class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800"><strong>Deletion test.</strong> Delete the helper module and its behavior moves into one screen; a deep Sale transaction module would force the rules to reappear across the screen, Sale persistence, and Stock dispensing.</p>
+            </div>
+            <ul class="grid content-start gap-2 text-xs font-semibold text-slate-700">
+              <li>locality: Sale rules stay together</li>
+              <li>leverage: screen and tests agree</li>
+              <li>one interface is test surface</li>
+              <li>pending and paid stop drifting</li>
+            </ul>
+          </div>
+        </article>
+
+        <article id="stock-movement" class="candidate-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div class="border-b border-slate-100 px-6 py-6 sm:px-8">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 03</p>
+                <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen Stock movement</h2>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Strong</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">local-substitutable</span>
+              </div>
+            </div>
+            <div class="mt-5 grid gap-1 font-mono text-xs text-slate-600 sm:grid-cols-2">
+              <code>server/db/stockRepository.ts:919</code>
+              <code>server/db/stockRepository.ts:967</code>
+              <code>server/db/purchaseRepository.ts:143</code>
+              <code>server/db/saleRepository.ts:215</code>
+              <code>server/db/directStockAdjustmentRepository.ts:11</code>
+              <code>server/db/purchaseCorrectionRepository.ts:155</code>
+              <code>server/db/cwStockMigrationRepository.ts:339</code>
+              <code>server/db/lotExpiryMigrationRepository.ts:150</code>
+            </div>
+          </div>
+
+          <div class="grid gap-0 lg:grid-cols-2">
+            <section class="border-b border-slate-200 p-6 lg:border-b-0 lg:border-r sm:p-8">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">Before · five paths change quantity</p>
+              <div class="diagram-grid mt-4 rounded-xl bg-stone-50 p-4">
+                <pre class="mermaid">
+flowchart LR
+  S[Sale] --> D[dispense stock]
+  P[Purchase] --> R[receive stock]
+  A[Direct adjustment] --> B[(Product batch)]
+  C[Purchase correction] --> B
+  M[Migration] --> B
+  D --> B
+  R --> B
+  A --> AU[Audit implementation A]
+  C --> AV[Audit implementation B]
+  M -. bypasses seam .-> B
+  classDef leak fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class A,C,M,B leak;
+                </pre>
+              </div>
+            </section>
+            <section class="p-6 sm:p-8">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">After · one authoritative seam</p>
+              <div class="diagram-grid mt-4 flex items-center rounded-xl bg-emerald-50/60 p-5">
+                <div class="w-full space-y-4">
+                  <div class="grid grid-cols-5 gap-2 text-center text-[10px] font-semibold">
+                    <div class="rounded border border-slate-300 bg-white p-2">Sale</div>
+                    <div class="rounded border border-slate-300 bg-white p-2">Purchase</div>
+                    <div class="rounded border border-slate-300 bg-white p-2">Adjustment</div>
+                    <div class="rounded border border-slate-300 bg-white p-2">Correction</div>
+                    <div class="rounded border border-slate-300 bg-white p-2">Migration</div>
+                  </div>
+                  <div class="seam-line relative pt-4 text-center">
+                    <span class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">small interface</span>
+                  </div>
+                  <div class="deep rounded-xl p-6 text-white">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">Deep module</p>
+                    <p class="mt-2 text-lg font-semibold">Stock movement</p>
+                    <div class="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-300">
+                      <div class="rounded bg-white/10 px-3 py-2">batch identity</div>
+                      <div class="rounded bg-white/10 px-3 py-2">locking</div>
+                      <div class="rounded bg-white/10 px-3 py-2">quantity invariants</div>
+                      <div class="rounded bg-white/10 px-3 py-2">audit outcomes</div>
+                    </div>
+                  </div>
+                  <div class="module-box rounded-lg border-2 border-slate-500 bg-white px-4 py-3 text-center text-sm font-semibold">Postgres implementation</div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="grid gap-7 border-t border-slate-100 px-6 py-6 sm:grid-cols-[1fr_auto] sm:px-8">
+            <div class="space-y-3 text-sm">
+              <p><strong>Problem.</strong> Sale, Purchase, direct adjustment, Purchase correction, and migration change the same quantities through different locking, identity, invariant, and audit implementations.</p>
+              <p><strong>Solution.</strong> Deepen one Stock movement module so every quantity change crosses the same seam while Postgres stays inside the implementation.</p>
+              <p class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800"><strong>Deletion test.</strong> Delete receive and dispense and their loops reappear in Sale and Purchase; duplicated adjustment and migration paths show that the current module lacks depth.</p>
+            </div>
+            <ul class="grid content-start gap-2 text-xs font-semibold text-slate-700">
+              <li>locality: stock invariants concentrate</li>
+              <li>leverage: five callers, one seam</li>
+              <li>interface is the test surface</li>
+              <li>one adapter stays implementation</li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <section id="top-recommendation" class="rounded-2xl bg-slate-950 px-7 py-8 text-white shadow-2xl sm:px-10">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Top recommendation</p>
+        <div class="mt-3 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 class="font-serif text-3xl tracking-tight">Deepen the Stock inventory module first</h2>
+            <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300">It is the clearest hot spot, has a current result-consistency risk, and can gain locality and leverage before changing transactional Sale or Purchase behavior.</p>
+          </div>
+          <a href="#stock-catalog" class="shrink-0 rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-300">View candidate 01 ↑</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

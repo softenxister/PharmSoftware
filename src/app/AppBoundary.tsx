@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { TopBar } from "@/features/events/components/navigation/TopBar";
-import { resolveAuthRoute } from "./authRouting";
-import { useAuth } from "./AuthProvider";
+import { TopBar } from "@/components/navigation/TopBar";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { resolveAuthRoute } from "@/app/routing/authRouting";
 
 export function SessionLoading() {
   return (

@@ -2,9 +2,9 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { bodyLimit } from "hono/body-limit";
 import { Hono, type Context } from "hono";
 import { secureHeaders } from "hono/secure-headers";
-import { runWithRequest } from "@/server/auth/requestContext";
-import { MAX_CW_STOCK_REQUEST_BYTES } from "@/server/import/cwStockUpload";
-import { MAX_LOT_EXPIRY_REQUEST_BYTES } from "@/server/import/lotExpiryUpload";
+import { runWithRequest } from "@server/auth/requestContext";
+import { MAX_CW_STOCK_REQUEST_BYTES } from "@server/import/cwStockUpload";
+import { MAX_LOT_EXPIRY_REQUEST_BYTES } from "@server/import/lotExpiryUpload";
 import { apiRoutes, type ApiHandler } from "./apiRegistry";
 
 const isProduction = process.env.NODE_ENV === "production";

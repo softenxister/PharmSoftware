@@ -12,13 +12,21 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true,
-    "baseUrl": ".",
+    "incremental": false,
+    "forceConsistentCasingInFileNames": true,
     "types": ["vite/client", "node"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@server/*": ["./server/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "server/**/*.ts", "vite.config.ts", "vite.server.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "server/**/*.ts",
+    "scripts/**/*.ts",
+    "vite.config.ts",
+    "vite.server.config.ts"
+  ],
   "exclude": ["node_modules", "dist", "dist-server"]
 }
