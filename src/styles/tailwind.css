@@ -2,4 +2,6 @@
 @import 'tw-animate-css';
 
 @source '../app/**/*.{js,ts,jsx,tsx}';
+@source '../components/**/*.{js,ts,jsx,tsx}';
 @source '../features/**/*.{js,ts,jsx,tsx}';
+@source '../pages/**/*.{js,ts,jsx,tsx}';
