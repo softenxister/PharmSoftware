@@ -14,13 +14,13 @@ import {
   hasForbiddenStockDiscountChange,
   type StockItemDetailPatch,
 } from "./stockItemDetail";
-import { stockImageUpdateDecision } from "./stockImageUpdate";
+import { shouldDiscardStoredProductImage } from "./stockImageUpdate";
 import { normalizeProductCategory } from "@/server/import/productCategoryNormalization";
 import {
-  cleanupManualProductImageObjects,
-  persistManualProductImageImport,
-  prepareManualProductImageImport,
-} from "@/server/product-images/manualImport";
+  cleanupStoredProductImageObjects,
+  persistStoredProductImage,
+  prepareExternalProductImageStorage,
+} from "@/server/product-images/externalStorage";
 import { productImageUrl } from "@/server/product-images/placeholder";
 import { classifyBulkProductImageUrl } from "@/server/product-images/storageMaintenance";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
@@ -216,15 +216,10 @@ async function upsertStockItem(
     || current.brandName !== mapped.brandName
     || current.manufacturerId !== manufacturer.id
   );
-  const imageUpdate = stockImageUpdateDecision({
+  if (shouldDiscardStoredProductImage({
     productIdentityChanged: compositionIdentityChanged,
-    imageUrlChanged: Boolean(current) && current.imageUrl !== mapped.imageUrl,
-  });
-
-  if (imageUpdate.discardImageRecords) {
+  })) {
     await tx.productImageAsset.deleteMany({ where: { productId: mapped.id } });
-    await tx.productImageCandidate.deleteMany({ where: { productId: mapped.id } });
-    await tx.productIdentifier.deleteMany({ where: { productId: mapped.id } });
   }
 
   await tx.product.upsert({
@@ -247,12 +242,6 @@ async function upsertStockItem(
         compositionCheckedAt: null,
         compositionRetryAt: null,
         compositionError: null,
-      } : {}),
-      ...(imageUpdate.resetImageResolution ? {
-        imageResolutionStatus: "PENDING",
-        imageCheckedAt: null,
-        imageRetryAt: null,
-        imageResolutionError: null,
       } : {}),
     },
     create: {
@@ -691,13 +680,7 @@ export async function updateStockProductPhotoUrl(
 ): Promise<{ productId: string; imageUrl: string } | null> {
   const updated = await prisma.product.updateMany({
     where: { id: productId, isActive: true },
-    data: {
-      imageUrl: photoUrl,
-      imageResolutionStatus: "PENDING",
-      imageCheckedAt: null,
-      imageRetryAt: null,
-      imageResolutionError: null,
-    },
+    data: { imageUrl: photoUrl },
   });
   return updated.count === 1 ? { productId, imageUrl: photoUrl } : null;
 }
@@ -714,35 +697,6 @@ export async function saveStockItems(inputs: StockItemInput[]): Promise<number> 
     for (const input of inputs) await upsertStockItem(tx, input);
   });
   return inputs.length;
-}
-
-export async function storeStockProductPhoto(
-  productId: string,
-  photoUrl: string,
-  reviewedBy: string,
-): Promise<SalesProduct> {
-  const product = await prisma.product.findFirst({
-    where: { id: productId, isActive: true },
-    select: { id: true },
-  });
-  if (!product) throw new StockProductNotFoundError("Stock item was not found.");
-
-  const prepared = await prepareManualProductImageImport(product.id, photoUrl);
-  if (!prepared) throw new Error("A public external photo URL is required.");
-  await prisma.$transaction((tx) => persistManualProductImageImport(tx, {
-    ...prepared,
-    productId: product.id,
-    reviewedBy,
-  }));
-  try {
-    await cleanupManualProductImageObjects(product.id, prepared.storageKey);
-  } catch {
-    // The new image and database record are already valid. A separate maintenance
-    // action can retry old-version cleanup without reverting the successful import.
-  }
-  const savedProduct = await readStockProduct(product.id);
-  if (!savedProduct) throw new StockProductNotFoundError("Stock item was not found.");
-  return savedProduct;
 }
 
 const STOCK_PHOTO_IMPORT_CONCURRENCY = 3;
@@ -766,9 +720,7 @@ const bulkPhotoCandidateWhere: Prisma.ProductWhereInput = {
   ],
 };
 
-export async function storeAllExternalStockPhotos(
-  reviewedBy: string,
-): Promise<BulkStockPhotoStorageResult> {
+export async function storeAllExternalStockPhotos(): Promise<BulkStockPhotoStorageResult> {
   const [candidateCount, products] = await Promise.all([
     prisma.product.count({ where: bulkPhotoCandidateWhere }),
     prisma.product.findMany({
@@ -817,7 +769,7 @@ export async function storeAllExternalStockPhotos(
           repairedCount += 1;
           if (product.imageAsset) {
             try {
-              await cleanupManualProductImageObjects(product.id, product.imageAsset.storageKey);
+              await cleanupStoredProductImageObjects(product.id, product.imageAsset.storageKey);
             } catch {
               cleanupWarningCount += 1;
             }
@@ -825,19 +777,18 @@ export async function storeAllExternalStockPhotos(
           continue;
         }
 
-        const prepared = await prepareManualProductImageImport(
+        const prepared = await prepareExternalProductImageStorage(
           product.id,
           product.classification.sourceUrl,
         );
         if (!prepared) throw new Error("A public external photo URL is required.");
-        await prisma.$transaction((tx) => persistManualProductImageImport(tx, {
+        await prisma.$transaction((tx) => persistStoredProductImage(tx, {
           ...prepared,
           productId: product.id,
-          reviewedBy,
         }));
         storedCount += 1;
         try {
-          await cleanupManualProductImageObjects(product.id, prepared.storageKey);
+          await cleanupStoredProductImageObjects(product.id, prepared.storageKey);
         } catch {
           cleanupWarningCount += 1;
         }

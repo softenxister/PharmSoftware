@@ -1660,870 +1660,96 @@
   }
 }
 
-.imageReviewPanel {
-  min-height: 620px;
-}
-
-.braveImageAction {
-  display: grid;
-  width: min(100%, 390px);
-  min-width: 0;
-  flex: 0 1 390px;
-  grid-template-columns: minmax(120px, 1fr) auto;
-  grid-template-rows: auto auto;
-  align-items: center;
-  gap: 2px 10px;
-  text-align: right;
-}
-
-.braveImageAction > span,
-.braveImageAction > small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.braveImageAction > span {
-  color: var(--settings-green-dark);
-  font-size: 11.5px;
-  font-weight: 750;
-}
-
-.braveImageAction > small {
-  color: var(--settings-muted);
-  font-size: 9.5px;
-}
-
-.braveImageAction > button {
-  min-width: 154px;
-  grid-column: 2;
-  grid-row: 1 / 3;
-}
-
-.imageReviewBody {
+.imageStorageBody {
   display: flex;
   min-width: 0;
-  flex: 1;
   flex-direction: column;
+  gap: 12px;
   padding: 16px 18px 18px;
 }
 
-.imageStorageMaintenance {
+.imageStorageCard {
+  display: flex;
   min-width: 0;
-  margin-top: 12px;
+  min-height: 82px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   border: 1px solid var(--settings-border);
   border-radius: 8px;
   background: var(--app-surface-muted);
-  padding: 11px;
+  padding: 13px;
 }
 
-.imageStorageHeading,
-.imageStorageActions article,
-.imageCleanupPreview {
+.imageStorageCopy {
   display: flex;
   min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.imageStorageHeading h3 {
-  margin: 0;
-  color: var(--settings-green-dark);
-  font-size: 13px;
-}
-
-.imageStorageHeading p {
-  margin: 2px 0 0;
-  color: var(--settings-muted);
-  font-size: 10.5px;
-}
-
-.imageStorageHeading > span {
-  flex: 0 0 auto;
-  color: var(--settings-muted);
-  font-size: 10px;
-  font-weight: 720;
-}
-
-.imageStorageActions {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 9px;
-}
-
-.imageStorageActions article {
-  min-height: 64px;
-  border: 1px solid var(--app-border);
-  border-radius: 7px;
-  background: var(--app-surface);
-  padding: 8px 9px;
-}
-
-.imageStorageActions article > div:first-child {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-}
-
-.imageStorageActions article > div:first-child > svg {
+.imageStorageCopy > svg {
   flex: 0 0 auto;
   color: var(--settings-green);
 }
 
-.imageStorageActions article > div:first-child > span {
-  display: flex;
+.imageStorageCopy > div {
   min-width: 0;
-  flex-direction: column;
 }
 
-.imageStorageActions strong,
-.imageStorageActions small {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.imageStorageCopy h3,
+.imageStorageCopy p {
+  margin: 0;
 }
 
-.imageStorageActions strong {
+.imageStorageCopy h3 {
   color: var(--settings-green-dark);
-  font-size: 11.5px;
-  white-space: nowrap;
+  font-size: 13px;
 }
 
-.imageStorageActions small {
-  margin-top: 2px;
-  color: var(--settings-muted);
-  font-size: 9.5px;
-  line-height: 1.25;
-}
-
-.imageStorageActions article > button,
-.imageStorageButtons {
-  flex: 0 0 auto;
-}
-
-.imageStorageButtons {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.imageStorageActions button {
-  min-height: 32px;
-  white-space: nowrap;
-}
-
-.imageCleanupPreview {
-  margin-top: 8px;
-  border-top: 1px solid var(--app-border);
+.imageStorageCopy p,
+.imageStorageCopy small {
   color: var(--settings-muted);
   font-size: 10.5px;
-  padding-top: 8px;
+  line-height: 1.4;
 }
 
-.imageCleanupPreview > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.imageStorageCopy p {
+  margin-top: 3px;
 }
 
-.imageSummary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(110px, 1fr));
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.imageSummary > div {
-  display: flex;
-  min-width: 0;
-  min-height: 58px;
-  flex-direction: column;
-  justify-content: center;
-  border: 1px solid var(--settings-border);
-  border-radius: 7px;
-  background: var(--app-surface-muted);
-  padding: 8px 11px;
-}
-
-.imageSummary span {
-  overflow: hidden;
-  color: var(--settings-muted);
-  font-size: 10.5px;
+.imageStorageCopy small {
+  display: block;
+  margin-top: 4px;
   font-weight: 720;
-  text-overflow: ellipsis;
+}
+
+.imageStorageCard > button {
+  min-width: 145px;
   white-space: nowrap;
 }
 
-.imageSummary strong {
-  margin-top: 2px;
-  color: var(--settings-green-dark);
-  font-size: 20px;
-  font-weight: 790;
-}
-
-.imageReviewToolbar {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.imageReviewToolbar form {
-  min-width: 220px;
-  flex: 1;
-}
-
-.imageStatusTabs {
-  display: inline-grid;
-  flex: 0 0 auto;
-  grid-template-columns: repeat(3, minmax(92px, 1fr));
-  gap: 3px;
-  border: 1px solid var(--settings-border);
-  border-radius: 7px;
-  background: var(--app-surface-muted);
-  padding: 3px;
-}
-
-.imageStatusTabs button {
-  height: 30px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--settings-muted);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 720;
-  padding: 0 9px;
-}
-
-.imageStatusTabs button:hover,
-.imageStatusTabs button[aria-pressed="true"] {
-  background: var(--app-surface);
-  color: var(--settings-green-dark);
-}
-
-.imageStatusTabs button[aria-pressed="true"] {
-  box-shadow: 0 1px 2px rgb(20 50 30 / 8%);
-}
-
-.imageStatusTabs button:focus-visible,
-.imageCandidateQueue button:focus-visible,
-.imageReviewActions button:focus-visible,
-.imageDecisionForm button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--settings-green) 35%, transparent);
-  outline-offset: 1px;
-}
-
-.imageReviewNotice {
-  margin-bottom: 9px;
+.imageStorageNotice {
   border: 1px solid #cfe3d6;
-  border-radius: 6px;
+  border-radius: 7px;
   background: #edf7f0;
   color: #2e6844;
   font-size: 11.5px;
-  padding: 8px 10px;
-}
-
-.imageReviewWorkspace {
-  display: grid;
-  min-width: 0;
-  min-height: 500px;
-  flex: 1;
-  grid-template-columns: 260px minmax(0, 1fr);
-  overflow: hidden;
-  border: 1px solid var(--settings-border);
-  border-radius: 8px;
-}
-
-.imageCandidateQueue {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  flex-direction: column;
-  overflow-y: auto;
-  border-right: 1px solid var(--settings-border);
-  background: var(--app-surface-muted);
-}
-
-.imageCandidateQueueHeader {
-  position: sticky;
-  z-index: 1;
-  top: 0;
-  display: flex;
-  height: 40px;
-  flex: 0 0 40px;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--settings-border);
-  background: var(--app-surface-muted);
-  color: var(--settings-muted);
-  font-size: 10.5px;
-  padding: 0 10px;
-}
-
-.imageCandidateQueue > button:not(.imageLoadMore) {
-  display: grid;
-  min-height: 64px;
-  flex: 0 0 auto;
-  grid-template-columns: minmax(0, 1fr) 32px;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  border-bottom: 1px solid var(--settings-border-soft);
-  background: transparent;
-  color: var(--settings-ink);
-  cursor: pointer;
-  font-family: inherit;
-  padding: 8px 9px;
-  text-align: left;
-}
-
-.imageCandidateQueue > button:not(.imageLoadMore):hover,
-.imageCandidateQueue > .imageCandidateActive {
-  background: var(--settings-green-soft);
-}
-
-.imageCandidateQueue > .imageCandidateActive {
-  box-shadow: inset 3px 0 var(--settings-green);
-}
-
-.imageCandidateQueue button > span:first-child {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.imageCandidateQueue button strong,
-.imageCandidateQueue button small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.imageCandidateQueue button strong {
-  font-size: 11.5px;
-  font-weight: 740;
-}
-
-.imageCandidateQueue button small {
-  margin-top: 3px;
-  color: var(--settings-muted);
-  font-size: 9.5px;
-}
-
-.imageCandidateQueue button > span:last-child {
-  display: inline-flex;
-  width: 29px;
-  height: 24px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 5px;
-  background: var(--app-surface);
-  color: var(--settings-green-dark);
-  font-size: 10px;
-  font-weight: 780;
-}
-
-.imageQueuePagination {
-  display: grid;
-  min-height: 40px;
-  flex: 0 0 40px;
-  grid-template-columns: 34px minmax(0, 1fr) 34px;
-  align-items: center;
-  gap: 5px;
-  margin-top: auto;
-  border-top: 1px solid var(--settings-border);
-  background: var(--app-surface);
-  padding: 4px 7px;
-}
-
-.imageQueuePagination button {
-  display: inline-flex;
-  width: 30px;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--settings-border);
-  border-radius: 5px;
-  background: var(--app-surface);
-  color: var(--settings-green-dark);
-  cursor: pointer;
-}
-
-.imageQueuePagination button:hover:not(:disabled) {
-  border-color: var(--settings-green);
-  background: var(--settings-green-soft);
-}
-
-.imageQueuePagination button:disabled {
-  cursor: not-allowed;
-  opacity: .45;
-}
-
-.imageQueuePagination strong {
-  color: var(--settings-muted);
-  font-size: 10.5px;
-  font-weight: 720;
-  text-align: center;
-}
-
-.imageQueueState,
-.imageReviewEmptyDetail {
-  display: flex;
-  min-height: 210px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  color: var(--settings-muted);
-  font-size: 11px;
-  text-align: center;
-}
-
-.imageQueueState {
-  flex-direction: column;
-  padding: 20px;
-}
-
-.imageQueueState strong,
-.imageReviewEmptyDetail strong {
-  color: var(--settings-ink);
-  font-size: 12px;
-}
-
-.imageQueueState span,
-.imageReviewEmptyDetail span {
-  max-width: 280px;
   line-height: 1.4;
-}
-
-.imageReviewEmptyDetail {
-  min-width: 0;
-  flex-direction: column;
-  background: var(--app-surface);
-  padding: 30px;
-}
-
-.imageReviewDetail {
-  min-width: 0;
-  background: var(--app-surface);
-  padding: 14px;
-}
-
-.imageReviewDetailHeader {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.imageReviewDetailHeader > div {
-  min-width: 0;
-}
-
-.imageReviewEyebrow {
-  color: var(--settings-muted);
-  font-size: 9.5px;
-  font-weight: 760;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-}
-
-.imageReviewDetailHeader h3,
-.imageReviewDetailHeader p {
-  overflow: hidden;
-  margin: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.imageReviewDetailHeader h3 {
-  margin-top: 2px;
-  color: var(--settings-ink);
-  font-size: 15px;
-  font-weight: 770;
-}
-
-.imageReviewDetailHeader p {
-  margin-top: 3px;
-  color: var(--settings-muted);
-  font-size: 10.5px;
-}
-
-.imageMatchBadge {
-  display: inline-flex;
-  min-height: 27px;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 740;
-  padding: 0 8px;
-}
-
-.imageMatchExact {
-  border-color: #bfd9c8;
-  background: #edf7f0;
-  color: #2d6a45;
-}
-
-.imageMatchReview {
-  border-color: #dfd1ab;
-  background: #fbf6e8;
-  color: #75602d;
-}
-
-.imageComparison {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.imageComparison figure {
-  min-width: 0;
-  margin: 0;
-}
-
-.imagePreviewFrame {
-  display: flex;
-  height: 210px;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid var(--settings-border);
-  border-radius: 7px;
-  background: #fff;
-  padding: 8px;
-}
-
-.imagePreviewFrame img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.imageComparison figcaption {
-  margin-top: 4px;
-  color: var(--settings-muted);
-  font-size: 9.5px;
-  text-align: center;
-}
-
-.imagePreviewUnavailable {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--settings-muted);
-  font-size: 10.5px;
-}
-
-.imageReviewInfoGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(190px, .8fr);
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.imageIdentityList {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid var(--settings-border);
-  border-radius: 7px;
-}
-
-.imageIdentityList > div {
-  min-width: 0;
-  border-bottom: 1px solid var(--settings-border-soft);
-  padding: 7px 9px;
-}
-
-.imageIdentityList > div:nth-child(odd) {
-  border-right: 1px solid var(--settings-border-soft);
-}
-
-.imageIdentityList > div:nth-last-child(-n + 2) {
-  border-bottom: 0;
-}
-
-.imageIdentityList dt {
-  color: var(--settings-muted);
-  font-size: 8.5px;
-  font-weight: 720;
-  text-transform: uppercase;
-}
-
-.imageIdentityList dd {
-  overflow: hidden;
-  margin: 3px 0 0;
-  color: var(--settings-ink);
-  font-size: 10.5px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.imageEvidence {
-  min-width: 0;
-  border: 1px solid var(--settings-border);
-  border-radius: 7px;
-  padding: 8px 9px;
-}
-
-.imageEvidenceHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.imageEvidenceHeader strong {
-  font-size: 10.5px;
-}
-
-.imageEvidenceHeader span {
-  color: var(--settings-green-dark);
-  font-size: 9.5px;
-  font-weight: 760;
-}
-
-.imageEvidence ul {
-  display: grid;
-  gap: 4px;
-  margin: 8px 0;
-  padding: 0;
-}
-
-.imageEvidence li {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  color: var(--settings-muted);
-  font-size: 9.5px;
-  list-style: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.imageEvidence li > span {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-}
-
-.imageEvidence_agreement > span { background: #3d8156; }
-.imageEvidence_missing > span { background: #b58b3f; }
-.imageEvidence_conflict > span { background: #a14e46; }
-
-.imageEvidence > a {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--settings-green-dark);
-  font-size: 9.5px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.imageEvidenceEmpty {
-  margin: 9px 0;
-  color: var(--settings-muted);
-  font-size: 9.5px;
-}
-
-.imageRejectionNote {
-  margin-top: 10px;
-  border: 1px solid #e4cac5;
-  border-radius: 6px;
-  background: #fbf1ef;
-  color: #7b453e;
-  font-size: 10.5px;
-  line-height: 1.4;
-  padding: 8px 9px;
-}
-
-.imageReviewActions {
-  display: flex;
-  min-height: 50px;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 7px;
-  margin-top: 12px;
-  border-top: 1px solid var(--settings-border-soft);
-  padding-top: 12px;
-}
-
-.rejectButton,
-.unresolvedButton {
-  display: inline-flex;
-  height: 36px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 720;
-  padding: 0 11px;
-}
-
-.rejectButton {
-  border-color: #d9b8b2;
-  background: #fff;
-  color: #87483f;
-}
-
-.unresolvedButton {
-  border-color: var(--settings-border);
-  background: var(--app-surface-muted);
-  color: var(--settings-muted);
-}
-
-.rejectButton:hover:not(:disabled) {
-  border-color: #a85c51;
-  background: #fbf1ef;
-}
-
-.unresolvedButton:hover:not(:disabled) {
-  border-color: var(--settings-green);
-  background: var(--settings-green-soft);
-  color: var(--settings-green-dark);
-}
-
-.rejectButton:disabled,
-.unresolvedButton:disabled {
-  cursor: not-allowed;
-  opacity: .6;
-}
-
-.imageDecisionForm {
-  width: 100%;
-}
-
-.imageDecisionForm label,
-.imageDecisionForm label > span {
-  display: block;
-}
-
-.imageDecisionForm label > span {
-  margin-bottom: 5px;
-  color: var(--settings-muted);
-  font-size: 10px;
-  font-weight: 720;
-}
-
-.imageDecisionForm textarea {
-  width: 100%;
-  min-height: 58px;
-  resize: vertical;
-  border: 1px solid var(--settings-border);
-  border-radius: 6px;
-  outline: 0;
-  background: var(--app-surface);
-  color: var(--settings-ink);
-  font-family: inherit;
-  font-size: 11px;
-  line-height: 1.4;
-  padding: 8px;
-}
-
-.imageDecisionForm textarea:focus {
-  border-color: var(--settings-green);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--settings-green) 10%, transparent);
-}
-
-.imageDecisionForm > div {
-  display: flex;
-  justify-content: flex-end;
-  gap: 7px;
-  margin-top: 7px;
-}
-
-.spinningIcon {
-  animation: imageReviewSpin .8s linear infinite;
-}
-
-@keyframes imageReviewSpin {
-  to { transform: rotate(360deg); }
-}
-
-@media (max-width: 1100px) {
-  .imageReviewWorkspace {
-    grid-template-columns: 220px minmax(0, 1fr);
-  }
-
-  .imagePreviewFrame {
-    height: 180px;
-  }
-
-  .imageReviewInfoGrid {
-    grid-template-columns: 1fr;
-  }
+  padding: 9px 11px;
 }
 
 @media (max-width: 920px) {
-  .imageReviewPanel .panelHeader {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .braveImageAction {
-    width: 100%;
-    flex-basis: auto;
-  }
-
-  .imageReviewBody {
+  .imageStorageBody {
     padding: 12px;
   }
 
-  .imageStorageActions {
-    grid-template-columns: 1fr;
-  }
-
-  .imageReviewToolbar {
+  .imageStorageCard {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .imageStatusTabs {
-    width: 100%;
-  }
-
-  .imageReviewWorkspace {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .imageCandidateQueue {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    border-right: 0;
-    border-bottom: 1px solid var(--settings-border);
-  }
-
-  .imageCandidateQueueHeader,
-  .imageQueueState,
-  .imageQueuePagination {
-    grid-column: 1 / -1;
-  }
-
-  .imageCandidateQueue > button:not(.imageLoadMore):nth-of-type(odd) {
-    border-right: 1px solid var(--settings-border-soft);
+  .imageStorageCard > button {
+    align-self: flex-end;
   }
 }

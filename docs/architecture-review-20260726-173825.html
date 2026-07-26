@@ -65,103 +65,12 @@
       </header>
 
       <section id="candidates" class="space-y-12">
-        <article id="product-image-lifecycle" class="candidate-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <div class="border-b border-slate-100 px-6 py-6 sm:px-8">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 01</p>
-                <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen the Product image lifecycle</h2>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Strong</span>
-                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">mock</span>
-              </div>
-            </div>
-            <div class="mt-5 grid gap-1 font-mono text-xs text-slate-600 sm:grid-cols-2">
-              <code>src/server/product-images/repository.ts:321</code>
-              <code>src/server/product-images/resolver.ts:35</code>
-              <code>src/server/product-images/providers/types.ts:18</code>
-              <code>src/server/product-images/providers/openProductsFacts.ts:108</code>
-              <code>src/server/product-images/providers/braveImageSearch.ts:64</code>
-              <code>src/server/product-images/manualImport.ts:134</code>
-              <code>src/server/product-images/storageMaintenanceRepository.ts:86</code>
-              <code>src/server/db/stockRepository.ts:688</code>
-            </div>
-          </div>
-
-          <div class="grid gap-0 lg:grid-cols-2">
-            <section class="border-b border-slate-200 p-6 lg:border-b-0 lg:border-r sm:p-8">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">Before · hypothetical seam</p>
-              <div class="diagram-grid mt-4 rounded-xl bg-stone-50 p-4">
-                <pre class="mermaid">
-flowchart TB
-  R[Product image repository] --> O[Open Products Facts adapter]
-  R --> B[Brave-specific path]
-  R --> S[Storage maintenance module]
-  ST[Stock repository] --> M[Manual image import]
-  M --> S3[S3 implementation]
-  B --> S3
-  O --> S3
-  T[ProductImageProvider interface] -. one adapter .-> O
-  B -. bypasses seam .-> R
-  ST -. lifecycle leakage .-> M
-  classDef leak fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#991b1b;
-  class B,ST leak;
-                </pre>
-              </div>
-            </section>
-            <section class="p-6 sm:p-8">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">After · one real seam</p>
-              <div class="diagram-grid mt-4 flex items-center rounded-xl bg-emerald-50/60 p-5">
-                <div class="w-full space-y-4">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="module-box rounded-lg border-2 border-slate-500 bg-white p-3 text-center">
-                      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Adapter</p>
-                      <p class="mt-1 text-sm font-semibold">Open Products Facts</p>
-                    </div>
-                    <div class="module-box rounded-lg border-2 border-slate-500 bg-white p-3 text-center">
-                      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Adapter</p>
-                      <p class="mt-1 text-sm font-semibold">Brave image search</p>
-                    </div>
-                  </div>
-                  <div class="seam-line relative pt-4 text-center">
-                    <span class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">real seam</span>
-                  </div>
-                  <div class="deep rounded-xl p-6 text-white">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300">Deep module</p>
-                    <p class="mt-2 text-lg font-semibold">Product image lifecycle</p>
-                    <div class="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-300">
-                      <span class="rounded bg-white/10 px-2 py-2">resolution</span>
-                      <span class="rounded bg-white/10 px-2 py-2">review</span>
-                      <span class="rounded bg-white/10 px-2 py-2">manual import</span>
-                      <span class="rounded bg-white/10 px-2 py-2">storage lifecycle</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div class="grid gap-7 border-t border-slate-100 px-6 py-6 sm:grid-cols-[1fr_auto] sm:px-8">
-            <div class="space-y-3 text-sm">
-              <p><strong>Problem.</strong> The provider interface has one adapter while Brave bypasses the seam, and manual image behavior leaks into the Stock repository.</p>
-              <p><strong>Solution.</strong> Deepen one Product image lifecycle module, make both provider adapters satisfy the same real seam, and absorb manual import plus storage decisions into its implementation.</p>
-              <p class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800"><strong>Deletion test.</strong> Delete the current provider interface and only Open Products Facts changes; delete the lifecycle behavior and it reappears across Product image and Stock callers.</p>
-            </div>
-            <ul class="grid content-start gap-2 text-xs font-semibold text-slate-700">
-              <li>locality: lifecycle in one module</li>
-              <li>leverage: two adapters, one seam</li>
-              <li>interface becomes the test surface</li>
-              <li>Stock stops owning image behavior</li>
-            </ul>
-          </div>
-        </article>
 
         <article id="stock-catalog" class="candidate-card overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <div class="border-b border-slate-100 px-6 py-6 sm:px-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 02</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 01</p>
                 <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen the Stock catalog read module</h2>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -250,7 +159,7 @@ flowchart TB
           <div class="border-b border-slate-100 px-6 py-6 sm:px-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 03</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 02</p>
                 <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen the Sale transaction workflow</h2>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -340,7 +249,7 @@ flowchart TB
           <div class="border-b border-slate-100 px-6 py-6 sm:px-8">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 04</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Candidate 03</p>
                 <h2 class="mt-2 font-serif text-3xl tracking-tight">Deepen Stock movement</h2>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -434,7 +343,7 @@ flowchart LR
             <h2 class="font-serif text-3xl tracking-tight">Deepen the Stock inventory module first</h2>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300">It is the clearest hot spot, has a current result-consistency risk, and can gain locality and leverage before changing transactional Sale or Purchase behavior.</p>
           </div>
-          <a href="#stock-catalog" class="shrink-0 rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-300">View candidate 02 ↑</a>
+          <a href="#stock-catalog" class="shrink-0 rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-300">View candidate 01 ↑</a>
         </div>
       </section>
     </main>

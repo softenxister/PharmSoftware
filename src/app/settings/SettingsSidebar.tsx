@@ -22,7 +22,7 @@ export type SettingsSection =
   | "store-profile"
   | "pos-preferences"
   | "staff-management"
-  | "product-image-review"
+  | "product-image-storage"
   | "accessibility"
   | "printers-drawer"
   | "scan-feedback";
@@ -41,7 +41,7 @@ const accountItems: SidebarItem[] = [
   { id: "store-profile", labelKey: "settings.storeProfile", icon: Building2, available: true },
   { id: "pos-preferences", labelKey: "settings.posPreferences", icon: SlidersHorizontal, available: true },
   { id: "staff-management", labelKey: "settings.staff", icon: UsersRound, ownerOnly: true, available: true },
-  { id: "product-image-review", labelKey: "settings.productImages", icon: Images, ownerOnly: true, available: true },
+  { id: "product-image-storage", labelKey: "settings.productImages", icon: Images, ownerOnly: true, available: true },
   { id: "accessibility", labelKey: "settings.accessibility", icon: Accessibility, ownerOnly: true },
 ];
 

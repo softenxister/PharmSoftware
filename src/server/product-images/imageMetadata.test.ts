@@ -27,7 +27,7 @@ test("rejects HTML, SVG, tiny images, and unsupported signatures", () => {
   assert.throws(() => inspectProductImage(new Uint8Array([1, 2, 3, 4]), "image/png"), /format/i);
 });
 
-test("accepts review-sized thumbnails only with an explicit provider policy", () => {
+test("accepts smaller external images only with an explicit inspection policy", () => {
   assert.throws(() => inspectProductImage(png(500, 500), "image/png"), /resolution/i);
   assert.deepEqual(
     inspectProductImage(png(500, 500), "image/png", {

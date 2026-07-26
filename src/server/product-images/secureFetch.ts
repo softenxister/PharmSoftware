@@ -11,7 +11,6 @@ import {
 type LookupResult = { address: string; family: number };
 
 export type SecureFetchOptions = {
-  allowedHosts: readonly string[];
   lookup?: (hostname: string) => Promise<LookupResult[]>;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -103,14 +102,10 @@ export function assertPublicAddress(address: string): void {
   throw new Error("Product image host returned an invalid IP address.");
 }
 
-export function validateProviderImageUrl(source: string, allowedHosts: readonly string[]): URL {
+function validateExternalImageUrl(source: string): URL {
   const url = new URL(source);
-  const hostname = url.hostname.toLocaleLowerCase("en-US");
   if (url.protocol !== "https:") throw new Error("Product image URL must use HTTPS.");
   if (url.username || url.password) throw new Error("Product image URL contains unsupported authority data.");
-  if (!allowedHosts.some((allowed) => hostname === allowed.toLocaleLowerCase("en-US"))) {
-    throw new Error("Product image hostname is not allowed for this provider.");
-  }
   return url;
 }
 
@@ -125,7 +120,7 @@ export function parseManualProductImageUrl(source: string): URL | null {
   } catch {
     throw new Error("Product image URL is invalid.");
   }
-  return validateProviderImageUrl(url.toString(), [url.hostname]);
+  return validateExternalImageUrl(url.toString());
 }
 
 async function readBoundedBody(response: Response): Promise<Uint8Array> {
@@ -158,7 +153,7 @@ async function readBoundedBody(response: Response): Promise<Uint8Array> {
   return bytes;
 }
 
-export async function fetchValidatedProductImage(
+async function fetchExternalProductImage(
   source: string,
   options: SecureFetchOptions,
 ): Promise<{ bytes: Uint8Array; metadata: ProductImageMetadata; sha256: string }> {
@@ -166,7 +161,7 @@ export async function fetchValidatedProductImage(
   const fetcher = options.fetch ?? fetch;
   const timeoutMs = options.timeoutMs ?? 10_000;
   const maxRedirects = options.maxRedirects ?? 2;
-  let url = validateProviderImageUrl(source, options.allowedHosts);
+  let url = validateExternalImageUrl(source);
 
   for (let redirect = 0; redirect <= maxRedirects; redirect += 1) {
     const addresses = await lookup(url.hostname);
@@ -185,7 +180,7 @@ export async function fetchValidatedProductImage(
       if (redirected.hostname.toLocaleLowerCase("en-US") !== url.hostname.toLocaleLowerCase("en-US")) {
         throw new Error("Cross-host product image redirects are not allowed.");
       }
-      const next = validateProviderImageUrl(redirected.toString(), options.allowedHosts);
+      const next = validateExternalImageUrl(redirected.toString());
       if (redirect === maxRedirects) throw new Error("Product image exceeded the redirect limit.");
       url = next;
       continue;
@@ -207,16 +202,15 @@ export async function fetchValidatedProductImage(
 
 export async function fetchValidatedManualProductImage(
   source: string,
-  options: Omit<SecureFetchOptions, "allowedHosts"> = {},
+  options: SecureFetchOptions = {},
 ): Promise<{ bytes: Uint8Array; metadata: ProductImageMetadata; sha256: string } | null> {
   const url = parseManualProductImageUrl(source);
   if (!url) return null;
-  return fetchValidatedProductImage(url.toString(), {
+  return fetchExternalProductImage(url.toString(), {
     ...options,
     inspectionPolicy: options.inspectionPolicy ?? {
       minimumShortSide: 96,
       minimumLongSide: 96,
     },
-    allowedHosts: [url.hostname],
   });
 }

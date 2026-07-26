@@ -173,29 +173,6 @@ export async function saveStockProduct(
   return payload.product;
 }
 
-export async function storeStockProductPhoto(
-  productId: string,
-  photoUrl: string,
-  fetcher: typeof fetch = fetch,
-): Promise<SalesProduct> {
-  const response = await fetcher("/api/stock/photo", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ productId, photoUrl }),
-  });
-  const data: unknown = await response.json().catch(() => null);
-  const payload = data && typeof data === "object"
-    ? data as { product?: SalesProduct; error?: unknown }
-    : {};
-  if (!response.ok || !payload.product) {
-    const message = typeof payload.error === "string" && payload.error.trim()
-      ? payload.error
-      : "Unable to store this photo.";
-    throw new Error(message);
-  }
-  return payload.product;
-}
-
 export async function saveStockProductPhotoUrl(
   productId: string,
   photoUrl: string,

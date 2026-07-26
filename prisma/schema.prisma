@@ -43,27 +43,6 @@ enum ProductCompositionStatus {
   NOT_APPLICABLE
 }
 
-enum ProductImageResolutionStatus {
-  PENDING
-  VERIFIED
-  REVIEW
-  UNRESOLVED
-}
-
-enum ProductIdentifierType {
-  GTIN
-  NDC
-  THAI_FDA_REGISTRATION
-  RXCUI
-  OTHER
-}
-
-enum ProductImageCandidateStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 model PharmAccount {
   id                      String                  @id
   username                String                  @unique
@@ -167,10 +146,6 @@ model Product {
   compositionCheckedAt DateTime?
   compositionRetryAt   DateTime?
   compositionError     String?
-  imageResolutionStatus ProductImageResolutionStatus @default(PENDING)
-  imageCheckedAt        DateTime?
-  imageRetryAt          DateTime?
-  imageResolutionError  String?
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   manufacturer         Manufacturer              @relation(fields: [manufacturerId], references: [id])
@@ -183,8 +158,6 @@ model Product {
   saleLines            SaleLine[]
   stockAdjustmentLines StockAdjustmentLine[]
   activeIngredients    ProductIngredient[]
-  identifiers          ProductIdentifier[]
-  imageCandidates      ProductImageCandidate[]
   imageAsset           ProductImageAsset?
 
   @@index([categoryId])
@@ -192,7 +165,6 @@ model Product {
   @@index([itemName])
   @@index([isActive, itemName, id])
   @@index([isActive, weeklySold, itemName, id])
-  @@index([imageResolutionStatus, imageRetryAt, id])
 }
 
 model Ingredient {
@@ -226,81 +198,19 @@ model ProductIngredient {
   @@index([ingredientId])
 }
 
-model ProductIdentifier {
-  id              String                @id @default(cuid())
-  productId       String
-  type            ProductIdentifierType
-  value           String
-  normalizedValue String
-  market          String                @default("")
-  packageLevel    String                @default("")
-  sourceUrl       String?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  product         Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([type, normalizedValue, market, packageLevel])
-  @@index([productId])
-}
-
-model ProductImageCandidate {
-  id                    String                      @id @default(cuid())
-  productId             String
-  status                ProductImageCandidateStatus @default(PENDING)
-  provider              String
-  sourcePageUrl         String
-  sourceImageUrl        String
-  sourceLicence         String
-  matchMethod           String
-  sourceIdentifierType  String?
-  sourceIdentifierValue String?
-  sourceProductName     String?
-  sourceBrand           String?
-  sourceManufacturer    String?
-  sourceMarket          String?
-  evidence              Json
-  score                 Int
-  autoPublishEligible   Boolean                     @default(false)
-  imageMimeType         String?
-  imageWidth            Int?
-  imageHeight           Int?
-  imageByteSize         Int?
-  rejectionReason       String?
-  reviewedBy            String?
-  reviewedAt            DateTime?
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  product               Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  asset                 ProductImageAsset?
-
-  @@unique([productId, provider, sourceImageUrl])
-  @@index([status, score, createdAt, id])
-  @@index([productId, status])
-}
-
 model ProductImageAsset {
-  id                       String                @id @default(cuid())
-  productId                String                @unique
-  candidateId              String                @unique
-  storageKey               String                @unique
-  mimeType                 String
-  width                    Int
-  height                   Int
-  byteSize                 Int
-  sha256                   String
-  provider                 String
-  sourcePageUrl            String
-  sourceImageUrl           String
-  sourceLicence            String
-  matchedIdentifierType    String?
-  matchedIdentifierValue   String?
-  evidence                 Json
-  verifiedAt               DateTime              @default(now())
-  reviewedBy               String?
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
-  product                  Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
-  candidate                ProductImageCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  id             String   @id @default(cuid())
+  productId      String   @unique
+  storageKey     String   @unique
+  mimeType       String
+  width          Int
+  height         Int
+  byteSize       Int
+  sha256         String
+  sourceImageUrl String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([sha256])
 }

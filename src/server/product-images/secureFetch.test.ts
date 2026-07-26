@@ -3,22 +3,22 @@ import test from "node:test";
 import {
   assertPublicAddress,
   fetchValidatedManualProductImage,
-  fetchValidatedProductImage,
   parseManualProductImageUrl,
-  validateProviderImageUrl,
 } from "./secureFetch";
 
-test("accepts only HTTPS URLs on fixed provider hostnames", () => {
+test("manual image URLs accept public HTTPS sources and reject unsafe URL forms", () => {
   assert.equal(
-    validateProviderImageUrl(
-      "https://images.openfoodfacts.org/images/products/example.jpg",
-      ["images.openfoodfacts.org"],
-    ).hostname,
-    "images.openfoodfacts.org",
+    parseManualProductImageUrl(" https://cdn.example.com/products/item.png ")?.toString(),
+    "https://cdn.example.com/products/item.png",
   );
-  assert.throws(() => validateProviderImageUrl("http://images.openfoodfacts.org/a.jpg", ["images.openfoodfacts.org"]));
-  assert.throws(() => validateProviderImageUrl("https://evil.example/a.jpg", ["images.openfoodfacts.org"]));
-  assert.throws(() => validateProviderImageUrl("https://images.openfoodfacts.org.evil.example/a.jpg", ["images.openfoodfacts.org"]));
+  assert.equal(parseManualProductImageUrl("/api/product-images/product-1?v=abc"), null);
+  assert.equal(parseManualProductImageUrl("   "), null);
+  assert.throws(() => parseManualProductImageUrl("http://cdn.example.com/item.png"), /HTTPS/i);
+  assert.throws(() => parseManualProductImageUrl("https://user:password@cdn.example.com/item.png"), /authority/i);
+  assert.equal(
+    parseManualProductImageUrl("https://cdn.example.com:8443/item.png")?.toString(),
+    "https://cdn.example.com:8443/item.png",
+  );
 });
 
 test("rejects private, loopback, link-local, multicast, and reserved addresses", () => {
@@ -41,17 +41,16 @@ test("rejects private, loopback, link-local, multicast, and reserved addresses",
   assert.doesNotThrow(() => assertPublicAddress("2606:4700:4700::1111"));
 });
 
-test("secure fetch validates DNS, streams bytes, and rejects cross-host redirects", async () => {
+test("manual image fetch validates DNS, streams bytes, and rejects cross-host redirects", async () => {
   const validPng = new Uint8Array(24);
   validPng.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
   validPng.set([0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52], 8);
   new DataView(validPng.buffer).setUint32(16, 900);
   new DataView(validPng.buffer).setUint32(20, 700);
 
-  const fetched = await fetchValidatedProductImage(
-    "https://images.openfoodfacts.org/example.png",
+  const fetched = await fetchValidatedManualProductImage(
+    "https://cdn.example.com/example.png",
     {
-      allowedHosts: ["images.openfoodfacts.org"],
       lookup: async () => [{ address: "8.8.8.8", family: 4 }],
       fetch: async () => new Response(validPng, {
         status: 200,
@@ -62,10 +61,9 @@ test("secure fetch validates DNS, streams bytes, and rejects cross-host redirect
   assert.equal(fetched.metadata.mimeType, "image/png");
   assert.equal(fetched.bytes.byteLength, 24);
 
-  await assert.rejects(() => fetchValidatedProductImage(
-    "https://images.openfoodfacts.org/example.png",
+  await assert.rejects(() => fetchValidatedManualProductImage(
+    "https://cdn.example.com/example.png",
     {
-      allowedHosts: ["images.openfoodfacts.org"],
       lookup: async () => [{ address: "8.8.8.8", family: 4 }],
       fetch: async () => new Response(null, {
         status: 302,
@@ -75,20 +73,7 @@ test("secure fetch validates DNS, streams bytes, and rejects cross-host redirect
   ), /redirect/i);
 });
 
-test("manual image URLs accept public HTTPS sources and ignore managed product-image URLs", async () => {
-  assert.equal(
-    parseManualProductImageUrl(" https://cdn.example.com/products/item.png ").toString(),
-    "https://cdn.example.com/products/item.png",
-  );
-  assert.equal(parseManualProductImageUrl("/api/product-images/product-1?v=abc"), null);
-  assert.equal(parseManualProductImageUrl("   "), null);
-  assert.throws(() => parseManualProductImageUrl("http://cdn.example.com/item.png"), /HTTPS/i);
-  assert.throws(() => parseManualProductImageUrl("https://user:password@cdn.example.com/item.png"), /authority/i);
-  assert.equal(
-    parseManualProductImageUrl("https://cdn.example.com:8443/item.png")?.toString(),
-    "https://cdn.example.com:8443/item.png",
-  );
-
+test("manual image fetch enforces minimum dimensions and rejects private addresses", async () => {
   const validPng = new Uint8Array(24);
   validPng.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
   validPng.set([0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52], 8);

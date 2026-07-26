@@ -8,14 +8,7 @@ import * as ingredients from "@/app/api/ingredients/route";
 import * as members from "@/app/api/members/route";
 import * as memberAvatar from "@/app/api/members/avatar/route";
 import * as preferences from "@/app/api/preferences/route";
-import * as productImageCandidatePreview from "@/app/api/product-image-candidates/[candidateId]/preview/route";
-import * as productImageBraveJobs from "@/app/api/product-image-jobs/brave/route";
-import * as productImageJobs from "@/app/api/product-image-jobs/run/route";
-import * as productImageReview from "@/app/api/product-image-review/route";
-import * as productImageApprove from "@/app/api/product-image-review/[candidateId]/approve/route";
-import * as productImageReject from "@/app/api/product-image-review/[candidateId]/reject/route";
 import * as productImages from "@/app/api/product-images/[productId]/route";
-import * as productImageStorage from "@/app/api/product-image-storage/route";
 import * as distributors from "@/app/api/distributors/route";
 import * as purchaseCorrections from "@/app/api/purchase-corrections/route";
 import * as purchase from "@/app/api/purchase/route";
@@ -28,7 +21,6 @@ import * as stockBatchAdjustments from "@/app/api/stock/batch-adjustments/route"
 import * as stock from "@/app/api/stock/route";
 import * as productCategoryNormalization from "@/app/api/stock/migrations/categories/route";
 import * as productMeasurementNormalization from "@/app/api/stock/migrations/measurements/route";
-import * as stockPhoto from "@/app/api/stock/photo/route";
 import * as stockPhotoUrl from "@/app/api/stock/photo-url/route";
 import * as stockPhotos from "@/app/api/stock/photos/route";
 import * as cwStockMigration from "@/app/api/stock/migrations/cw/route";
@@ -68,16 +60,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "PATCH", path: "/api/members", handler: handler(members.PATCH) },
   { method: "GET", path: "/api/preferences", handler: handler(preferences.GET) },
   { method: "PATCH", path: "/api/preferences", handler: handler(preferences.PATCH) },
-  { method: "GET", path: "/api/product-image-review", handler: handler(productImageReview.GET) },
-  { method: "POST", path: "/api/product-image-review/:candidateId/approve", handler: handler(productImageApprove.POST) },
-  { method: "POST", path: "/api/product-image-review/:candidateId/reject", handler: handler(productImageReject.POST) },
-  { method: "GET", path: "/api/product-image-jobs/brave", handler: handler(productImageBraveJobs.GET) },
-  { method: "POST", path: "/api/product-image-jobs/brave", handler: handler(productImageBraveJobs.POST) },
-  { method: "POST", path: "/api/product-image-jobs/run", handler: handler(productImageJobs.POST) },
   { method: "GET", path: "/api/product-images/:productId", handler: handler(productImages.GET) },
-  { method: "GET", path: "/api/product-image-storage", handler: handler(productImageStorage.GET) },
-  { method: "POST", path: "/api/product-image-storage", handler: handler(productImageStorage.POST) },
-  { method: "GET", path: "/api/product-image-candidates/:candidateId/preview", handler: handler(productImageCandidatePreview.GET) },
   { method: "GET", path: "/api/distributors", handler: handler(distributors.GET) },
   { method: "GET", path: "/api/purchase-corrections", handler: handler(purchaseCorrections.GET) },
   { method: "POST", path: "/api/purchase-corrections", handler: handler(purchaseCorrections.POST) },
@@ -108,7 +91,6 @@ export const apiRoutes: readonly ApiRoute[] = [
     path: "/api/stock/migrations/measurements",
     handler: handler(productMeasurementNormalization.POST),
   },
-  { method: "POST", path: "/api/stock/photo", handler: handler(stockPhoto.POST) },
   { method: "PATCH", path: "/api/stock/photo-url", handler: handler(stockPhotoUrl.PATCH) },
   { method: "POST", path: "/api/stock/photos", handler: handler(stockPhotos.POST) },
   { method: "POST", path: "/api/stock/migrations/cw", handler: handler(cwStockMigration.POST) },

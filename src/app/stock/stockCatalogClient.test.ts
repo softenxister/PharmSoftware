@@ -9,7 +9,6 @@ import {
   saveStockProduct,
   searchStockCatalog,
   saveStockProductPhotoUrl,
-  storeStockProductPhoto,
 } from "./stockCatalogClient";
 import type { StockItemInput } from "@/server/db/types";
 
@@ -284,37 +283,6 @@ test("stock saves return the updated product after a fast URL-text save", async 
 
   assert.deepEqual(JSON.parse(savedBody), input);
   assert.equal(saved.imageUrl, input.photoUrl);
-});
-
-test("photo storage is an explicit request separate from the fast stock save", async () => {
-  let requestedUrl = "";
-  let requestedMethod = "";
-  let requestedBody = "";
-  const fetcher: typeof fetch = async (url, init) => {
-    requestedUrl = String(url);
-    requestedMethod = init?.method ?? "";
-    requestedBody = String(init?.body);
-    return Response.json({
-      product: {
-        ...product,
-        imageUrl: "/api/product-images/p-test?v=stored-checksum",
-      },
-    });
-  };
-
-  const stored = await storeStockProductPhoto(
-    "p-test",
-    "https://cdn.example.com/item.png",
-    fetcher,
-  );
-
-  assert.equal(requestedUrl, "/api/stock/photo");
-  assert.equal(requestedMethod, "POST");
-  assert.deepEqual(JSON.parse(requestedBody), {
-    productId: "p-test",
-    photoUrl: "https://cdn.example.com/item.png",
-  });
-  assert.equal(stored.imageUrl, "/api/product-images/p-test?v=stored-checksum");
 });
 
 test("a photo URL-only edit uses the fast patch endpoint without downloading", async () => {

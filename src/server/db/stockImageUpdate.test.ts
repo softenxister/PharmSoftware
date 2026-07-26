@@ -1,33 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { stockImageUpdateDecision } from "./stockImageUpdate";
+import { shouldDiscardStoredProductImage } from "./stockImageUpdate";
 
 test("a URL-only edit preserves the existing stored asset until replacement succeeds", () => {
-  assert.deepEqual(stockImageUpdateDecision({
+  assert.equal(shouldDiscardStoredProductImage({
     productIdentityChanged: false,
-    imageUrlChanged: true,
-  }), {
-    discardImageRecords: false,
-    resetImageResolution: true,
-  });
+  }), false);
 });
 
-test("changing product identity discards image evidence that belongs to the old identity", () => {
-  assert.deepEqual(stockImageUpdateDecision({
+test("changing product identity discards the stored image that belongs to the old identity", () => {
+  assert.equal(shouldDiscardStoredProductImage({
     productIdentityChanged: true,
-    imageUrlChanged: false,
-  }), {
-    discardImageRecords: true,
-    resetImageResolution: true,
-  });
+  }), true);
 });
 
-test("an unchanged product does not reset image resolution", () => {
-  assert.deepEqual(stockImageUpdateDecision({
+test("an unchanged product preserves its stored image", () => {
+  assert.equal(shouldDiscardStoredProductImage({
     productIdentityChanged: false,
-    imageUrlChanged: false,
-  }), {
-    discardImageRecords: false,
-    resetImageResolution: false,
-  });
+  }), false);
 });

@@ -4,7 +4,7 @@ import { createUnresolvedProductSvg } from "@/server/product-images/placeholder"
 import {
   readProductImageAsset,
   readStoredProductImage,
-} from "@/server/product-images/repository";
+} from "@/server/product-images/externalStorage";
 import { routeParameter } from "@/server/product-images/routeUtils";
 
 function placeholderResponse(brandName: string, version: string) {
