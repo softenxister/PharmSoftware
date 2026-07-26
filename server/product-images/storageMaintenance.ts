@@ -1,8 +1,14 @@
 import { isPlaceholderProductImageUrl, productImageUrl } from "./placeholder";
 
+const MAX_BULK_PRODUCT_IMAGE_WORKERS = 8;
+
 export type BulkProductImageUrl =
   | { kind: "managed"; canonicalUrl: string }
   | { kind: "external"; sourceUrl: string };
+
+export function bulkProductImageWorkerCount(itemCount: number): number {
+  return Math.min(MAX_BULK_PRODUCT_IMAGE_WORKERS, Math.max(0, Math.floor(itemCount)));
+}
 
 export function classifyBulkProductImageUrl(
   productId: string,

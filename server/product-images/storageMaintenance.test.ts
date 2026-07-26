@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyBulkProductImageUrl } from "./storageMaintenance";
+import {
+  bulkProductImageWorkerCount,
+  classifyBulkProductImageUrl,
+} from "./storageMaintenance";
 
 test("classifies exact managed API paths separately from genuine external HTTPS photos", () => {
   assert.deepEqual(
@@ -22,4 +25,10 @@ test("classifies exact managed API paths separately from genuine external HTTPS 
     classifyBulkProductImageUrl("product-1", "http://images.example.com/photo.jpg"),
     null,
   );
+});
+
+test("uses up to eight workers for network-bound bulk image storage", () => {
+  assert.equal(bulkProductImageWorkerCount(0), 0);
+  assert.equal(bulkProductImageWorkerCount(3), 3);
+  assert.equal(bulkProductImageWorkerCount(56), 8);
 });

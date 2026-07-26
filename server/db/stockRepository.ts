@@ -22,7 +22,10 @@ import {
   prepareExternalProductImageStorage,
 } from "@server/product-images/externalStorage";
 import { productImageUrl } from "@server/product-images/placeholder";
-import { classifyBulkProductImageUrl } from "@server/product-images/storageMaintenance";
+import {
+  bulkProductImageWorkerCount,
+  classifyBulkProductImageUrl,
+} from "@server/product-images/storageMaintenance";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
 
@@ -699,7 +702,6 @@ export async function saveStockItems(inputs: StockItemInput[]): Promise<number> 
   return inputs.length;
 }
 
-const STOCK_PHOTO_IMPORT_CONCURRENCY = 3;
 const STOCK_PHOTO_IMPORT_BATCH_SIZE = 500;
 
 const bulkPhotoCandidateWhere: Prisma.ProductWhereInput = {
@@ -800,7 +802,7 @@ export async function storeAllExternalStockPhotos(): Promise<BulkStockPhotoStora
 
   await Promise.all(
     Array.from(
-      { length: Math.min(STOCK_PHOTO_IMPORT_CONCURRENCY, eligibleProducts.length) },
+      { length: bulkProductImageWorkerCount(eligibleProducts.length) },
       () => importNextPhoto(),
     ),
   );
