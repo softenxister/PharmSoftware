@@ -12,6 +12,7 @@ import {
   normalizeThaiKeyboardNumericInput,
   resolvePaidSaleNextStep,
   shouldUseSellPackDropdown,
+  topWeeklyItemIds,
   totalAvailableSaleQuantity,
 } from "./salesPresentation";
 
@@ -31,6 +32,23 @@ test("Thai keyboard number-row output is normalized for barcode searches in ever
 test("Thai product names remain unchanged", () => {
   assert.equal(normalizeThaiKeyboardBarcodeInput("ถุงมือ"), "ถุงมือ");
   assert.equal(normalizeThaiKeyboardBarcodeInput("ยาแก้ไอ 5 ขวบ"), "ยาแก้ไอ 5 ขวบ");
+});
+
+test("weekly product rail contains only products with real sales and ranks the top ten", () => {
+  const products = [
+    { id: "never-sold", weeklySold: 0 },
+    { id: "invalid", weeklySold: Number.NaN },
+    ...Array.from({ length: 11 }, (_, index) => ({
+      id: `sold-${index + 1}`,
+      weeklySold: index + 1,
+    })),
+  ];
+
+  assert.deepEqual(
+    topWeeklyItemIds(products),
+    ["sold-11", "sold-10", "sold-9", "sold-8", "sold-7",
+      "sold-6", "sold-5", "sold-4", "sold-3", "sold-2"],
+  );
 });
 
 test("Thai keyboard number keys become visible digits in quantity input in every app language", () => {

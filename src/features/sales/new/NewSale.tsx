@@ -38,6 +38,7 @@ import {
   normalizeThaiKeyboardNumericInput,
   resolvePaidSaleNextStep,
   shouldUseSellPackDropdown,
+  topWeeklyItemIds,
   totalAvailableSaleQuantity,
   type SellPackOption,
 } from './salesPresentation';
@@ -820,10 +821,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   }, [cartDisplayGroups, catalog]);
 
   const weeklyTopItemIds = useMemo(
-    () => [...catalog]
-      .sort((a, b) => b.weeklySold - a.weeklySold)
-      .slice(0, 10)
-      .map((item) => item.id),
+    () => topWeeklyItemIds(catalog),
     [catalog],
   );
 

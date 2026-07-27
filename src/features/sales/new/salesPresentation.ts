@@ -67,6 +67,16 @@ export function normalizeThaiKeyboardNumericInput(value: string): string {
   return translateThaiKeyboardDigits(value, false) ?? value;
 }
 
+export function topWeeklyItemIds<T extends { id: string; weeklySold: number }>(
+  products: readonly T[],
+): string[] {
+  return products
+    .filter((product) => Number.isFinite(product.weeklySold) && product.weeklySold > 0)
+    .sort((first, second) => second.weeklySold - first.weeklySold)
+    .slice(0, 10)
+    .map((product) => product.id);
+}
+
 function boundedAvailableQuantity(value: number): number {
   return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
 }

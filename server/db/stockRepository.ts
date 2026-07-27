@@ -23,11 +23,14 @@ import {
 } from "@server/product-images/externalStorage";
 import { productImageUrl } from "@server/product-images/placeholder";
 import {
+  bulkProductImageFailedItems,
   bulkProductImageWorkerCount,
   classifyBulkProductImageUrl,
+  type BulkProductImageFailedItem,
 } from "@server/product-images/storageMaintenance";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
+import { bangkokWeekRange } from "./weeklySales";
 
 export type PurchasedStockLineInput = {
   productId: string;
@@ -81,6 +84,7 @@ function batchIdentityKey(
 function productRowToSalesProduct(
   product: StockProductRow,
   batchCosts: ReadonlyMap<string, number> = new Map(),
+  weeklySold?: number,
 ): SalesProduct {
   return {
     id: product.id,
@@ -126,7 +130,7 @@ function productRowToSalesProduct(
       .map((alias) => alias.barcode),
     category: product.category.name,
     imageUrl: product.imageUrl,
-    weeklySold: product.weeklySold,
+    weeklySold: weeklySold ?? product.weeklySold,
     compositionStatus: product.compositionStatus.toLowerCase() as SalesProduct["compositionStatus"],
     activeIngredients: product.activeIngredients.map(({ ingredient, strength, sourceName, sourceUrl }) => ({
       id: ingredient.id,
@@ -406,7 +410,8 @@ function stockProductWhere(input: StockReadQuery): Prisma.ProductWhereInput {
 
 function requiresAggregateStockRead(input: StockReadQuery): boolean {
   const { filters } = input;
-  return input.sort === "stock"
+  return input.sort === "weekly"
+    || input.sort === "stock"
     || input.sort === "sellPrice"
     || filters.expiryWindows.length > 0
     || filters.stockLevels.length > 0
@@ -471,7 +476,7 @@ function expiryWindowCondition(window: string): Prisma.Sql {
 
 function filteredStockOrderBy(input: StockReadQuery): Prisma.Sql {
   if (input.sort === "weekly") {
-    return Prisma.sql`product."weeklySold" DESC, product."itemName" ASC, product.id ASC`;
+    return Prisma.sql`COALESCE(weekly_sales."weeklySold", 0) DESC, product."itemName" ASC, product.id ASC`;
   }
 
   const direction = input.sortDirection === "desc" ? Prisma.sql`DESC` : Prisma.sql`ASC`;
@@ -494,7 +499,7 @@ function filteredStockOrderBy(input: StockReadQuery): Prisma.Sql {
 
 async function readFilteredStockProductIds(
   input: StockReadQuery,
-): Promise<{ ids: string[]; total: number }> {
+): Promise<{ ids: string[]; total: number; weeklySoldByProductId: ReadonlyMap<string, number> }> {
   const where: Prisma.Sql[] = [Prisma.sql`product."isActive" = TRUE`];
   const having: Prisma.Sql[] = [];
   const { filters } = input;
@@ -547,14 +552,43 @@ async function readFilteredStockProductIds(
 
   const orderBy = filteredStockOrderBy(input);
   const offset = (input.page - 1) * input.pageSize;
-  const rows = await prisma.$queryRaw<Array<{ id: string; total: number }>>(Prisma.sql`
+  const weekRange = bangkokWeekRange();
+  const weeklySalesCte = input.sort === "weekly"
+    ? Prisma.sql`
+      weekly_sales AS (
+        SELECT
+          line."productId",
+          SUM(line.quantity * line."packMultiplier")::double precision AS "weeklySold"
+        FROM "SaleLine" line
+        INNER JOIN "Sale" sale ON sale.id = line."saleId"
+        WHERE sale.status = 'PAID'
+          AND sale."soldAt" >= ${weekRange.start}
+          AND sale."soldAt" < ${weekRange.end}
+        GROUP BY line."productId"
+      )
+    `
+    : Prisma.sql`weekly_sales AS (
+      SELECT NULL::text AS "productId", NULL::double precision AS "weeklySold"
+      WHERE FALSE
+    )`;
+  const weeklySoldSelect = input.sort === "weekly"
+    ? Prisma.sql`COALESCE(weekly_sales."weeklySold", 0)`
+    : Prisma.sql`product."weeklySold"`;
+  const rows = await prisma.$queryRaw<Array<{
+    id: string;
+    total: number;
+    weeklySold: number;
+  }>>(Prisma.sql`
+    WITH ${weeklySalesCte}
     SELECT product.id, COUNT(*) OVER()::integer AS total
+      , ${weeklySoldSelect}::double precision AS "weeklySold"
     FROM "Product" product
     INNER JOIN "Category" category ON category.id = product."categoryId"
     INNER JOIN "Manufacturer" manufacturer ON manufacturer.id = product."manufacturerId"
     LEFT JOIN "ProductBatch" batch ON batch."productId" = product.id
+    LEFT JOIN weekly_sales ON weekly_sales."productId" = product.id
     WHERE ${Prisma.join(where, " AND ")}
-    GROUP BY product.id
+    GROUP BY product.id, weekly_sales."weeklySold"
     ${having.length > 0 ? Prisma.sql`HAVING ${Prisma.join(having, " AND ")}` : Prisma.empty}
     ORDER BY ${orderBy}
     LIMIT ${input.pageSize}
@@ -563,6 +597,9 @@ async function readFilteredStockProductIds(
   return {
     ids: rows.map((row) => row.id),
     total: Number(rows[0]?.total ?? 0),
+    weeklySoldByProductId: input.sort === "weekly"
+      ? new Map(rows.map((row) => [row.id, Number(row.weeklySold)]))
+      : new Map(),
   };
 }
 
@@ -594,9 +631,39 @@ async function readBatchCosts(productIds: string[]): Promise<ReadonlyMap<string,
   return batchCosts;
 }
 
-async function rowsToSalesProducts(products: StockProductRow[]): Promise<SalesProduct[]> {
-  const batchCosts = await readBatchCosts(products.map((product) => product.id));
-  return products.map((product) => productRowToSalesProduct(product, batchCosts));
+async function readWeeklySoldQuantities(productIds: string[]): Promise<ReadonlyMap<string, number>> {
+  if (productIds.length === 0) return new Map();
+  const weekRange = bangkokWeekRange();
+  const rows = await prisma.$queryRaw<Array<{ productId: string; weeklySold: number }>>(Prisma.sql`
+    SELECT
+      line."productId",
+      SUM(line.quantity * line."packMultiplier")::double precision AS "weeklySold"
+    FROM "SaleLine" line
+    INNER JOIN "Sale" sale ON sale.id = line."saleId"
+    WHERE line."productId" IN (${Prisma.join(productIds)})
+      AND sale.status = 'PAID'
+      AND sale."soldAt" >= ${weekRange.start}
+      AND sale."soldAt" < ${weekRange.end}
+    GROUP BY line."productId"
+  `);
+  return new Map(rows.map((row) => [row.productId, Number(row.weeklySold)]));
+}
+
+async function rowsToSalesProducts(
+  products: StockProductRow[],
+  weeklySoldByProductId: ReadonlyMap<string, number> = new Map(),
+): Promise<SalesProduct[]> {
+  const productIds = products.map((product) => product.id);
+  const missingWeeklySoldProductIds = productIds.filter((id) => !weeklySoldByProductId.has(id));
+  const [batchCosts, missingWeeklySoldByProductId] = await Promise.all([
+    readBatchCosts(productIds),
+    readWeeklySoldQuantities(missingWeeklySoldProductIds),
+  ]);
+  return products.map((product) => productRowToSalesProduct(
+    product,
+    batchCosts,
+    weeklySoldByProductId.get(product.id) ?? missingWeeklySoldByProductId.get(product.id) ?? 0,
+  ));
 }
 
 export async function readStockProduct(productId: string): Promise<SalesProduct | null> {
@@ -629,7 +696,7 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
       .map((id) => rowById.get(id))
       .filter((row): row is StockProductRow => Boolean(row));
     return {
-      products: await rowsToSalesProducts(orderedRows),
+      products: await rowsToSalesProducts(orderedRows, filtered.weeklySoldByProductId),
       page: input.page,
       pageSize: input.pageSize,
       total: filtered.total,
@@ -675,6 +742,7 @@ export type BulkStockPhotoStorageResult = {
   failedCount: number;
   remainingCount: number;
   cleanupWarningCount: number;
+  failedItems: BulkProductImageFailedItem[];
 };
 
 export async function updateStockProductPhotoUrl(
@@ -729,6 +797,7 @@ export async function storeAllExternalStockPhotos(): Promise<BulkStockPhotoStora
       where: bulkPhotoCandidateWhere,
       select: {
         id: true,
+        itemName: true,
         imageUrl: true,
         imageAsset: {
           select: { storageKey: true, sha256: true, sourceImageUrl: true },
@@ -738,14 +807,16 @@ export async function storeAllExternalStockPhotos(): Promise<BulkStockPhotoStora
       take: STOCK_PHOTO_IMPORT_BATCH_SIZE,
     }),
   ]);
+  const failedProductIds = new Set<string>();
   const eligibleProducts = products.flatMap((product) => {
     const classification = classifyBulkProductImageUrl(product.id, product.imageUrl);
-    return classification ? [{ ...product, classification }] : [];
+    if (classification) return [{ ...product, classification }];
+    failedProductIds.add(product.id);
+    return [];
   });
   let nextIndex = 0;
   let storedCount = 0;
   let repairedCount = 0;
-  let failedCount = products.length - eligibleProducts.length;
   let cleanupWarningCount = 0;
 
   async function importNextPhoto(): Promise<void> {
@@ -795,7 +866,7 @@ export async function storeAllExternalStockPhotos(): Promise<BulkStockPhotoStora
           cleanupWarningCount += 1;
         }
       } catch {
-        failedCount += 1;
+        failedProductIds.add(product.id);
       }
     }
   }
@@ -806,14 +877,16 @@ export async function storeAllExternalStockPhotos(): Promise<BulkStockPhotoStora
       () => importNextPhoto(),
     ),
   );
+  const failedItems = bulkProductImageFailedItems(products, failedProductIds);
   return {
     eligibleCount: candidateCount,
     processedCount: products.length,
     storedCount,
     repairedCount,
-    failedCount,
+    failedCount: failedItems.length,
     remainingCount: Math.max(0, candidateCount - products.length),
     cleanupWarningCount,
+    failedItems,
   };
 }
 

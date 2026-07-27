@@ -68,3 +68,14 @@ test("color themes use descriptive names in both languages", () => {
     ["เขียวเภสัช", "ชมพูกุหลาบ", "ส้มอบอุ่น", "ม่วงสงบ"],
   );
 });
+
+test("product image storage failures have localized log copy", () => {
+  assert.equal(
+    translate("en", "productImages.failureLogTitle", { count: 6 }),
+    "6 items could not be stored",
+  );
+  assert.equal(
+    translate("th", "productImages.failureLogTitle", { count: 6 }),
+    "จัดเก็บไม่สำเร็จ 6 รายการ",
+  );
+});
