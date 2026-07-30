@@ -14,7 +14,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "stock:normalize-cw": "tsx scripts/data-maintenance/normalize-cw-stock.ts",
-    "test": "node --env-file-if-exists=.env --import tsx --test server/*.test.ts server/auth/*.test.ts server/composition/*.test.ts server/db/*.test.ts server/import/*.test.ts server/product-images/*.test.ts src/app/routing/*.test.ts src/api/*.test.ts src/components/member/*.test.ts src/components/navigation/*.test.ts src/config/preferences/*.test.ts src/features/auth/login/*.test.ts src/features/member/*.test.ts src/features/purchase/*.test.ts src/features/settings/*.test.ts src/features/stock/*.test.ts src/features/sales/new/*.test.ts src/i18n/*.test.ts src/lib/*.test.ts src/styles/*.test.ts",
+    "test": "node --env-file-if-exists=.env --import tsx --test server/*.test.ts server/auth/*.test.ts server/composition/*.test.ts server/db/*.test.ts server/import/*.test.ts server/product-images/*.test.ts src/app/routing/*.test.ts src/api/*.test.ts src/components/member/*.test.ts src/components/navigation/*.test.ts src/config/preferences/*.test.ts src/features/auth/login/*.test.ts src/features/member/*.test.ts src/features/member/detail/*.test.ts src/features/product/entry/*.test.ts src/features/purchase/*.test.ts src/features/settings/*.test.ts src/features/stock/*.test.ts src/features/sales/new/*.test.ts src/i18n/*.test.ts src/lib/*.test.ts src/styles/*.test.ts",
     "start": "NODE_ENV=production node --env-file-if-exists=.env dist-server/index.js",
     "typecheck": "tsc --noEmit",
     "preview": "npm start"

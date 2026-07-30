@@ -41,7 +41,7 @@ import {
 } from "@/features/stock/stockInventoryFilters";
 import { isStockRowActivationKey } from "@/features/stock/stockRowInteraction";
 import { getStockMeasurementLabel } from "@/lib/productMeasurement";
-import { StockEntryForm } from "@/features/stock/StockEntryForm";
+import { ProductEntryForm } from "@/features/product/entry/ProductEntryForm";
 import { StockBatchAdjustmentDialog } from "@/features/stock/StockBatchAdjustmentDialog";
 import { StockItemDetailDialog } from "@/features/stock/StockItemDetailDialog";
 import { isStockPhotoUrlOnlyChange } from "@/lib/stockPhotoUrlChange";
@@ -930,7 +930,7 @@ export default function StockPage() {
             aria-label={editingProduct ? t("stock.editDialog", { name: editingProduct.itemName }) : t("stock.createDialog")}
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <StockEntryForm
+            <ProductEntryForm
               key={editingProduct?.id ?? "new-item"}
               initialItem={editingProduct ? productToStockItemInput(editingProduct) : undefined}
               activeIngredients={editingProduct?.activeIngredients}
