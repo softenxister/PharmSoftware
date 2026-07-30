@@ -5,15 +5,13 @@ import { usePreferences } from "@/app/providers/PreferencesProvider";
 import { localizeUnitExpression } from "@/i18n/productUnits";
 import { invalidateStockCatalog, loadStockProductsByIds, searchStockCatalog } from "@/api/stockCatalogClient";
 import {
-  canSavePurchase,
-  formatDateDisplay,
-  formatExpiryDateInput,
-  getDistributorMatches,
-  isValidExpiryDate,
-} from "../../purchaseUtils";
+  formatPurchaseExpiryDate as formatDateDisplay,
+  formatPurchaseExpiryInput as formatExpiryDateInput,
+  isPurchaseExpiryDate as isValidExpiryDate,
+} from "@/lib/expiryDate";
 import {
-  calculatePurchaseTotals, getPurchaseItemSearchPriority, mergePurchaseCatalog,
-  purchaseUnitMultiplier,
+  calculatePurchaseTotals, canSavePurchase, getDistributorMatches,
+  getPurchaseItemSearchPriority, mergePurchaseCatalog, purchaseUnitMultiplier,
 } from "./purchaseDraft";
 import type {
   CurrentPharmUser, EditablePurchaseBill, PurchaseCorrection, PurchaseLine,

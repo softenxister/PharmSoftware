@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   canSavePurchase,
-  formatDateDisplay,
-  formatExpiryDateInput,
-  isValidExpiryDate,
-  toDatabaseExpiryDate,
-} from "./purchaseUtils";
+} from "./new/workflow/purchaseDraft";
+import {
+  formatPurchaseExpiryDate as formatDateDisplay,
+  formatPurchaseExpiryInput as formatExpiryDateInput,
+  isPurchaseExpiryDate as isValidExpiryDate,
+  normalizeExpiryDate as toDatabaseExpiryDate,
+} from "@/lib/expiryDate";
 
 test("expiry date input inserts DD-MM-YY separators", () => {
   assert.equal(formatExpiryDateInput("3"), "3");

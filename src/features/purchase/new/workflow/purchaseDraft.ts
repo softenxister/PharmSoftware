@@ -56,6 +56,31 @@ export function positivePurchaseNumber(value: string): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+export function canSavePurchase(lineCount: number, netTotal: number): boolean {
+  return Number.isInteger(lineCount)
+    && lineCount > 0
+    && Number.isFinite(netTotal)
+    && netTotal > 0;
+}
+
+export function getDistributorMatches(
+  distributors: string[],
+  queryValue: string,
+): string[] {
+  const query = queryValue.trim().toLowerCase();
+  const ranked = [...distributors].sort((first, second) => {
+    const firstName = first.toLowerCase();
+    const secondName = second.toLowerCase();
+    const firstStarts = query ? Number(!firstName.startsWith(query)) : 0;
+    const secondStarts = query ? Number(!secondName.startsWith(query)) : 0;
+    return firstStarts - secondStarts || first.localeCompare(second);
+  });
+  if (!query) return ranked.slice(0, 6);
+  return ranked
+    .filter((name) => name.toLowerCase().includes(query))
+    .slice(0, 6);
+}
+
 export function calculatePurchaseTotals(
   lines: Array<Pick<PurchaseLine, "qty" | "cost">>,
   vatIncluded: boolean,

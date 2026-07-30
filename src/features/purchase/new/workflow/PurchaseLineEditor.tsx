@@ -1,5 +1,9 @@
 import { PackagePlus, X } from "lucide-react";
-import { formatDateDisplay, formatExpiryDateInput, isValidExpiryDate } from "../../purchaseUtils";
+import {
+  formatPurchaseExpiryDate as formatDateDisplay,
+  formatPurchaseExpiryInput as formatExpiryDateInput,
+  isPurchaseExpiryDate as isValidExpiryDate,
+} from "@/lib/expiryDate";
 import { PurchaseUnitDropdown } from "../PurchaseUnitDropdown";
 import type { PurchaseWorkflow } from "./usePurchaseWorkflow";
 import styles from "../PurchaseEntry.module.css";

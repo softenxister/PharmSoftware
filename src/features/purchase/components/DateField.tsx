@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import styles from "@/features/purchase/new/PurchaseEntry.module.css";
-import { formatDateDisplay } from "@/features/purchase/purchaseUtils";
+import { formatPurchaseExpiryDate as formatDateDisplay } from "@/lib/expiryDate";
 
 export function DateField({ label }: { label: string }) {
   const { t } = usePreferences();
