@@ -666,7 +666,7 @@ async function rowsToSalesProducts(
   ));
 }
 
-export async function readStockProduct(productId: string): Promise<SalesProduct | null> {
+async function readStockProduct(productId: string): Promise<SalesProduct | null> {
   const product = await prisma.product.findFirst({
     where: { id: productId, isActive: true },
     include: productGraph,
@@ -731,8 +731,6 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
     hasMore: input.page * input.pageSize < total,
   };
 }
-
-export class StockProductNotFoundError extends Error {}
 
 export type BulkStockPhotoStorageResult = {
   eligibleCount: number;

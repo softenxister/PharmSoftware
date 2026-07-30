@@ -74,19 +74,6 @@ export type SalesProduct = {
   batches: ProductBatch[];
 };
 
-export type RecentSale = {
-  id: string;
-  billNo: string;
-  billDate: string;
-  customerName: string;
-  pharmacistName: string;
-  paymentMethod: string;
-  totalQuantity: number;
-  uniqueItems: number;
-  netPayableThb: number;
-  status: "Paid" | "Draft" | "Voided";
-};
-
 export type StockPackagingInput = {
   parentUnit: string;
   childQuantity: string;

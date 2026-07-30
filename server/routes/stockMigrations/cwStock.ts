@@ -10,7 +10,6 @@ import {
 import {
   decodeCwStockUpload,
   MAX_CW_STOCK_REQUEST_BYTES,
-  MAX_CW_STOCK_UPLOAD_BYTES,
   validateCwStockUpload,
 } from "@server/import/cwStockUpload";
 

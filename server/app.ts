@@ -31,6 +31,7 @@ const securityOptions = isProduction ? {
     fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
     formAction: ["'self'"],
     frameAncestors: ["'none'"],
+    frameSrc: ["'self'", "blob:"],
     imgSrc: ["'self'", "data:", "https:"],
     objectSrc: ["'none'"],
     scriptSrc: ["'self'"],

@@ -1,6 +1,6 @@
 import { CW_STOCK_HEADERS } from "./cwStockNormalizer";
 
-export const MAX_CW_STOCK_UPLOAD_BYTES = 5 * 1024 * 1024;
+const MAX_CW_STOCK_UPLOAD_BYTES = 5 * 1024 * 1024;
 export const MAX_CW_STOCK_REQUEST_BYTES = MAX_CW_STOCK_UPLOAD_BYTES + 128 * 1024;
 
 type CwCsvEncoding = "utf-8" | "windows-874" | "utf-16le" | "utf-16be";

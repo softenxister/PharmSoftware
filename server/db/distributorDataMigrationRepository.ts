@@ -27,7 +27,7 @@ export type DistributorImportWrite = {
 
 export class DistributorMigrationConfirmationError extends Error {}
 
-export const DISTRIBUTOR_DATA_IMPORT_BATCH_SIZE = 1_000;
+const DISTRIBUTOR_DATA_IMPORT_BATCH_SIZE = 1_000;
 export const DISTRIBUTOR_DATA_MIGRATION_TRANSACTION_OPTIONS = {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   maxWait: 10_000,
@@ -43,7 +43,7 @@ export function buildDistributorImportWrite(
   return { id, create: { id, ...values }, update: values };
 }
 
-export async function readExistingDistributorIdentities(
+async function readExistingDistributorIdentities(
   client: MigrationReadClient = prisma,
 ): Promise<ExistingDistributorIdentity[]> {
   return client.distributor.findMany({ select: { id: true, code: true, name: true } });

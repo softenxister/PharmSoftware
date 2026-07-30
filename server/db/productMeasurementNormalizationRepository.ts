@@ -28,7 +28,7 @@ export type ProductMeasurementNormalizationPlan = ProductMeasurementNormalizatio
   changes: ProductMeasurementNormalizationChange[];
 };
 
-export const PRODUCT_MEASUREMENT_NORMALIZATION_TRANSACTION_OPTIONS = {
+const PRODUCT_MEASUREMENT_NORMALIZATION_TRANSACTION_OPTIONS = {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   maxWait: 10_000,
   timeout: 300_000,

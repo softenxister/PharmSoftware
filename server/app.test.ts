@@ -1,6 +1,29 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { createServerApp } from "./app";
+
+test("production security policy allows generated receipt PDFs in frames", () => {
+  const script = `
+    const { createServerApp } = await import("./server/app.ts");
+    const response = await createServerApp().request("http://pharm.test/sales/receipt/test");
+    console.log(response.headers.get("content-security-policy") ?? "");
+  `;
+  const policy = execFileSync(process.execPath, [
+    "--env-file-if-exists=.env",
+    "--import",
+    "tsx",
+    "--eval",
+    script,
+  ], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: { ...process.env, NODE_ENV: "production" },
+  }).trim();
+
+  assert.match(policy, /(?:^|;\s*)frame-src 'self' blob:(?:;|$)/);
+  assert.match(policy, /(?:^|;\s*)object-src 'none'(?:;|$)/);
+});
 
 test("unknown API routes stay JSON and are never cached", async () => {
   const response = await createServerApp().request("http://pharm.test/api/not-a-route");

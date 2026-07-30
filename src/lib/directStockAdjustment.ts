@@ -1,6 +1,6 @@
 import { isIsoExpiryDate } from "@/lib/expiryDate";
 
-export const MAX_DIRECT_STOCK_LINES = 100;
+const MAX_DIRECT_STOCK_LINES = 100;
 export const MAX_DIRECT_STOCK_QUANTITY = 999_999_999;
 
 export type DirectStockAdjustmentInput = {

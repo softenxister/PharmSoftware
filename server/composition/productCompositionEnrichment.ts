@@ -88,7 +88,7 @@ async function enrichProduct(product: {
   }
 }
 
-export async function enrichPendingProductCompositions(batchSize = DEFAULT_BATCH_SIZE): Promise<number> {
+async function enrichPendingProductCompositions(batchSize = DEFAULT_BATCH_SIZE): Promise<number> {
   const now = new Date();
   const products = await prisma.product.findMany({
     where: {

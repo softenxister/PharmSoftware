@@ -2409,15 +2409,6 @@
     margin-left: 42px;
   }
 
-  .reminderRow {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-
-  .reminderControls {
-    grid-template-columns: 28px minmax(220px, 1fr) 28px 78px;
-  }
-
   .summaryBar {
     padding: 0 14px;
   }

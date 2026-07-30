@@ -50,7 +50,7 @@ export const CW_STOCK_MIGRATION_TRANSACTION_OPTIONS = {
   timeout: 300_000,
 } as const;
 
-export async function readCwExistingProductIdentities(
+async function readCwExistingProductIdentities(
   client: MigrationDb = prisma,
 ): Promise<CwExistingProductIdentity[]> {
   const products = await client.product.findMany({

@@ -213,7 +213,7 @@ function xmlValues(xml: string, tag: string): string[] {
   return values;
 }
 
-export type StoredObjectVersion = {
+type StoredObjectVersion = {
   key: string;
   versionId: string;
   isLatest: boolean;

@@ -45,7 +45,7 @@ function chunks<T>(rows: readonly T[]): T[][] {
   return output;
 }
 
-export async function readExistingLotExpiryProducts(
+async function readExistingLotExpiryProducts(
   client: MigrationDb = prisma,
 ): Promise<ExistingLotExpiryProduct[]> {
   const products = await client.product.findMany({

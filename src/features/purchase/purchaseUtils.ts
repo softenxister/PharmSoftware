@@ -1,14 +1,3 @@
-export type UploadedRow = {
-  csv: string;
-  item: string;
-  lot: string;
-  exp: string;
-  dist: string;
-  retail: string;
-  qty: number;
-  free: number;
-};
-
 import {
   formatPurchaseExpiryDate,
   formatPurchaseExpiryInput,
@@ -26,15 +15,6 @@ export const toDatabaseExpiryDate = normalizeExpiryDate;
 
 export const canSavePurchase = (lineCount: number, netTotal: number) =>
   Number.isInteger(lineCount) && lineCount > 0 && Number.isFinite(netTotal) && netTotal > 0;
-
-export const money = (amount: number) =>
-  `฿ ${amount.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-
-export const getPurchaseTotal = (rows: UploadedRow[]) =>
-  rows.reduce((sum, row) => sum + Number(row.dist) * row.qty, 0);
 
 export const getDistributorMatches = (distributors: string[], queryValue: string) => {
   const query = queryValue.trim().toLowerCase();

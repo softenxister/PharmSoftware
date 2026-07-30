@@ -91,12 +91,6 @@
   gap: 16px;
 }
 
-.card {
-  border: 1px solid var(--app-border);
-  border-radius: 6px;
-  background: var(--app-surface);
-}
-
 .paddedCard {
   border: 1px solid var(--app-border);
   border-radius: 6px;
@@ -191,12 +185,4 @@
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--app-border-soft);
-}
-
-.spaceY3 > * + * {
-  margin-top: 12px;
-}
-
-.spaceY25 > * + * {
-  margin-top: 10px;
 }

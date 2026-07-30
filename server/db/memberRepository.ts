@@ -19,7 +19,7 @@ export type MemberSummary = {
   allergies: IngredientSummary[];
 };
 
-export type MemberTransaction = {
+type MemberTransaction = {
   id: string;
   billNo: string;
   soldAt: string;
@@ -38,7 +38,7 @@ export type MemberTransaction = {
   }>;
 };
 
-export type MemberPurchasedItem = {
+type MemberPurchasedItem = {
   productId: string;
   itemName: string;
   totalQuantity: number;

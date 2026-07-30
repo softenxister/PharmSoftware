@@ -14,7 +14,7 @@ const GENERIC_LEADING_TOKENS = new Set([
   "silicone", "stomach", "active", "ingredients", "tab", "tabs", "cap", "caps",
 ]);
 
-export function normalizeBrandSearchText(value: string): string {
+function normalizeBrandSearchText(value: string): string {
   return value
     .normalize("NFKC")
     .toLocaleLowerCase("th-TH")

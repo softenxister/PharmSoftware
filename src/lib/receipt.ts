@@ -84,7 +84,7 @@ export function receiptPaymentMethodLabel(value: string): string {
   return value.trim() || "ไม่ระบุ";
 }
 
-export function isReceiptStoreReady(store: unknown): store is ReceiptStoreSnapshot {
+function isReceiptStoreReady(store: unknown): store is ReceiptStoreSnapshot {
   if (!store || typeof store !== "object") return false;
   const candidate = store as Partial<ReceiptStoreSnapshot>;
   const values = [candidate.storeName, candidate.address, candidate.phone, candidate.email, candidate.taxId,

@@ -25,7 +25,7 @@ export type ProductCategoryNormalizationPlan = ProductCategoryNormalizationResul
   changes: ProductCategoryNormalizationChange[];
 };
 
-export const PRODUCT_CATEGORY_NORMALIZATION_TRANSACTION_OPTIONS = {
+const PRODUCT_CATEGORY_NORMALIZATION_TRANSACTION_OPTIONS = {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
   maxWait: 10_000,
   timeout: 300_000,

@@ -1,5 +1,5 @@
-export const DEFAULT_STOCK_PAGE_SIZE = 50;
-export const MAX_STOCK_PAGE_SIZE = 100;
+const DEFAULT_STOCK_PAGE_SIZE = 50;
+const MAX_STOCK_PAGE_SIZE = 100;
 const MAX_STOCK_QUERY_LENGTH = 120;
 const MAX_STOCK_PRODUCT_IDS = 100;
 const MAX_STOCK_FILTER_VALUES = 50;
@@ -16,7 +16,7 @@ const VALID_EXPIRY_WINDOWS = new Set([
 ]);
 const VALID_STOCK_LEVELS = new Set(["Out of Stock", "Low Stock", "Normal Stock", "Overstock"]);
 
-export const STOCK_SORTS = ["name", "weekly", "minimum", "maximum", "stock", "sellPrice"] as const;
+const STOCK_SORTS = ["name", "weekly", "minimum", "maximum", "stock", "sellPrice"] as const;
 export type StockSort = (typeof STOCK_SORTS)[number];
 export type StockSortDirection = "asc" | "desc";
 

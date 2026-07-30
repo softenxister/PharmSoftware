@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { formatThaiPhoneNumber, isValidThaiPhoneNumber } from "@/lib/thaiPhoneNumber";
 
-export const MEMBER_DATA_HEADERS = [
+const MEMBER_DATA_HEADERS = [
   "รหัสสมาชิก",
   "ชื่อ-สกุล",
   "ที่อยู่",

@@ -1,4 +1,4 @@
-export const MEMBER_AVATAR_MAX_BYTES = 512 * 1024;
+const MEMBER_AVATAR_MAX_BYTES = 512 * 1024;
 
 const MEMBER_AVATAR_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 

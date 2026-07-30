@@ -42,7 +42,7 @@ export type MemberImportWrite = {
 
 export class MemberMigrationConfirmationError extends Error {}
 
-export const MEMBER_DATA_IMPORT_BATCH_SIZE = 1_000;
+const MEMBER_DATA_IMPORT_BATCH_SIZE = 1_000;
 
 export const MEMBER_DATA_MIGRATION_TRANSACTION_OPTIONS = {
   isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -72,7 +72,7 @@ export function buildMemberImportWrite(row: MemberDataImportRow, id: string): Me
   };
 }
 
-export async function readExistingCustomerIdentities(
+async function readExistingCustomerIdentities(
   client: MigrationReadClient = prisma,
 ): Promise<ExistingCustomerIdentity[]> {
   return client.customer.findMany({

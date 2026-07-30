@@ -26,7 +26,7 @@ const KNOWN_INGREDIENTS: readonly KnownIngredient[] = [
   { id: "ingredient-menthol", canonicalName: "Menthol", normalizedName: "menthol", aliases: [] },
 ];
 
-export function normalizeIngredientName(value: string): string {
+function normalizeIngredientName(value: string): string {
   return value
     .normalize("NFKC")
     .toLocaleLowerCase("en")

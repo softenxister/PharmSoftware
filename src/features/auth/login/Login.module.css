@@ -96,10 +96,6 @@
 .createActionButton:hover:not(:disabled) { background: var(--app-create-action-dark); }
 .submitButton:disabled { cursor: not-allowed; opacity: .58; }
 .help { margin: 22px 0 0; border-top: 1px solid var(--app-border-soft); color: var(--app-muted); font-size: 11.5px; line-height: 1.5; padding-top: 17px; text-align: center; }
-.loading { display: flex; min-height: 390px; align-items: center; justify-content: center; gap: 10px; color: var(--app-muted); font-size: 13px; }
-.loading span { width: 18px; height: 18px; border: 2px solid var(--app-border); border-top-color: var(--app-accent); border-radius: 50%; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
 @media (max-width: 980px) {
   .page { grid-template-columns: 330px minmax(480px, 1fr); }
   .brandPanel { padding: 38px 30px; }

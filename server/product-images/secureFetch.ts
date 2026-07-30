@@ -18,7 +18,7 @@ export type SecureFetchOptions = {
   inspectionPolicy?: ProductImageInspectionPolicy;
 };
 
-export class ProductImageFetchHttpError extends Error {
+class ProductImageFetchHttpError extends Error {
   constructor(readonly status: number) {
     super(`Product image returned HTTP ${status}.`);
   }

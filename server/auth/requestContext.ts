@@ -6,7 +6,7 @@ export function runWithRequest<T>(request: Request, operation: () => T): T {
   return requestStorage.run(request, operation);
 }
 
-export function getCurrentRequest(): Request | undefined {
+function getCurrentRequest(): Request | undefined {
   return requestStorage.getStore();
 }
 

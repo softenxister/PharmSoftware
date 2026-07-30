@@ -199,7 +199,7 @@ export type SellPackOption = {
   barcodes: string[];
 };
 
-export function displayPackUnit(unit: string): string {
+function displayPackUnit(unit: string): string {
   if (unit === "blisterpack") return "blister packs";
   return unit;
 }

@@ -21,7 +21,7 @@ function validParts(year: number, month: number, day: number): ExpiryDateParts |
   return { year, month, day };
 }
 
-export function parseExpiryDate(value: string | null | undefined): ExpiryDateParts | null {
+function parseExpiryDate(value: string | null | undefined): ExpiryDateParts | null {
   const normalized = value?.trim() ?? "";
   if (!normalized) return null;
 
