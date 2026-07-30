@@ -2,6 +2,7 @@ import { formatDate } from "@/i18n/i18n";
 import type { AppLocale } from "@/config/preferences/appPreferences";
 import { nearestAvailableExpiryBatch } from "@/lib/batchPresentation";
 import type { ParentPack, ProductPack } from "@server/db/types";
+import type { Batch, CartLine, CatalogItem, SellPack } from "./saleTypes";
 
 type ProductDescriptionInput = {
   brand: string;
@@ -13,6 +14,154 @@ type ProductDescriptionInput = {
 };
 
 export { calculateSalePricing } from "@/lib/salePricing";
+
+export function hasPayableSale(lineCount: number, netPayable: number): boolean {
+  return lineCount > 0 && Number.isFinite(netPayable) && netPayable > 0;
+}
+
+export function formatBaht(value: number): string {
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+export function availableStockForPack(batch: Batch, pack: SellPack): number {
+  return Math.floor(batch.stock / pack.priceMultiplier);
+}
+
+export function totalAvailableStockForPack(
+  batches: Batch[],
+  pack: SellPack,
+): number {
+  return totalAvailableSaleQuantity(
+    batches,
+    (batch) => availableStockForPack(batch, pack),
+  );
+}
+
+export function sellPriceForPack(batch: Batch, pack: SellPack): number {
+  return pack.sellPriceThb ?? batch.sellPrice * pack.priceMultiplier;
+}
+
+export function lineUnitPrice(line: CartLine): number {
+  return Number.isFinite(line.unitPrice)
+    ? line.unitPrice
+    : line.batch.sellPrice * line.packMultiplier;
+}
+
+export function cartLineGroupKey(line: CartLine): string {
+  return `${line.itemId}\u0000${line.packLabel}\u0000${line.packMultiplier}`;
+}
+
+export function catalogItemForLine(
+  line: CartLine,
+  catalog: CatalogItem[],
+): CatalogItem | undefined {
+  return catalog.find((item) => item.id === line.itemId);
+}
+
+export function totalTabsForLine(line: CartLine, catalog: CatalogItem[]): number {
+  const catalogItem = catalogItemForLine(line, catalog);
+  if (!catalogItem || !/(tab|caplet)/i.test(catalogItem.packLabel)) return 0;
+  const childQuantity = parseInt(catalogItem.packLabel.match(/\d+/)?.[0] ?? '1', 10);
+  return line.qty * line.packMultiplier * childQuantity;
+}
+
+function maxQtyForCartLine(line: CartLine, catalog: CatalogItem[]): number {
+  const catalogItem = catalogItemForLine(line, catalog);
+  const pack = catalogItem?.sellPacks.find((sellPack) => (
+    sellPack.displayLabel === line.packLabel
+    && sellPack.priceMultiplier === line.packMultiplier
+  ));
+  if (!catalogItem || !pack) {
+    return Math.max(1, Math.floor(line.batch.stock / line.packMultiplier));
+  }
+  const currentBatch = catalogItem.batches.find(
+    (batch) => batch.batchId === line.batch.batchId,
+  ) ?? line.batch;
+  return Math.max(1, availableStockForPack(currentBatch, pack));
+}
+
+export function mergeCartLinesByItemPack(
+  lines: CartLine[],
+  catalog: CatalogItem[],
+): { lines: CartLine[]; changed: boolean } {
+  const mergedLines: CartLine[] = [];
+  const lineIndexByKey = new Map<string, number>();
+  let changed = false;
+
+  lines.forEach((line) => {
+    const key = `${line.itemId}|${line.packLabel}|${line.packMultiplier}|${line.batch.batchId}`;
+    const existingIndex = lineIndexByKey.get(key);
+    if (existingIndex === undefined) {
+      lineIndexByKey.set(key, mergedLines.length);
+      mergedLines.push(line);
+      return;
+    }
+
+    changed = true;
+    const existingLine = mergedLines[existingIndex];
+    if (!existingLine) return;
+    mergedLines[existingIndex] = {
+      ...existingLine,
+      qty: Math.min(maxQtyForCartLine(existingLine, catalog), existingLine.qty + line.qty),
+    };
+  });
+
+  return { lines: mergedLines, changed };
+}
+
+export function replaceCartGroupQuantity(
+  lines: CartLine[],
+  item: CatalogItem,
+  pack: SellPack,
+  preferredBatch: Batch,
+  requestedQuantity: number,
+): CartLine[] {
+  const targetKey = `${item.id}\u0000${pack.displayLabel}\u0000${pack.priceMultiplier}`;
+  const existingLines = lines.filter((line) => cartLineGroupKey(line) === targetKey);
+  const maxQuantity = totalAvailableStockForPack(item.batches, pack);
+  if (maxQuantity <= 0 || !Number.isFinite(requestedQuantity)) return lines;
+  const desiredQuantity = Math.min(maxQuantity, Math.max(1, Math.floor(requestedQuantity)));
+  const allocations = allocateSaleQuantityAcrossBatches(
+    item.batches,
+    preferredBatch,
+    desiredQuantity,
+    (batch) => availableStockForPack(batch, pack),
+  );
+  const timestamp = Date.now();
+  const allocatedLines = allocations.map(({ batch, quantity }, index): CartLine => {
+    const existingLine = existingLines.find((line) => line.batch.batchId === batch.batchId);
+    return {
+      lineId: existingLine?.lineId
+        ?? `${item.id}-${pack.key}-${batch.batchId}-${timestamp}-${index}`,
+      itemId: item.id,
+      itemName: item.name,
+      packLabel: pack.displayLabel,
+      packMultiplier: pack.priceMultiplier,
+      unitPrice: sellPriceForPack(batch, pack),
+      loc: item.loc,
+      batch,
+      qty: quantity,
+    };
+  });
+
+  const nextLines: CartLine[] = [];
+  let insertedAllocations = false;
+  for (const line of lines) {
+    if (cartLineGroupKey(line) === targetKey) {
+      if (!insertedAllocations) {
+        nextLines.push(...allocatedLines);
+        insertedAllocations = true;
+      }
+      continue;
+    }
+    nextLines.push(line);
+  }
+  if (!insertedAllocations) nextLines.push(...allocatedLines);
+  return nextLines;
+}
 
 const THAI_KEYBOARD_DIGITS: Readonly<Record<string, string>> = {
   "ๅ": "1",

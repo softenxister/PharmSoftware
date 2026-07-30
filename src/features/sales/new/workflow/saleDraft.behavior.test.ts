@@ -14,7 +14,7 @@ import {
   shouldUseSellPackDropdown,
   topWeeklyItemIds,
   totalAvailableSaleQuantity,
-} from "./salesPresentation";
+} from "./saleDraft";
 
 test("batch expiry displays the full localized date in English and Thai", () => {
   assert.equal(formatBatchExpiry("en", "2031-06-04"), "04 JUN 2031");
