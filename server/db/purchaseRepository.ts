@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import {
   receivePurchasedStock,
   type PurchasedStockLineInput,
-} from "./stockRepository";
+} from "./stock/stockMovementRepository";
 import { canTransitionPurchaseStatus } from "@/lib/purchaseWorkflow";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
 import { normalizeExpiryDate } from "@/lib/expiryDate";

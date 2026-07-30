@@ -7,7 +7,7 @@ import { readStoreProfile } from "./storeProfileRepository";
 import {
   dispenseSoldStock,
   type SoldStockLineInput,
-} from "./stockRepository";
+} from "./stock/stockMovementRepository";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 export type SaleLineInput = {

@@ -1,11 +1,13 @@
 import { parseStockDeleteRequest } from "@server/db/stockDeleteRequest";
 import {
-  deleteStockItem,
   readStockProducts,
+} from "@server/db/stock/stockCatalogRepository";
+import {
+  deleteStockItem,
   saveStockItem,
   saveStockItems,
   updateStockItemDetail,
-} from "@server/db/stockRepository";
+} from "@server/db/stock/stockItemRepository";
 import { parseStockItemDetailPatch } from "@server/db/stockItemDetail";
 import type { StockItemInput } from "@server/db/types";
 import { parseStockReadQuery } from "@server/db/stockReadQuery";
