@@ -45,3 +45,31 @@ _Avoid_: Product category
 **Fallback Category**:
 The broad “Other Medicines & Health Products” group reserved for products whose primary retail use cannot be determined from reliable catalog evidence.
 _Avoid_: Uncategorized
+
+**Sale**:
+A pharmacy transaction containing products supplied to a Customer, covering its lifecycle from pending payment through paid completion.
+_Avoid_: Checkout, order
+
+**Checkout**:
+The payment step that transitions a valid Sale to paid completion.
+_Avoid_: Sale, save
+
+**Purchase**:
+A Distributor bill lifecycle covering draft entry, partial receipt, full receipt, and later correction.
+_Avoid_: Receiving, stock intake
+
+**Receiving**:
+The step in a Purchase that increases available Stock from accepted purchased quantities.
+_Avoid_: Purchase, purchase entry
+
+**Product**:
+A retail catalog item identified by its name, barcodes, packaging, manufacturer, and Product Category.
+_Avoid_: Stock, batch
+
+**Stock**:
+The available quantity of a Product, tracked by batch and expiry where applicable.
+_Avoid_: Product, inventory screen
+
+**Inventory**:
+The operational view that combines Product information with current Stock for pharmacy staff.
+_Avoid_: Product catalog, Stock quantity
