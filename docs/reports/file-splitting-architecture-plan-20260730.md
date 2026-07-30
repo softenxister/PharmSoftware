@@ -1,12 +1,14 @@
 # Pharm File-Splitting Architecture Plan
 
-**Status:** Accepted
+**Status:** Implemented
 
 **Date:** 2026-07-31
 
 **Scope:** Entire handwritten TypeScript/TSX implementation
 
 [Open the visual HTML report](./file-splitting-architecture-plan-20260730.html)
+
+[Open the final implementation report](./architecture-refactor-implementation-20260731.html)
 
 ## Refactoring rule
 
