@@ -3,7 +3,7 @@ import { establishSession } from "@server/auth/establishSession";
 import { hashPassword } from "@server/auth/password";
 import { setSessionCookie } from "@server/auth/sessionCookie";
 import { toPharmUser } from "@server/auth/pharmUser";
-import { completeOwnerSetup, readOwnerSetupRequired } from "@server/db/authRepository";
+import { completeOwnerSetup, readOwnerSetupRequired } from "@server/db/auth/authRepository";
 
 export async function GET() {
   try {

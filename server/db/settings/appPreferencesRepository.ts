@@ -5,7 +5,7 @@ import {
   type AppPreferences,
   type AppPreferencesPatch,
 } from "@/config/preferences/appPreferences";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 type AppPreferencesRow = {
   locale: string;

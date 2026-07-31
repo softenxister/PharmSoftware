@@ -1,4 +1,4 @@
-import { parseStockDeleteRequest } from "@server/db/stockDeleteRequest";
+import { parseStockDeleteRequest } from "@server/db/stock/stockDeleteRequest";
 import {
   readStockProducts,
 } from "@server/db/stock/stockCatalogRepository";
@@ -8,9 +8,9 @@ import {
   saveStockItems,
   updateStockItemDetail,
 } from "@server/db/stock/stockItemRepository";
-import { parseStockItemDetailPatch } from "@server/db/stockItemDetail";
+import { parseStockItemDetailPatch } from "@server/db/stock/stockItemDetail";
 import type { StockItemInput } from "@server/db/types";
-import { parseStockReadQuery } from "@server/db/stockReadQuery";
+import { parseStockReadQuery } from "@server/db/stock/stockReadQuery";
 import { isAuthenticationError, requireAuthenticatedUser } from "@server/auth/pharmUser";
 
 function isStockItemInput(value: unknown): value is StockItemInput {

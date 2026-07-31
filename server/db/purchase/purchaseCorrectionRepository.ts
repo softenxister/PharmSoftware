@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, PurchaseBillStatus as PrismaPurchaseBillStatus } from "@server/generated/prisma/client";
 import type { PharmUser } from "@server/auth/pharmUser";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 import type {
   CorrectionRequestInput,
   StockAdjustmentInput,

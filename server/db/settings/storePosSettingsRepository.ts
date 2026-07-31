@@ -4,7 +4,7 @@ import {
   normalizeStorePosSettings,
   type StorePosSettings,
 } from "@/config/preferences/storePosSettings";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 const PRIMARY_STORE_SETTINGS_ID = "primary-store";
 

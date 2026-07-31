@@ -1,9 +1,9 @@
 import { isAuthenticationError, requireStockManager } from "@server/auth/pharmUser";
-import { applyStockAdjustment } from "@server/db/purchaseCorrectionRepository";
+import { applyStockAdjustment } from "@server/db/purchase/purchaseCorrectionRepository";
 import {
   isValidStockAdjustmentInput,
   type StockAdjustmentInput,
-} from "@server/db/purchaseCorrectionValidation";
+} from "@server/db/purchase/purchaseCorrectionValidation";
 
 export async function POST(request: Request) {
   try {

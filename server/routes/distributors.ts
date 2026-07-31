@@ -1,4 +1,4 @@
-import { readDistributorNames } from "@server/db/purchaseRepository";
+import { readDistributorNames } from "@server/db/purchase/purchaseRepository";
 import { requireAuthenticatedUser } from "@server/auth/pharmUser";
 
 export async function GET() {

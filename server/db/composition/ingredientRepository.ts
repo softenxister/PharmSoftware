@@ -1,6 +1,6 @@
 import { Prisma } from "@server/generated/prisma/client";
-import type { IngredientSummary } from "./types";
-import { prisma } from "./prisma";
+import type { IngredientSummary } from "../types";
+import { prisma } from "../core/prisma";
 
 export type IngredientOption = IngredientSummary & {
   aliases: string[];

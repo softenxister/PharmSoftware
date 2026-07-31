@@ -1,5 +1,5 @@
 import type { SalesProduct, StockItemInput } from "@server/db/types";
-import type { StockSort } from "@server/db/stockReadQuery";
+import type { StockSort } from "@server/db/stock/stockReadQuery";
 import type {
   StockPage,
   StockSortDirection,

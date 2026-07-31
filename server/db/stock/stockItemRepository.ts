@@ -1,18 +1,18 @@
 import { Prisma } from "@server/generated/prisma/client";
 import type { SalesProduct, StockItemInput } from "../types";
-import { prisma } from "../prisma";
+import { prisma } from "../core/prisma";
 import {
   createSavedStockItem,
   normalizeBarcodeValues,
   relatedLineUpdates,
   savedStockToSalesProduct,
-} from "../stockItemMapper";
+} from "./stockItemMapper";
 import type { PharmUser } from "@server/auth/pharmUser";
 import {
   hasForbiddenStockDiscountChange,
   type StockItemDetailPatch,
-} from "../stockItemDetail";
-import { shouldDiscardStoredProductImage } from "../stockImageUpdate";
+} from "./stockItemDetail";
+import { shouldDiscardStoredProductImage } from "./stockImageUpdate";
 import { normalizeProductCategory } from "@server/import/productCategoryNormalization";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
 import { normalizeExpiryDate } from "@/lib/expiryDate";

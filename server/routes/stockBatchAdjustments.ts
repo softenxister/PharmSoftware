@@ -3,7 +3,7 @@ import {
   isAuthenticationError,
   requireStockManager,
 } from "@server/auth/pharmUser";
-import { applyDirectStockAdjustment } from "@server/db/directStockAdjustmentRepository";
+import { applyDirectStockAdjustment } from "@server/db/stock/directStockAdjustmentRepository";
 
 const CLIENT_SAFE_ERRORS = new Set([
   "Stock item was not found.",

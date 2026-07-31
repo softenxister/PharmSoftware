@@ -1,5 +1,5 @@
 import type { SalesProduct, StockItemInput } from "@server/db/types";
-import type { StockReadFilters, StockSort } from "@server/db/stockReadQuery";
+import type { StockReadFilters, StockSort } from "@server/db/stock/stockReadQuery";
 
 const STOCK_CACHE_TTL_MS = 5_000;
 const MAX_CACHE_ENTRIES = 40;

@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import { DiscountType, Prisma, SaleStatus } from "@server/generated/prisma/client";
 import { calculateSalePricing } from "@/lib/salePricing";
 import { createReceiptSnapshot, type ReceiptStoreSnapshot } from "@/lib/receipt";
-import { prisma } from "./prisma";
-import { readStoreProfile } from "./storeProfileRepository";
+import { prisma } from "../core/prisma";
+import { readStoreProfile } from "../settings/storeProfileRepository";
 import {
   dispenseSoldStock,
   type SoldStockLineInput,
-} from "./stock/stockMovementRepository";
+} from "../stock/stockMovementRepository";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
 
 export type SaleLineInput = {

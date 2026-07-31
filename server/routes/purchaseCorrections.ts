@@ -3,11 +3,11 @@ import {
   createPurchaseCorrectionRequest,
   readPurchaseCorrectionRequests,
   rejectPurchaseCorrectionRequest,
-} from "@server/db/purchaseCorrectionRepository";
+} from "@server/db/purchase/purchaseCorrectionRepository";
 import {
   isValidCorrectionRequestInput,
   type CorrectionRequestInput,
-} from "@server/db/purchaseCorrectionValidation";
+} from "@server/db/purchase/purchaseCorrectionValidation";
 
 const errorResponse = (error: unknown) => {
   if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });

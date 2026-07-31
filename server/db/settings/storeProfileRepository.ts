@@ -1,6 +1,6 @@
 import { Prisma } from "@server/generated/prisma/client";
 import { EMPTY_STORE_PROFILE, type StoreProfile } from "@/config/preferences/storeProfile";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 const PRIMARY_STORE_ID = "primary-store";
 

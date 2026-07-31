@@ -1,6 +1,6 @@
 import { decodeMemberAvatarDataUrl } from "@/lib/memberAvatar";
 import { requireAuthenticatedUser } from "@server/auth/pharmUser";
-import { readMemberAvatar } from "@server/db/memberRepository";
+import { readMemberAvatar } from "@server/db/member/memberRepository";
 
 export async function GET(request: Request) {
   try {

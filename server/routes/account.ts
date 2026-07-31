@@ -1,6 +1,6 @@
 import { parseAccountProfileUpdate } from "@server/auth/accountValidation";
 import { requireAuthenticatedUser, toPharmUser } from "@server/auth/pharmUser";
-import { updateAccountProfile } from "@server/db/authRepository";
+import { updateAccountProfile } from "@server/db/auth/authRepository";
 
 export async function GET() {
   try {

@@ -7,7 +7,7 @@ import {
   type DistributorDataMigrationRow,
   type ExistingDistributorIdentity,
 } from "@server/import/distributorDataMigration";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 type MigrationReadClient = Pick<Prisma.TransactionClient, "distributor">;
 

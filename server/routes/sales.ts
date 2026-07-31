@@ -1,4 +1,4 @@
-import { readSales, saveSale, type SaleInput } from "@server/db/saleRepository";
+import { readSales, saveSale, type SaleInput } from "@server/db/sale/saleRepository";
 import { isAuthenticationError, requireAuthenticatedUser } from "@server/auth/pharmUser";
 
 export async function GET() {

@@ -6,7 +6,7 @@ import {
   importMemberDataMigration,
   MemberMigrationConfirmationError,
   previewMemberDataMigration,
-} from "@server/db/memberDataMigrationRepository";
+} from "@server/db/migration/memberDataMigrationRepository";
 import {
   decodeUtf8MemberDataUpload,
   MAX_MEMBER_DATA_REQUEST_BYTES,

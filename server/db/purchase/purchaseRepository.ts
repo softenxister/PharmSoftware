@@ -1,9 +1,9 @@
 import { Prisma, PurchaseBillStatus as PrismaPurchaseBillStatus } from "@server/generated/prisma/client";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 import {
   receivePurchasedStock,
   type PurchasedStockLineInput,
-} from "./stock/stockMovementRepository";
+} from "../stock/stockMovementRepository";
 import { canTransitionPurchaseStatus } from "@/lib/purchaseWorkflow";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
 import { normalizeExpiryDate } from "@/lib/expiryDate";

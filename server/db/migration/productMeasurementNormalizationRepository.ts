@@ -1,6 +1,6 @@
 import { Prisma } from "@server/generated/prisma/client";
 import { extractProductMeasurement } from "@/lib/productMeasurement";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 export type ProductMeasurementNormalizationCandidate = {
   id: string;

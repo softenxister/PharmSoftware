@@ -111,12 +111,12 @@ test("lot and expiry import persists canonical product unit keys", () => {
 
 test("the batch identity migration is additive and keys batches by product, lot, and expiry", () => {
   const schema = readFileSync(
-    new URL("../../prisma/schema.prisma", import.meta.url),
+    new URL("../../../prisma/schema.prisma", import.meta.url),
     "utf8",
   );
   const migration = readFileSync(
     new URL(
-      "../../prisma/migrations/20260726160000_key_product_batches_by_expiry/migration.sql",
+      "../../../prisma/migrations/20260726160000_key_product_batches_by_expiry/migration.sql",
       import.meta.url,
     ),
     "utf8",

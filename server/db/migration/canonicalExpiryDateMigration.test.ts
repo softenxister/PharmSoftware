@@ -5,7 +5,7 @@ import test from "node:test";
 test("the expiry migration canonicalizes stored dates without inventing missing dates", () => {
   const migration = readFileSync(
     new URL(
-      "../../prisma/migrations/20260726190000_canonical_expiry_dates/migration.sql",
+      "../../../prisma/migrations/20260726190000_canonical_expiry_dates/migration.sql",
       import.meta.url,
     ),
     "utf8",

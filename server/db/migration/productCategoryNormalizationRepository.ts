@@ -1,6 +1,6 @@
 import { Prisma } from "@server/generated/prisma/client";
 import { classifyProductCategory } from "@server/import/productCategoryNormalization";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 export type ProductCategoryNormalizationCandidate = {
   id: string;

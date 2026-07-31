@@ -1,5 +1,5 @@
 import { Prisma } from "@server/generated/prisma/client";
-import { prisma } from "@server/db/prisma";
+import { prisma } from "@server/db/core/prisma";
 import {
   cleanupStoredProductImageObjects,
   persistStoredProductImage,

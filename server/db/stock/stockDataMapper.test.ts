@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { SavedStockItem, SalesProduct } from "./types";
+import type { SavedStockItem, SalesProduct } from "../types";
 import { mergeStockSeedData, normalizeExpiryDate } from "./stockDataMapper";
 
 const seedProduct: SalesProduct = {

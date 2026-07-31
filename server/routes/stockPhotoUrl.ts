@@ -1,6 +1,6 @@
 import { isAuthenticationError, requireAuthenticatedUser } from "@server/auth/pharmUser";
 import { updateStockProductPhotoUrl } from "@server/db/stock/stockItemRepository";
-import { parseStockPhotoUrlUpdate } from "@server/db/stockPhotoUrlUpdate";
+import { parseStockPhotoUrlUpdate } from "@server/db/stock/stockPhotoUrlUpdate";
 
 export async function PATCH(request: Request) {
   try {

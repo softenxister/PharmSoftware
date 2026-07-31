@@ -10,7 +10,7 @@ import {
   type LotExpiryMigrationPreview,
   type LotExpiryMigrationRow,
 } from "@server/import/lotExpiryMigration";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 type MigrationDb = Pick<Prisma.TransactionClient, "product">;
 

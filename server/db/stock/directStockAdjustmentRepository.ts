@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@server/generated/prisma/client";
 import type { DirectStockAdjustmentInput } from "@/lib/directStockAdjustment";
 import type { PharmUser } from "@server/auth/pharmUser";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
 

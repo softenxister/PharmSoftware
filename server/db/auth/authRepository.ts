@@ -11,7 +11,7 @@ import {
   type LoginThrottleRecord,
 } from "@server/auth/loginThrottle";
 import type { PharmAccountRecord } from "@server/auth/pharmUser";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 type AccountRow = {
   id: string;

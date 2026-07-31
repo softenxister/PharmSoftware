@@ -4,7 +4,7 @@ import { usePreferences } from "@/app/providers/PreferencesProvider";
 import { localizeUnitExpression } from "@/i18n/productUnits";
 import type { PharmUserRole } from "@server/auth/pharmUser";
 import type { SalesProduct } from "@server/db/types";
-import type { StockDefaultDosage, StockItemDetailPatch } from "@server/db/stockItemDetail";
+import type { StockDefaultDosage, StockItemDetailPatch } from "@server/db/stock/stockItemDetail";
 import { canonicalizeStockCategory, getStockCategoryOptions } from "./stockCategoryFilter";
 import { SearchableSelect } from "@/components/forms/SearchableSelect";
 import styles from "./Stock.module.css";

@@ -6,7 +6,7 @@ import {
   type MemberDataImportRow,
   type MemberDataMigrationPreview,
 } from "@server/import/memberDataMigration";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 type MigrationReadClient = Pick<Prisma.TransactionClient, "customer">;
 

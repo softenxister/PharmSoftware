@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import type { StockItemInput } from "./types";
+import type { StockItemInput } from "../types";
 import {
   createSavedStockItem,
   normalizeBarcodeValues,
@@ -106,7 +106,7 @@ test("stock writes replace deprecated product units with canonical values", () =
 });
 
 test("parent-pack database identity includes unit and quantity", () => {
-  const schema = readFileSync(new URL("../../prisma/schema.prisma", import.meta.url), "utf8");
+  const schema = readFileSync(new URL("../../../prisma/schema.prisma", import.meta.url), "utf8");
   const parentPackModel = schema.match(/model ProductParentPack \{[\s\S]*?\n\}/)?.[0] ?? "";
 
   assert.match(

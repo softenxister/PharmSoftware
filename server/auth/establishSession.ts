@@ -1,6 +1,6 @@
 import {
   createAuthSession,
-} from "@server/db/authRepository";
+} from "@server/db/auth/authRepository";
 import {
   AUTH_SESSION_MAX_AGE_SECONDS,
   createSessionToken,

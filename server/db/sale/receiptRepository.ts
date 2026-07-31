@@ -5,8 +5,8 @@ import {
   type ReceiptSnapshot,
   type ReceiptStoreSnapshot,
 } from "@/lib/receipt";
-import { prisma } from "./prisma";
-import { readStoreProfile } from "./storeProfileRepository";
+import { prisma } from "../core/prisma";
+import { readStoreProfile } from "../settings/storeProfileRepository";
 
 export class ReceiptNotFoundError extends Error {}
 export class ReceiptNotPrintableError extends Error {}

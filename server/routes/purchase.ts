@@ -3,8 +3,8 @@ import {
   readPurchaseBills,
   savePurchaseBill,
   type PurchaseBillInput,
-} from "@server/db/purchaseRepository";
-import { isValidPurchaseBillInput } from "@server/db/purchaseValidation";
+} from "@server/db/purchase/purchaseRepository";
+import { isValidPurchaseBillInput } from "@server/db/purchase/purchaseValidation";
 import { isAuthenticationError, requireAuthenticatedUser } from "@server/auth/pharmUser";
 
 const purchaseErrorResponse = (error: unknown) => {

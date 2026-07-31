@@ -1,4 +1,4 @@
-import type { SavedStockItem, SalesProduct, StockItemInput } from "./types";
+import type { SavedStockItem, SalesProduct, StockItemInput } from "../types";
 import { canonicalizeProductUnit } from "@/i18n/productUnits";
 import { productImageUrl } from "@server/product-images/placeholder";
 import { normalizeExpiryDate } from "@/lib/expiryDate";

@@ -1,8 +1,8 @@
 import { Prisma } from "@server/generated/prisma/client";
 import type { SalesProduct } from "../types";
-import type { StockReadQuery } from "../stockReadQuery";
-import { prisma } from "../prisma";
-import { bangkokWeekRange } from "../weeklySales";
+import type { StockReadQuery } from "./stockReadQuery";
+import { prisma } from "../core/prisma";
+import { bangkokWeekRange } from "../sale/weeklySales";
 import {
   productGraph,
   productRowToSalesProduct,

@@ -1,4 +1,4 @@
-import type { ProductBatch, SavedStockItem, SalesProduct } from "./types";
+import type { ProductBatch, SavedStockItem, SalesProduct } from "../types";
 import { savedStockToSalesProduct } from "./stockItemMapper";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
 export { normalizeExpiryDate };

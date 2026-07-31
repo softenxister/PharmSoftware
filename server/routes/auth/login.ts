@@ -11,7 +11,7 @@ import {
   readLoginThrottle,
   recordFailedLogin,
   type PrivatePharmAccount,
-} from "@server/db/authRepository";
+} from "@server/db/auth/authRepository";
 
 const invalidResponse = () => Response.json(
   { error: "Username or password is incorrect." },

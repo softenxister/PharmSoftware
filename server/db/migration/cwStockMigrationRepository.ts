@@ -8,7 +8,7 @@ import {
   type CwStockMigrationPreview,
 } from "@server/import/cwStockMigration";
 import { resolveImportedBrandName } from "@server/import/thaiBrandExtractor";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 
 type MigrationDb = Pick<Prisma.TransactionClient, "product">;
 

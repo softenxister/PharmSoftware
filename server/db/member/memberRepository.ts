@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, SaleStatus } from "@server/generated/prisma/client";
-import { prisma } from "./prisma";
+import { prisma } from "../core/prisma";
 import type { MemberProfileInput } from "./memberValidation";
-import type { IngredientSummary } from "./types";
+import type { IngredientSummary } from "../types";
 
 export type MemberSummary = {
   id: string;

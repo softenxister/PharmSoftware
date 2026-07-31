@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Prisma } from "@server/generated/prisma/client";
-import { prisma } from "@server/db/prisma";
+import { prisma } from "@server/db/core/prisma";
 import {
   extractThaiPharmacyBrand,
   resolveImportedBrandName,

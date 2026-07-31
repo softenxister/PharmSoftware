@@ -3,7 +3,7 @@ import { getRequestCookie } from "@server/auth/requestContext";
 import { getCurrentPharmAccount, toPharmUser } from "@server/auth/pharmUser";
 import { hashPassword, verifyPassword } from "@server/auth/password";
 import { AUTH_SESSION_COOKIE, hashSessionToken } from "@server/auth/sessionToken";
-import { deleteAccountSessions, updateAccountPassword } from "@server/db/authRepository";
+import { deleteAccountSessions, updateAccountPassword } from "@server/db/auth/authRepository";
 
 export async function POST(request: Request) {
   const account = await getCurrentPharmAccount();
