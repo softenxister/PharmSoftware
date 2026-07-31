@@ -1,4 +1,4 @@
-import type { Customer, SalesProduct } from "@server/db/types";
+import type { Customer, SalesProduct } from "../server/db/types";
 
 export const customers: Customer[] = [];
 

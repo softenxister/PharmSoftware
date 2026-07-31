@@ -3,7 +3,7 @@ import { isAuthenticationError, requireAuthenticatedUser, requireStoreOwner } fr
 import {
   readStorePosSettings,
   saveStorePosSettings,
-} from "@server/db/storePosSettingsRepository";
+} from "@server/db/settings/storePosSettingsRepository";
 
 export async function GET() {
   try {

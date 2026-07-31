@@ -4,9 +4,9 @@ import {
   listMembers,
   readMember,
   updateMember,
-} from "@server/db/memberRepository";
-import { parseMemberProfileInput } from "@server/db/memberValidation";
-import { ingredientIdsExist } from "@server/db/ingredientRepository";
+} from "@server/db/member/memberRepository";
+import { parseMemberProfileInput } from "@server/db/member/memberValidation";
+import { ingredientIdsExist } from "@server/db/composition/ingredientRepository";
 
 async function authenticatedOrResponse() {
   try {

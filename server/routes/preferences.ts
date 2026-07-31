@@ -1,6 +1,6 @@
 import { parseAppPreferencesPatch } from "@/config/preferences/appPreferences";
 import { getCurrentPharmUser, requireAuthenticatedUser } from "@server/auth/pharmUser";
-import { readAppPreferences, saveAppPreferences } from "@server/db/appPreferencesRepository";
+import { readAppPreferences, saveAppPreferences } from "@server/db/settings/appPreferencesRepository";
 
 export async function GET() {
   const user = await getCurrentPharmUser();

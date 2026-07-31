@@ -1,5 +1,5 @@
 import { requireAuthenticatedUser } from "@server/auth/pharmUser";
-import { searchIngredients } from "@server/db/ingredientRepository";
+import { searchIngredients } from "@server/db/composition/ingredientRepository";
 
 export async function GET(request: Request) {
   try {

@@ -6,7 +6,7 @@ import {
   importLotExpiryMigration,
   LotExpiryMigrationConfirmationError,
   previewLotExpiryMigration,
-} from "@server/db/lotExpiryMigrationRepository";
+} from "@server/db/migration/lotExpiryMigrationRepository";
 import {
   MAX_LOT_EXPIRY_REQUEST_BYTES,
   validateLotExpiryUpload,

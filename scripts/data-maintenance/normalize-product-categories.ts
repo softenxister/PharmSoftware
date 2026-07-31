@@ -4,7 +4,7 @@ import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@server/generated/prisma/client";
 import { NORMALIZED_PRODUCT_CATEGORIES } from "../../src/lib/productCategories";
-import { normalizePostgresConnectionString } from "@server/db/postgresConnection";
+import { normalizePostgresConnectionString } from "@server/db/core/postgresConnection";
 import { classifyProductCategory } from "@server/import/productCategoryNormalization";
 
 const shouldApply = process.argv.includes("--apply");

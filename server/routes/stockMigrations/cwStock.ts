@@ -6,7 +6,7 @@ import {
   CwMigrationConfirmationError,
   importCwStockMigration,
   previewCwStockMigration,
-} from "@server/db/cwStockMigrationRepository";
+} from "@server/db/migration/cwStockMigrationRepository";
 import {
   decodeCwStockUpload,
   MAX_CW_STOCK_REQUEST_BYTES,

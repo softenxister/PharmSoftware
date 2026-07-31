@@ -1,0 +1,15 @@
+.root { position: relative; min-width: 0; }
+.control { display: flex; width: 100%; height: 38px; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--stock-border); border-radius: 8px; background: var(--stock-surface); color: var(--stock-ink); cursor: pointer; font: inherit; font-size: 13px; padding: 0 7px 0 10px; text-align: left; }
+.controlCompact { height: 36px; }
+.control input { flex: 1; height: 36px; min-width: 0; border: 0; background: transparent; color: var(--stock-ink); font: inherit; font-size: 13px; outline: none; padding: 0; }
+.control input:focus { border-color: transparent; box-shadow: none; }
+.control button { display: inline-flex; width: 26px; height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: var(--stock-muted); cursor: pointer; padding: 0; }
+.control button:hover { background: var(--app-accent-soft); color: var(--stock-primary-dark); }
+.control svg { transition: transform .14s ease; }
+.chevronOpen { transform: rotate(180deg); }
+.control:focus-within { border-color: var(--stock-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--stock-primary) 12%, transparent); outline: none; }
+.menu { position: absolute; z-index: 120; top: calc(100% + 6px); right: 0; left: 0; overflow: hidden; padding: 5px; border: 1px solid var(--stock-border); border-radius: 9px; background: var(--stock-surface); box-shadow: 0 16px 34px -18px rgba(10,40,32,.34); }
+.options { display: flex; overflow-y: auto; max-height: 178px; flex-direction: column; gap: 2px; }
+.options button { width: 100%; min-height: 30px; padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--stock-ink); cursor: pointer; font: inherit; font-size: 12.5px; text-align: left; }
+.options button:hover { background: var(--app-accent-soft); color: var(--stock-primary-dark); }
+.empty { padding: 7px 8px; color: var(--stock-muted); font-size: 12px; }

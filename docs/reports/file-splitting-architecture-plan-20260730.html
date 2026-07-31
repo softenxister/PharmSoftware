@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Pharm file-splitting architecture plan</title>
+    <style>
+      :root {
+        --canvas: #f3f6f3;
+        --surface: #ffffff;
+        --surface-soft: #f7faf7;
+        --surface-strong: #e8f2ea;
+        --ink: #17201a;
+        --muted: #5c685f;
+        --line: #d5ddd7;
+        --line-strong: #b8c7bc;
+        --green: #28613d;
+        --green-dark: #173d28;
+        --green-soft: #dcecdf;
+        --blue: #315d78;
+        --amber: #8a5a18;
+        --amber-soft: #f8ecd5;
+        --red: #9e3d39;
+        --red-soft: #f7e3e1;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --shadow: 0 8px 24px rgba(30, 50, 36, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      code,
+      pre {
+        font-family: var(--mono);
+      }
+
+      code {
+        overflow-wrap: anywhere;
+      }
+
+      .skip-link {
+        position: fixed;
+        left: 1rem;
+        top: -4rem;
+        z-index: 50;
+        padding: 0.75rem 1rem;
+        border-radius: 0.4rem;
+        background: var(--green-dark);
+        color: #fff;
+      }
+
+      .skip-link:focus {
+        top: 1rem;
+      }
+
+      .page-shell {
+        display: grid;
+        grid-template-columns: 16.5rem minmax(0, 1fr);
+        gap: 2rem;
+        width: min(96rem, calc(100% - 3rem));
+        margin: 0 auto;
+        padding: 2rem 0 4rem;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 1.5rem;
+        align-self: start;
+        max-height: calc(100vh - 3rem);
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar-header {
+        padding: 1.15rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-soft);
+      }
+
+      .sidebar-header strong {
+        display: block;
+        color: var(--green-dark);
+        font-size: 0.95rem;
+      }
+
+      .sidebar-header span {
+        display: block;
+        margin-top: 0.2rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .sidebar nav {
+        padding: 0.65rem;
+      }
+
+      .sidebar a {
+        display: grid;
+        grid-template-columns: 1.5rem minmax(0, 1fr);
+        gap: 0.55rem;
+        align-items: baseline;
+        padding: 0.55rem 0.65rem;
+        border-radius: 0.4rem;
+        color: #334239;
+        text-decoration: none;
+      }
+
+      .sidebar a:hover,
+      .sidebar a:focus-visible {
+        background: var(--green-soft);
+        outline: none;
+      }
+
+      .nav-index {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .report-header {
+        padding: 2rem;
+        border: 1px solid var(--line);
+        border-top: 0.35rem solid var(--green);
+        border-radius: 0.75rem;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--green);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 58rem;
+        margin: 0.4rem 0 0;
+        color: var(--green-dark);
+        font-size: clamp(2rem, 4vw, 3.3rem);
+        line-height: 1.05;
+        letter-spacing: -0.035em;
+      }
+
+      .lede {
+        max-width: 55rem;
+        margin: 1rem 0 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1px;
+        margin-top: 1.5rem;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 0.55rem;
+        background: var(--line);
+      }
+
+      .metric {
+        min-width: 0;
+        padding: 1rem;
+        background: var(--surface-soft);
+      }
+
+      .metric strong {
+        display: block;
+        color: var(--green-dark);
+        font-size: 1.55rem;
+        line-height: 1.1;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .rule-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+      }
+
+      .rule {
+        padding: 0.8rem 0.9rem;
+        border-left: 0.25rem solid var(--green);
+        background: var(--surface-soft);
+        color: #3f4c43;
+        font-size: 0.84rem;
+      }
+
+      .module-section,
+      .audit-section,
+      .rollout-section {
+        margin-top: 1.5rem;
+        border: 1px solid var(--line);
+        border-radius: 0.75rem;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+        padding: 1.4rem 1.5rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .section-number {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      h2 {
+        margin: 0.2rem 0 0;
+        color: var(--green-dark);
+        font-size: 1.55rem;
+        line-height: 1.2;
+      }
+
+      h3 {
+        margin: 0;
+        color: var(--green-dark);
+        font-size: 1rem;
+      }
+
+      .source-path {
+        display: block;
+        margin-top: 0.4rem;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        overflow-wrap: anywhere;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.8rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        background: var(--green-soft);
+        color: var(--green-dark);
+        font-size: 0.75rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .badge.warn {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      .section-summary {
+        display: grid;
+        grid-template-columns: minmax(16rem, 0.75fr) minmax(0, 1.25fr);
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-soft);
+      }
+
+      .tree-card,
+      .why-card {
+        min-width: 0;
+      }
+
+      .tree {
+        min-height: 100%;
+        margin: 0.6rem 0 0;
+        padding: 1rem;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        background: #fdfefd;
+        color: #2d4435;
+        font-size: 0.76rem;
+        line-height: 1.58;
+        white-space: pre;
+      }
+
+      .why-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin-top: 0.6rem;
+      }
+
+      .why-item {
+        min-width: 0;
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 0.45rem;
+        background: var(--surface);
+      }
+
+      .why-item strong {
+        display: block;
+        color: var(--green);
+        font-size: 0.73rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .why-item span {
+        display: block;
+        margin-top: 0.3rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .table-block {
+        padding: 1.25rem 1.5rem 1.5rem;
+      }
+
+      .table-intro {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: baseline;
+        margin-bottom: 0.65rem;
+      }
+
+      .table-intro p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .table-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+      }
+
+      table {
+        width: 100%;
+        min-width: 62rem;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: var(--surface);
+      }
+
+      th,
+      td {
+        padding: 0.72rem 0.8rem;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--green-dark);
+        color: #fff;
+        font-size: 0.72rem;
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+      }
+
+      td {
+        color: #3a473e;
+        font-size: 0.82rem;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: var(--surface-soft);
+      }
+
+      td.file,
+      td.export,
+      td.lines {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+      }
+
+      td.lines {
+        color: var(--blue);
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .section-note {
+        margin: 0 1.5rem 1.5rem;
+        padding: 0.8rem 1rem;
+        border-left: 0.25rem solid var(--amber);
+        background: var(--amber-soft);
+        color: #684918;
+        font-size: 0.83rem;
+      }
+
+      .section-note.green {
+        border-left-color: var(--green);
+        background: var(--green-soft);
+        color: var(--green-dark);
+      }
+
+      .audit-section,
+      .rollout-section {
+        padding-bottom: 1.5rem;
+      }
+
+      .audit-section .table-block,
+      .rollout-body {
+        padding-top: 1rem;
+      }
+
+      .rollout-body {
+        padding-right: 1.5rem;
+        padding-left: 1.5rem;
+      }
+
+      .rollout-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .rollout-list li {
+        display: grid;
+        grid-template-columns: 2rem minmax(0, 1fr);
+        gap: 0.65rem;
+        padding: 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 0.45rem;
+        background: var(--surface-soft);
+      }
+
+      .rollout-index {
+        display: grid;
+        place-items: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: var(--green);
+        color: white;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .rollout-list strong {
+        display: block;
+        color: var(--green-dark);
+      }
+
+      .rollout-list span {
+        display: block;
+        margin-top: 0.2rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .report-footer {
+        margin-top: 1.5rem;
+        padding: 1rem 0;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-align: center;
+      }
+
+      @media (max-width: 68rem) {
+        .page-shell {
+          grid-template-columns: 1fr;
+          width: min(100% - 2rem, 72rem);
+        }
+
+        .sidebar {
+          position: static;
+          max-height: none;
+        }
+
+        .sidebar nav {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 48rem) {
+        .page-shell {
+          width: min(100% - 1rem, 72rem);
+          padding-top: 0.5rem;
+        }
+
+        .sidebar nav,
+        .section-summary,
+        .rule-strip,
+        .rollout-list {
+          grid-template-columns: 1fr;
+        }
+
+        .report-header,
+        .section-head,
+        .section-summary,
+        .table-block,
+        .rollout-body {
+          padding-right: 1rem;
+          padding-left: 1rem;
+        }
+
+        .section-head {
+          grid-template-columns: 1fr;
+        }
+
+        .why-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .section-note {
+          margin-right: 1rem;
+          margin-left: 1rem;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .page-shell {
+          display: block;
+          width: 100%;
+          padding: 0;
+        }
+
+        .sidebar,
+        .skip-link {
+          display: none;
+        }
+
+        .module-section,
+        .audit-section,
+        .rollout-section {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+
+        .table-scroll {
+          overflow: visible;
+        }
+
+        table {
+          min-width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to report</a>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <strong>Pharm architecture plan</strong>
+          <span>Implemented file map · completed 2026-07-31</span>
+        </div>
+        <nav aria-label="Report sections">
+          <a href="./architecture-refactor-implementation-20260731.html"><span class="nav-index">✓</span><span>Implementation result</span></a>
+          <a href="#overview"><span class="nav-index">00</span><span>Overview</span></a>
+          <a href="#sale"><span class="nav-index">01</span><span>Sale workflow</span></a>
+          <a href="#i18n"><span class="nav-index">02</span><span>I18n catalog</span></a>
+          <a href="#purchase"><span class="nav-index">03</span><span>Purchase workflow</span></a>
+          <a href="#stock-persistence"><span class="nav-index">04</span><span>Stock persistence</span></a>
+          <a href="#stock-inventory"><span class="nav-index">05</span><span>Stock inventory</span></a>
+          <a href="#stock-entry"><span class="nav-index">06</span><span>Stock item entry</span></a>
+          <a href="#member"><span class="nav-index">07</span><span>Member profile</span></a>
+          <a href="#within-ceiling"><span class="nav-index">08</span><span>Keep as-is audit</span></a>
+          <a href="#rollout"><span class="nav-index">09</span><span>Implementation order</span></a>
+        </nav>
+      </aside>
+
+      <main id="main-content">
+        <header class="report-header" id="overview">
+          <p class="eyebrow">File-splitting architecture plan</p>
+          <h1>Exact modules, filenames, responsibilities, and folder structure</h1>
+          <p class="lede">
+            This report converts the whole-project scan into an implementation map. Every handwritten implementation file above
+            500 lines receives a meaningful split with a small interface, deep implementation, and explicit test surface.
+            The plan is now implemented; open the <a href="./architecture-refactor-implementation-20260731.html"><strong>final implementation report</strong></a>
+            for actual filenames, line counts, responsibilities, verification, and commits.
+          </p>
+          <div class="metrics" aria-label="Plan summary">
+            <div class="metric"><strong>7</strong><span>files above 500 lines</span></div>
+            <div class="metric"><strong>56</strong><span>proposed focused files</span></div>
+            <div class="metric"><strong>250–400</strong><span>preferred implementation range</span></div>
+            <div class="metric"><strong>0</strong><span>shallow barrel files</span></div>
+          </div>
+          <div class="rule-strip">
+            <div class="rule"><strong>Depth:</strong> split workflow implementation before splitting JSX.</div>
+            <div class="rule"><strong>Locality:</strong> keep files inside the owning module folder.</div>
+            <div class="rule"><strong>Test surface:</strong> tests cross the same interface as callers; review near 500 lines.</div>
+          </div>
+        </header>
+
+        <section class="module-section" id="sale">
+          <div class="section-head">
+            <div>
+              <span class="section-number">01 / SALE WORKFLOW</span>
+              <h2>Split NewSale into draft, workflow, persistence, and focused views</h2>
+              <span class="source-path">Current: src/features/sales/new/NewSale.tsx · 2,541 lines</span>
+            </div>
+            <span class="badge">Strong · highest risk</span>
+          </div>
+          <div class="section-summary">
+            <div class="tree-card">
+              <h3>Target folder structure</h3>
+              <pre class="tree">src/features/sales/new/
+├── NewSale.tsx
+├── workflow/
+│   ├── useSaleWorkflow.ts
+│   ├── saleDraft.ts
+│   ├── salePersistence.ts
+│   ├── SaleToolbar.tsx
+│   ├── SaleCustomerField.tsx
+│   ├── SaleItemEntry.tsx
+│   ├── SaleCartTable.tsx
+│   ├── SaleReminderPanel.tsx
+│   ├── SalePaymentPanel.tsx
+│   ├── SaleCompletionDialog.tsx
+│   └── SaleSettingsDialog.tsx
+├── PosConfirmationDialog.tsx
+├── salesShortcuts.ts
+└── NewSale.module.css</pre>
+            </div>
+            <div class="why-card">
+              <h3>Why this seam is deep</h3>
+              <div class="why-grid">
+                <div class="why-item"><strong>Current friction</strong><span>44 state cells, 18 effects, 43 handlers, and paid/pending coordination in one screen.</span></div>
+                <div class="why-item"><strong>Interface</strong><span><code>NewSale</code> remains the only external feature seam.</span></div>
+                <div class="why-item"><strong>Locality</strong><span>Cart and payment invariants remain inside Sale workflow implementation.</span></div>
+                <div class="why-item"><strong>Deletion test</strong><span>Deleting draft or workflow would spread real Sale rules back across multiple views.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="table-block">
+            <div class="table-intro"><h3>Proposed files</h3><p>Target ranges include imports, types, and tests seams—not padding.</p></div>
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">Sale workflow split details</caption>
+                <colgroup><col style="width:22%"><col style="width:11%"><col style="width:22%"><col style="width:45%"></colgroup>
+                <thead><tr><th scope="col">Proposed file</th><th scope="col">Target</th><th scope="col">Main export / function</th><th scope="col">Main responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">NewSale.tsx</td><td class="lines">100–160</td><td class="export">NewSale</td><td>External Sale workflow seam and layout composition only.</td></tr>
+                  <tr><td class="file">workflow/useSaleWorkflow.ts</td><td class="lines">350–450</td><td class="export">useSaleWorkflow</td><td>Remote loading, pending-bill reopen, submission, Stock refresh, and Sale outcomes.</td></tr>
+                  <tr><td class="file">workflow/saleDraft.ts</td><td class="lines">300–400</td><td class="export">reduceSaleDraft</td><td>Cart, batch allocation, quantity, discount, reminder, and pricing transitions.</td></tr>
+                  <tr><td class="file">workflow/salePersistence.ts</td><td class="lines">200–280</td><td class="export">persistSaleWorkflow</td><td>Translate a valid draft into pending or paid requests and normalized outcomes.</td></tr>
+                  <tr><td class="file">workflow/SaleToolbar.tsx</td><td class="lines">120–180</td><td class="export">SaleToolbar</td><td>Bill date, owner, pharmacist, Save, Save &amp; New, and settings entry.</td></tr>
+                  <tr><td class="file">workflow/SaleCustomerField.tsx</td><td class="lines">180–240</td><td class="export">SaleCustomerField</td><td>Customer search, selection, Member summary, and allergy context.</td></tr>
+                  <tr><td class="file">workflow/SaleItemEntry.tsx</td><td class="lines">300–400</td><td class="export">SaleItemEntry</td><td>Item search, barcode handling, pack and batch selection, and quantity commit.</td></tr>
+                  <tr><td class="file">workflow/SaleCartTable.tsx</td><td class="lines">320–420</td><td class="export">SaleCartTable</td><td>Grouped Sale lines, quantity edits, line removal, and Stock visibility.</td></tr>
+                  <tr><td class="file">workflow/SaleReminderPanel.tsx</td><td class="lines">180–260</td><td class="export">SaleReminderPanel</td><td>Dose eligibility, time selection, keyboard movement, and dose editing.</td></tr>
+                  <tr><td class="file">workflow/SalePaymentPanel.tsx</td><td class="lines">280–380</td><td class="export">SalePaymentPanel</td><td>Totals, bill discount, payment method, cash received, change, and paid submission.</td></tr>
+                  <tr><td class="file">workflow/SaleCompletionDialog.tsx</td><td class="lines">150–220</td><td class="export">SaleCompletionDialog</td><td>Paid outcome, receipt action, and next-Sale choice.</td></tr>
+                  <tr><td class="file">workflow/SaleSettingsDialog.tsx</td><td class="lines">140–220</td><td class="export">SaleSettingsDialog</td><td>Receipt paper, printer, and cash-drawer settings.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="section-note">Migration: absorb cohesive cart and pricing behavior from <code>salesPresentation.ts</code> into <code>saleDraft.ts</code>. Do not preserve a shallow helper interface merely to avoid changing imports.</p>
+        </section>
+
+        <section class="module-section" id="i18n">
+          <div class="section-head">
+            <div>
+              <span class="section-number">02 / I18N CATALOG</span>
+              <h2>Keep one translation interface; split private catalogs by pharmacy domain</h2>
+              <span class="source-path">Current: src/i18n/i18n.ts · 1,364 lines</span>
+            </div>
+            <span class="badge">Low behavioral risk</span>
+          </div>
+          <div class="section-summary">
+            <div class="tree-card">
+              <h3>Target folder structure</h3>
+              <pre class="tree">src/i18n/
+├── i18n.ts
+├── catalog/
+│   ├── assembleCatalog.ts
+│   ├── sharedCatalog.ts
+│   ├── salesCatalog.ts
+│   ├── stockCatalog.ts
+│   ├── purchaseCatalog.ts
+│   ├── memberCatalog.ts
+│   ├── settingsCatalog.ts
+│   └── migrationCatalog.ts
+├── productUnits.ts
+└── i18n.test.ts</pre>
+            </div>
+            <div class="why-card">
+              <h3>Why this seam is deep</h3>
+              <div class="why-grid">
+                <div class="why-item"><strong>Current friction</strong><span>English and Thai catalogs occupy roughly 1,330 lines in one file.</span></div>
+                <div class="why-item"><strong>Interface</strong><span><code>translate</code> and formatting functions remain unchanged.</span></div>
+                <div class="why-item"><strong>Locality</strong><span>English and Thai terms live together by domain, preventing drift.</span></div>
+                <div class="why-item"><strong>Deletion test</strong><span>Catalog files stay private because deleting one only moves strings.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="table-block">
+            <div class="table-intro"><h3>Proposed files</h3><p>No caller imports domain catalog files directly.</p></div>
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">I18n catalog split details</caption>
+                <colgroup><col style="width:22%"><col style="width:11%"><col style="width:22%"><col style="width:45%"></colgroup>
+                <thead><tr><th scope="col">Proposed file</th><th scope="col">Target</th><th scope="col">Main export / function</th><th scope="col">Main responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">i18n.ts</td><td class="lines">100–160</td><td class="export">translate, formatDate, formatNumber, formatMoney</td><td>Preserve the existing external I18n interface and fallback behavior.</td></tr>
+                  <tr><td class="file">catalog/assembleCatalog.ts</td><td class="lines">80–140</td><td class="export">assembleCatalog</td><td>Compose catalogs and enforce key and placeholder parity.</td></tr>
+                  <tr><td class="file">catalog/sharedCatalog.ts</td><td class="lines">180–280</td><td class="export">sharedCatalog</td><td>Common, navigation, authentication, and shared form text in both languages.</td></tr>
+                  <tr><td class="file">catalog/salesCatalog.ts</td><td class="lines">260–380</td><td class="export">salesCatalog</td><td>Sale home, New Sale, payment, receipt, and reminder text.</td></tr>
+                  <tr><td class="file">catalog/stockCatalog.ts</td><td class="lines">300–420</td><td class="export">stockCatalog</td><td>Stock inventory, entry, adjustment, filter, and detail text.</td></tr>
+                  <tr><td class="file">catalog/purchaseCatalog.ts</td><td class="lines">220–340</td><td class="export">purchaseCatalog</td><td>Purchase workflow, workflow status, corrections, and Distributor text.</td></tr>
+                  <tr><td class="file">catalog/memberCatalog.ts</td><td class="lines">180–300</td><td class="export">memberCatalog</td><td>Member directory, profile, allergy, and history text.</td></tr>
+                  <tr><td class="file">catalog/settingsCatalog.ts</td><td class="lines">220–340</td><td class="export">settingsCatalog</td><td>Account, staff, appearance, POS, store profile, and image settings text.</td></tr>
+                  <tr><td class="file">catalog/migrationCatalog.ts</td><td class="lines">180–300</td><td class="export">migrationCatalog</td><td>Stock, Member, Distributor, category, measurement, and expiry migration text.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="section-note green">Test surface: unchanged <code>translate</code> behavior plus catalog assembly checks for key completeness and interpolation placeholders.</p>
+        </section>
+
+        <section class="module-section" id="purchase">
+          <div class="section-head">
+            <div>
+              <span class="section-number">03 / PURCHASE WORKFLOW</span>
+              <h2>Concentrate Purchase transitions before splitting the view</h2>
+              <span class="source-path">Current: src/features/purchase/new/PurchaseEntry.tsx · 1,182 lines</span>
+            </div>
+            <span class="badge">Strong · transactional</span>
+          </div>
+          <div class="section-summary">
+            <div class="tree-card">
+              <h3>Target folder structure</h3>
+              <pre class="tree">src/features/purchase/new/
+├── PurchaseEntry.tsx
+├── workflow/
+│   ├── usePurchaseWorkflow.ts
+│   ├── purchaseDraft.ts
+│   ├── purchasePersistence.ts
+│   ├── PurchaseDetailsPanel.tsx
+│   ├── PurchaseLineEditor.tsx
+│   ├── PurchaseLineTable.tsx
+│   └── PurchaseTotalsPanel.tsx
+├── PurchaseWorkflowBar.tsx
+├── PurchaseUnitDropdown.tsx
+├── PurchaseCorrectionDialog.tsx
+└── PurchaseEntry.module.css</pre>
+            </div>
+            <div class="why-card">
+              <h3>Why this seam is deep</h3>
+              <div class="why-grid">
+                <div class="why-item"><strong>Current friction</strong><span>37 state cells and 13 effects mix line editing, status, totals, and corrections.</span></div>
+                <div class="why-item"><strong>Interface</strong><span><code>PurchaseEntry</code> remains the external feature seam.</span></div>
+                <div class="why-item"><strong>Locality</strong><span>Draft, status, and correction transitions live together.</span></div>
+                <div class="why-item"><strong>Deletion test</strong><span>Deleting workflow logic would spread status and validation rules into every view.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="table-block">
+            <div class="table-intro"><h3>Proposed files</h3><p>Existing focused files remain; shallow date aliases are removed.</p></div>
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">Purchase workflow split details</caption>
+                <colgroup><col style="width:22%"><col style="width:11%"><col style="width:22%"><col style="width:45%"></colgroup>
+                <thead><tr><th scope="col">Proposed file</th><th scope="col">Target</th><th scope="col">Main export / function</th><th scope="col">Main responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">PurchaseEntry.tsx</td><td class="lines">120–180</td><td class="export">PurchaseEntry</td><td>External Purchase workflow seam and layout composition.</td></tr>
+                  <tr><td class="file">workflow/usePurchaseWorkflow.ts</td><td class="lines">340–450</td><td class="export">usePurchaseWorkflow</td><td>Load/create/edit lifecycle, permissions, status, corrections, and persistence outcomes.</td></tr>
+                  <tr><td class="file">workflow/purchaseDraft.ts</td><td class="lines">240–340</td><td class="export">reducePurchaseDraft</td><td>Line draft, pack multipliers, totals, VAT, adjustment, and required-value rules.</td></tr>
+                  <tr><td class="file">workflow/purchasePersistence.ts</td><td class="lines">160–240</td><td class="export">persistPurchaseWorkflow</td><td>Build save and correction requests and normalize responses.</td></tr>
+                  <tr><td class="file">workflow/PurchaseDetailsPanel.tsx</td><td class="lines">180–260</td><td class="export">PurchaseDetailsPanel</td><td>Distributor, bill number, date, status, and review fields.</td></tr>
+                  <tr><td class="file">workflow/PurchaseLineEditor.tsx</td><td class="lines">300–420</td><td class="export">PurchaseLineEditor</td><td>Catalog search, barcode selection, unit, quantity, cost, free quantity, lot, and expiry.</td></tr>
+                  <tr><td class="file">workflow/PurchaseLineTable.tsx</td><td class="lines">220–320</td><td class="export">PurchaseLineTable</td><td>Saved line display, removal, and quantity and cost presentation.</td></tr>
+                  <tr><td class="file">workflow/PurchaseTotalsPanel.tsx</td><td class="lines">180–260</td><td class="export">PurchaseTotalsPanel</td><td>Subtotal, VAT, adjustment, net total, and save actions.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="section-note">Migration: import expiry functions directly from <code>src/lib/expiryDate.ts</code>; absorb <code>canSavePurchase</code> into <code>purchaseDraft.ts</code>, then delete unused shallow aliases.</p>
+        </section>
+
+        <section class="module-section" id="stock-persistence">
+          <div class="section-head">
+            <div>
+              <span class="section-number">04 / STOCK PERSISTENCE</span>
+              <h2>Replace one wide repository with deep modules organized by intent</h2>
+              <span class="source-path">Current: server/db/stockRepository.ts · 1,028 lines</span>
+            </div>
+            <span class="badge">Strong · server</span>
+          </div>
+          <div class="section-summary">
+            <div class="tree-card">
+              <h3>Target folder structure</h3>
+              <pre class="tree">server/db/stock/
+├── stockCatalogRepository.ts
+├── stockProductProjection.ts
+├── stockItemRepository.ts
+├── stockMovementRepository.ts
+├── stockItemMapper.ts
+├── stockItemDetail.ts
+└── stockReadQuery.ts
+
+server/product-images/
+└── stockPhotoStorage.ts</pre>
+            </div>
+            <div class="why-card">
+              <h3>Why these seams are real</h3>
+              <div class="why-grid">
+                <div class="why-item"><strong>Current friction</strong><span>Read SQL, writes, Stock movement, and photo storage change for different reasons.</span></div>
+                <div class="why-item"><strong>Adapters</strong><span>Sale and Purchase are two callers of the Stock movement seam.</span></div>
+                <div class="why-item"><strong>Locality</strong><span>Each database module owns one durable group of invariants.</span></div>
+                <div class="why-item"><strong>Deletion test</strong><span>Deleting any proposed module spreads its rules into routes or transactional callers.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="table-block">
+            <div class="table-intro"><h3>Proposed files</h3><p>Callers import the owning module directly; no re-export file remains.</p></div>
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">Stock persistence split details</caption>
+                <colgroup><col style="width:22%"><col style="width:11%"><col style="width:22%"><col style="width:45%"></colgroup>
+                <thead><tr><th scope="col">Proposed file</th><th scope="col">Target</th><th scope="col">Main export / function</th><th scope="col">Main responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">db/stock/stockCatalogRepository.ts</td><td class="lines">380–480</td><td class="export">readStockProducts</td><td>Authoritative query, filtering, sorting, paging, weekly sales, and batch-cost reads.</td></tr>
+                  <tr><td class="file">db/stock/stockProductProjection.ts</td><td class="lines">160–240</td><td class="export">projectStockProduct</td><td>Convert database product graphs and aggregates into <code>SalesProduct</code>.</td></tr>
+                  <tr><td class="file">db/stock/stockItemRepository.ts</td><td class="lines">340–450</td><td class="export">saveStockItem, updateStockItemDetail, deleteStockItem</td><td>Barcode checks, product/pack/batch upsert, item details, and soft deletion.</td></tr>
+                  <tr><td class="file">db/stock/stockMovementRepository.ts</td><td class="lines">180–280</td><td class="export">receivePurchasedStock, dispenseSoldStock</td><td>Batch identity, receipt, dispense order, locking, and quantity invariants.</td></tr>
+                  <tr><td class="file">product-images/stockPhotoStorage.ts</td><td class="lines">260–360</td><td class="export">storeAllExternalStockPhotos</td><td>Bulk image eligibility, storage concurrency, persistence, cleanup, and failure outcomes.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="section-note green">Delete <code>server/db/stockRepository.ts</code> after callers move. A compatibility re-export would be a shallow module and fails the deletion test.</p>
+        </section>
+
+        <section class="module-section" id="stock-inventory">
+          <div class="section-head">
+            <div>
+              <span class="section-number">05 / STOCK INVENTORY</span>
+              <h2>Move Stock implementation out of the route entry</h2>
+              <span class="source-path">Current: src/pages/stock/StockPage.tsx · 968 lines</span>
+            </div>
+            <span class="badge">Strong · ADR-001</span>
+          </div>
+          <div class="section-summary">
+            <div class="tree-card">
+              <h3>Target folder structure</h3>
+              <pre class="tree">src/pages/stock/
+└── StockPage.tsx
+
+src/features/stock/inventory/
+├── StockInventory.tsx
+├── useStockInventory.ts
+├── stockInventoryModel.ts
+├── StockInventoryFilters.tsx
+└── StockInventoryTable.tsx</pre>
+            </div>
+            <div class="why-card">
+              <h3>Why this seam is deep</h3>
+              <div class="why-grid">
+                <div class="why-item"><strong>Current friction</strong><span>The route owns workflow, filters, paging, table, dialogs, and mutations.</span></div>
+                <div class="why-item"><strong>Correctness</strong><span>Local filtering currently runs over only one server page and can disagree with totals.</span></div>
+                <div class="why-item"><strong>Locality</strong><span>Query, filters, sort, page, and reconciliation stay in one feature module.</span></div>
+                <div class="why-item"><strong>ADR alignment</strong><span>The route becomes a small entry that composes the Stock feature.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="table-block">
+            <div class="table-intro"><h3>Proposed files</h3><p>The server remains authoritative for result filtering and counts.</p></div>
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">Stock inventory split details</caption>
+                <colgroup><col style="width:22%"><col style="width:11%"><col style="width:22%"><col style="width:45%"></colgroup>
+                <thead><tr><th scope="col">Proposed file</th><th scope="col">Target</th><th scope="col">Main export / function</th><th scope="col">Main responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">pages/stock/StockPage.tsx</td><td class="lines">15–35</td><td class="export">StockPage</td><td>Lazy route entry that renders the Stock inventory module.</td></tr>
+                  <tr><td class="file">inventory/StockInventory.tsx</td><td class="lines">180–260</td><td class="export">StockInventory</td><td>External feature seam and inventory layout composition.</td></tr>
+                  <tr><td class="file">inventory/useStockInventory.ts</td><td class="lines">320–440</td><td class="export">useStockInventory</td><td>Query, draft/applied filters, sort, paging, request cancellation, and mutation reconciliation.</td></tr>
+                  <tr><td class="file">inventory/stockInventoryModel.ts</td><td class="lines">200–300</td><td class="export">projectStockInventory</td><td>Stock row projection, stable criteria, range parsing, and sort descriptions.</td></tr>
+                  <tr><td class="file">inventory/StockInventoryFilters.tsx</td><td class="lines">260–360</td><td class="export">StockInventoryFilters</td><td>Search and filter controls, option lists, apply/reset, and resize handle.</td></tr>
+                  <tr><td class="file">inventory/StockInventoryTable.tsx</td><td class="lines">300–420</td><td class="export">StockInventoryTable</td><td>Sort headers, rows, labels, actions, loading, and empty results.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="section-note">Correctness requirement: remove client filtering over only the current server page so rows, total count, pagination, and filter options share one authoritative implementation.</p>
+        </section>
+
+        <section class="module-section" id="stock-entry">
+          <div class="section-head">
+            <div>
+              <span class="section-number">06 / STOCK ITEM ENTRY</span>
+              <h2>Put draft invariants behind the Stock item form seam</h2>
+              <span class="source-path">Current: src/features/stock/StockEntryForm.tsx · 805 lines</span>
+            </div>
+            <span class="badge">Strong · form workflow</span>
+          </div>
+          <div class="section-summary">
+            <div class="tree-card">
+              <h3>Target folder structure</h3>
+              <pre class="tree">src/features/stock/entry/
+├── StockEntryForm.tsx
+├── useStockItemDraft.ts
+├── stockItemDraft.ts
+├── SearchableStockSelect.tsx
+├── StockPhotoField.tsx
+├── StockIdentityFields.tsx
+├── StockPackagingEditor.tsx
+├── StockRegulatoryFields.tsx
+└── StockDeleteDialog.tsx</pre>
+            </div>
+            <div class="why-card">
+              <h3>Why this seam is deep</h3>
+              <div class="why-grid">
+                <div class="why-item"><strong>Current friction</strong><span>22 state cells mix normalization, packaging, save/delete, focus, and rendering.</span></div>
+                <div class="why-item"><strong>Ownership leak</strong><span><code>SearchableSelect</code> is exported from the form and imported by Stock detail.</span></div>
+                <div class="why-item"><strong>Locality</strong><span>Draft transitions and serialization remain behind one form interface.</span></div>
+                <div class="why-item"><strong>Deletion test</strong><span>The draft module earns depth; tiny keyboard helpers do not.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="table-block">
+            <div class="table-intro"><h3>Proposed files</h3><p>View modules receive coherent state and commands, not individual setters.</p></div>
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">Stock item entry split details</caption>
+                <colgroup><col style="width:22%"><col style="width:11%"><col style="width:22%"><col style="width:45%"></colgroup>
+                <thead><tr><th scope="col">Proposed file</th><th scope="col">Target</th><th scope="col">Main export / function</th><th scope="col">Main responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">entry/StockEntryForm.tsx</td><td class="lines">150–220</td><td class="export">StockEntryForm</td><td>Form seam, section composition, submit, and focus ownership.</td></tr>
+                  <tr><td class="file">entry/useStockItemDraft.ts</td><td class="lines">300–420</td><td class="export">useStockItemDraft</td><td>Draft initialization, save/delete state, keyboard flow, and serialization outcomes.</td></tr>
+                  <tr><td class="file">entry/stockItemDraft.ts</td><td class="lines">220–320</td><td class="export">reduceStockItemDraft</td><td>Normalization, required-value rules, packaging transitions, and regulatory transitions.</td></tr>
+                  <tr><td class="file">entry/SearchableStockSelect.tsx</td><td class="lines">160–240</td><td class="export">SearchableStockSelect</td><td>Custom searchable selectable field shared by Stock entry and Stock detail.</td></tr>
+                  <tr><td class="file">entry/StockPhotoField.tsx</td><td class="lines">130–200</td><td class="export">StockPhotoField</td><td>Photo URL preview, input, and replacement action.</td></tr>
+                  <tr><td class="file">entry/StockIdentityFields.tsx</td><td class="lines">220–320</td><td class="export">StockIdentityFields</td><td>Barcode, name, brand, manufacturer, category, location, price, and measurement.</td></tr>
+                  <tr><td class="file">entry/StockPackagingEditor.tsx</td><td class="lines">260–380</td><td class="export">StockPackagingEditor</td><td>Parent/child packs, multiplier, barcode, price, add/remove, and keyboard flow.</td></tr>
+                  <tr><td class="file">entry/StockRegulatoryFields.tsx</td><td class="lines">140–220</td><td class="export">StockRegulatoryFields</td><td>Regulatory form selection and active-ingredient presentation.</td></tr>
+                  <tr><td class="file">entry/StockDeleteDialog.tsx</td><td class="lines">120–180</td><td class="export">StockDeleteDialog</td><td>Delete confirmation, pending state, and error presentation.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="section-note green">Move <code>SearchableSelect</code> out of <code>StockEntryForm.tsx</code>; <code>StockItemDetailDialog</code> should import the correctly owned Stock selectable-field module.</p>
+        </section>
+
+        <section class="module-section" id="member">
+          <div class="section-head">
+            <div>
+              <span class="section-number">07 / MEMBER PROFILE</span>
+              <h2>Separate Member profile workflow from summary and history views</h2>
+              <span class="source-path">Current: src/features/member/detail/MemberDetail.tsx · 542 lines</span>
+            </div>
+            <span class="badge warn">Worth exploring · smallest</span>
+          </div>
+          <div class="section-summary">
+            <div class="tree-card">
+              <h3>Target folder structure</h3>
+              <pre class="tree">src/features/member/detail/
+├── MemberDetail.tsx
+├── useMemberProfile.ts
+├── memberProfileDraft.ts
+├── MemberSummary.tsx
+├── MemberAllergyPanel.tsx
+├── MemberPurchaseHistory.tsx
+├── MemberProfileDialog.tsx
+└── MemberDetail.module.css</pre>
+            </div>
+            <div class="why-card">
+              <h3>Why this seam is deep</h3>
+              <div class="why-grid">
+                <div class="why-item"><strong>Current friction</strong><span>23 state cells mix profile load, avatar, allergy search, editing, and history.</span></div>
+                <div class="why-item"><strong>Domain safety</strong><span>Member contact and allergy data remain coherent during edits.</span></div>
+                <div class="why-item"><strong>Locality</strong><span>Draft validation and save outcomes stay in the profile workflow.</span></div>
+                <div class="why-item"><strong>Deletion test</strong><span>Deleting the workflow spreads async search, validation, and save state back into views.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="table-block">
+            <div class="table-intro"><h3>Proposed files</h3><p>Keep the existing server Member repository; it is already below the ceiling.</p></div>
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">Member profile split details</caption>
+                <colgroup><col style="width:22%"><col style="width:11%"><col style="width:22%"><col style="width:45%"></colgroup>
+                <thead><tr><th scope="col">Proposed file</th><th scope="col">Target</th><th scope="col">Main export / function</th><th scope="col">Main responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">MemberDetail.tsx</td><td class="lines">100–160</td><td class="export">MemberDetail</td><td>Route parameter, Member profile seam, load/error/not-found state, and layout.</td></tr>
+                  <tr><td class="file">useMemberProfile.ts</td><td class="lines">220–320</td><td class="export">useMemberProfile</td><td>Member load, profile save, ingredient search, avatar outcome, and edit lifecycle.</td></tr>
+                  <tr><td class="file">memberProfileDraft.ts</td><td class="lines">160–240</td><td class="export">reduceMemberProfileDraft</td><td>Name, Thai phone, avatar, allergy selection, dirty state, and request serialization.</td></tr>
+                  <tr><td class="file">MemberSummary.tsx</td><td class="lines">100–160</td><td class="export">MemberSummary</td><td>Member identity, rank, points, totals, and contact summary.</td></tr>
+                  <tr><td class="file">MemberAllergyPanel.tsx</td><td class="lines">140–220</td><td class="export">MemberAllergyPanel</td><td>Read-only allergy safety display and empty state.</td></tr>
+                  <tr><td class="file">MemberPurchaseHistory.tsx</td><td class="lines">220–320</td><td class="export">MemberPurchaseHistory</td><td>Transaction/item tabs, status filter, time order, expansion, and line details.</td></tr>
+                  <tr><td class="file">MemberProfileDialog.tsx</td><td class="lines">260–380</td><td class="export">MemberProfileDialog</td><td>Profile fields, avatar, ingredient search, allergy editing, validation, and save.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="section-note">Do not pass every state setter through the view interface. Expose coherent profile state and commands so the interface remains smaller than the implementation.</p>
+        </section>
+
+        <section class="audit-section" id="within-ceiling">
+          <div class="section-head">
+            <div>
+              <span class="section-number">08 / KEEP AS-IS AUDIT</span>
+              <h2>Files already inside the requested 300–500 band</h2>
+              <span class="source-path">No split based on line count alone</span>
+            </div>
+            <span class="badge warn">Monitor growth</span>
+          </div>
+          <div class="table-block">
+            <div class="table-scroll">
+              <table>
+                <caption class="skip-link">Files within the line ceiling</caption>
+                <colgroup><col style="width:42%"><col style="width:12%"><col style="width:46%"></colgroup>
+                <thead><tr><th scope="col">File</th><th scope="col">Lines</th><th scope="col">Recommendation</th></tr></thead>
+                <tbody>
+                  <tr><td class="file">src/features/stock/adjustment/StockAdjustment.tsx</td><td class="lines">492</td><td>Keep; review only if it grows.</td></tr>
+                  <tr><td class="file">server/db/memberRepository.ts</td><td class="lines">465</td><td>Keep; it already builds the Member read model.</td></tr>
+                  <tr><td class="file">server/product-images/s3Storage.ts</td><td class="lines">437</td><td>Keep; focused storage adapter.</td></tr>
+                  <tr><td class="file">server/import/productCategoryNormalization.ts</td><td class="lines">436</td><td>Keep; cohesive normalization implementation.</td></tr>
+                  <tr><td class="file">server/db/saleRepository.ts</td><td class="lines">429</td><td>Keep during Sale workflow refactor; reassess after workflow tests.</td></tr>
+                  <tr><td class="file">server/import/cwStockNormalizer.ts</td><td class="lines">417</td><td>Keep; deep import normalization module.</td></tr>
+                  <tr><td class="file">server/db/cwStockMigrationRepository.ts</td><td class="lines">403</td><td>Keep; focused migration persistence.</td></tr>
+                  <tr><td class="file">server/receipts/receiptPdf.ts</td><td class="lines">392</td><td>Keep; focused PDF implementation.</td></tr>
+                  <tr><td class="file">src/features/dashboard/Dashboard.tsx</td><td class="lines">369</td><td>Keep; split only when a real data workflow arrives.</td></tr>
+                  <tr><td class="file">server/import/lotExpiryMigration.ts</td><td class="lines">368</td><td>Keep; focused migration module.</td></tr>
+                  <tr><td class="file">server/import/distributorDataMigration.ts</td><td class="lines">352</td><td>Keep; focused migration module.</td></tr>
+                  <tr><td class="file">src/features/sales/SalesHome.tsx</td><td class="lines">322</td><td>Keep.</td></tr>
+                  <tr><td class="file">src/components/navigation/TopBar.tsx</td><td class="lines">316</td><td>Keep.</td></tr>
+                  <tr><td class="file">src/features/member/MemberDirectory.tsx</td><td class="lines">313</td><td>Keep.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="rollout-section" id="rollout">
+          <div class="section-head">
+            <div>
+              <span class="section-number">09 / IMPLEMENTATION ORDER</span>
+              <h2>Prove the pattern before touching paid and pending Sale behavior</h2>
+              <span class="source-path">Architectural priority: Sale workflow · Safer delivery order: low risk to high risk</span>
+            </div>
+            <span class="badge">7 increments</span>
+          </div>
+          <div class="rollout-body">
+            <ol class="rollout-list">
+              <li><span class="rollout-index">1</span><div><strong>I18n catalog</strong><span>Lowest behavioral risk; establishes internal implementation splitting.</span></div></li>
+              <li><span class="rollout-index">2</span><div><strong>Member profile</strong><span>Smallest UI workflow; validates draft and view separation.</span></div></li>
+              <li><span class="rollout-index">3</span><div><strong>Stock item entry</strong><span>Creates correctly owned selection and draft modules.</span></div></li>
+              <li><span class="rollout-index">4</span><div><strong>Stock inventory</strong><span>Restores ADR-001 and fixes page-local filtering drift.</span></div></li>
+              <li><span class="rollout-index">5</span><div><strong>Stock persistence</strong><span>Separates reads, item writes, movement, and image maintenance.</span></div></li>
+              <li><span class="rollout-index">6</span><div><strong>Purchase workflow</strong><span>Deepens the transactional workflow after Stock movement exists.</span></div></li>
+              <li><span class="rollout-index">7</span><div><strong>Sale workflow</strong><span>Largest and highest-risk refactor; use the proven module pattern.</span></div></li>
+            </ol>
+          </div>
+        </section>
+
+        <footer class="report-footer">
+          Pharm architecture review · Handwritten implementation only · CSS and generated Prisma excluded
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

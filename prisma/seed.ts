@@ -2,18 +2,18 @@ import "dotenv/config";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@server/generated/prisma/client";
+import { PrismaClient } from "../server/generated/prisma/client";
 import {
   customers,
   salesProducts,
 } from "./seedData";
-import type { SavedStockItem } from "@server/db/types";
+import type { SavedStockItem } from "../server/db/types";
 import {
   mergeStockSeedData,
   type StockProductOverride,
-} from "@server/db/stockDataMapper";
-import { normalizePostgresConnectionString } from "@server/db/postgresConnection";
-import { normalizeProductCategory } from "@server/import/productCategoryNormalization";
+} from "../server/db/stock/stockDataMapper";
+import { normalizePostgresConnectionString } from "../server/db/core/postgresConnection";
+import { normalizeProductCategory } from "../server/import/productCategoryNormalization";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not configured.");

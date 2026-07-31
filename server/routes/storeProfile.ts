@@ -1,6 +1,6 @@
 import { parseStoreProfileUpdate } from "@/config/preferences/storeProfile";
 import { isAuthenticationError, requireAuthenticatedUser, requireStoreOwner } from "@server/auth/pharmUser";
-import { readStoreProfile, saveStoreProfile } from "@server/db/storeProfileRepository";
+import { readStoreProfile, saveStoreProfile } from "@server/db/settings/storeProfileRepository";
 
 export async function GET() {
   try {

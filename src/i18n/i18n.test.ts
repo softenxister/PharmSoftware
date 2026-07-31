@@ -5,6 +5,11 @@ import {
   formatMoney,
   translate,
 } from "./i18n";
+import { findCatalogPlaceholderMismatches } from "./catalog/assembleCatalog";
+
+test("localized catalog entries preserve their interpolation contract", () => {
+  assert.deepEqual(findCatalogPlaceholderMismatches(), []);
+});
 
 test("Thai navigation copy stays compact", () => {
   assert.equal(translate("th", "nav.dashboard"), "ภาพรวม");

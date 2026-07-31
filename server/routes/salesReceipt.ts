@@ -3,7 +3,7 @@ import {
   readPaidReceipt,
   ReceiptNotFoundError,
   ReceiptNotPrintableError,
-} from "@server/db/receiptRepository";
+} from "@server/db/sale/receiptRepository";
 
 function receiptId(request: Request): string | null {
   const value = new URL(request.url).searchParams.get("saleId")?.trim() ?? "";

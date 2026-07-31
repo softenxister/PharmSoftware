@@ -5,7 +5,7 @@ import {
   EXPIRY_WINDOWS,
   STOCK_ADJUSTMENT_STATES,
   STOCK_LEVELS,
-} from "./stockInventoryFilters";
+} from "./inventory/stockInventoryModel";
 import { getStockFilterOptionLabel } from "./stockFilterLabels";
 
 test("every standard Stock sidebar option has a Thai display label", () => {

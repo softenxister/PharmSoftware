@@ -4,7 +4,7 @@ import {
   readPaidReceipt,
   ReceiptNotFoundError,
   ReceiptNotPrintableError,
-} from "@server/db/receiptRepository";
+} from "@server/db/sale/receiptRepository";
 import { generateReceiptPdf } from "@server/receipts/receiptPdf";
 
 function safeFilename(value: string): string {

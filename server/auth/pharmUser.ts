@@ -72,6 +72,6 @@ export const requireStockManager = async () => {
   if (!user.canManageStock) throw new Error("Purchase permission denied.");
   return user;
 };
-import { readAccountBySessionHash, type PrivatePharmAccount } from "@server/db/authRepository";
+import { readAccountBySessionHash, type PrivatePharmAccount } from "@server/db/auth/authRepository";
 import { getRequestCookie } from "./requestContext";
 import { AUTH_SESSION_COOKIE, hashSessionToken } from "./sessionToken";

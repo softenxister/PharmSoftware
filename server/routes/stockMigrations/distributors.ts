@@ -6,7 +6,7 @@ import {
   DistributorMigrationConfirmationError,
   importDistributorDataMigration,
   previewDistributorDataMigration,
-} from "@server/db/distributorDataMigrationRepository";
+} from "@server/db/migration/distributorDataMigrationRepository";
 import {
   MAX_DISTRIBUTOR_DATA_REQUEST_BYTES,
   validateDistributorDataUpload,

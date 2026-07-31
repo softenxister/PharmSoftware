@@ -1,7 +1,7 @@
 import { clearSessionCookie } from "@server/auth/sessionCookie";
 import { getRequestCookie } from "@server/auth/requestContext";
 import { AUTH_SESSION_COOKIE, hashSessionToken } from "@server/auth/sessionToken";
-import { deleteAuthSession } from "@server/db/authRepository";
+import { deleteAuthSession } from "@server/db/auth/authRepository";
 
 export async function POST() {
   const token = getRequestCookie(AUTH_SESSION_COOKIE);

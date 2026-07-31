@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@server/generated/prisma/client";
-import { prisma } from "@server/db/prisma";
+import { prisma } from "@server/db/core/prisma";
 import { productImageUrl } from "./placeholder";
 import {
   buildProductImageStorageKey,

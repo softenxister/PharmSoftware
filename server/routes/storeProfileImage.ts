@@ -1,6 +1,6 @@
 import { MAX_STORE_PROFILE_IMAGE_BYTES, validateStoreProfileImage } from "@/config/preferences/storeProfile";
 import { isAuthenticationError, requireAuthenticatedUser, requireStoreOwner } from "@server/auth/pharmUser";
-import { readStoreProfileImage, saveStoreProfileImage } from "@server/db/storeProfileRepository";
+import { readStoreProfileImage, saveStoreProfileImage } from "@server/db/settings/storeProfileRepository";
 
 export async function GET() {
   try {

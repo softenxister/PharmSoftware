@@ -6,7 +6,7 @@ import {
   listPharmacistAccounts,
   resetPharmacistPassword,
   setPharmacistActive,
-} from "@server/db/authRepository";
+} from "@server/db/auth/authRepository";
 
 async function ownerOrResponse() {
   try {

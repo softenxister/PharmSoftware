@@ -2,7 +2,7 @@ import {
   isAuthenticationError,
   requireStockManager,
 } from "@server/auth/pharmUser";
-import { normalizeAllProductCategories } from "@server/db/productCategoryNormalizationRepository";
+import { normalizeAllProductCategories } from "@server/db/migration/productCategoryNormalizationRepository";
 
 function errorResponse(code: string, message: string, status: number) {
   return Response.json({ error: { code, message } }, { status });

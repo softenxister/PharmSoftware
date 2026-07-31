@@ -1,5 +1,5 @@
 import { requireStoreOwner } from "@server/auth/pharmUser";
-import { storeAllExternalStockPhotos } from "@server/db/stockRepository";
+import { storeAllExternalStockPhotos } from "@server/product-images/stockPhotoStorage";
 
 export async function POST() {
   try {

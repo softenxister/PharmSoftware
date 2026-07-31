@@ -1,5 +1,5 @@
 import { ProductCompositionStatus } from "@server/generated/prisma/client";
-import { prisma } from "@server/db/prisma";
+import { prisma } from "@server/db/core/prisma";
 import { canonicalIngredient } from "./ingredientNormalization";
 import { lookupOpenFdaComposition } from "./openFdaCompositionProvider";
 import { lookupThaiFdaComposition } from "./thaiFdaCompositionProvider";
