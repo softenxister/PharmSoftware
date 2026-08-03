@@ -51,9 +51,23 @@ export type PurchaseCorrection = {
   reason: string;
 };
 
+export type PurchaseDiscountType = "percent" | "thb";
+export type PurchaseDiscountTiming = "beforeVat" | "afterVat";
+
+export function selectPurchaseDiscountType(
+  value: string,
+  type: PurchaseDiscountType,
+): { value: string; type: PurchaseDiscountType } {
+  return { value, type };
+}
+
 export function positivePurchaseNumber(value: string): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function roundPurchaseCurrency(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 export function canSavePurchase(lineCount: number, netTotal: number): boolean {
@@ -84,24 +98,74 @@ export function getDistributorMatches(
 export function calculatePurchaseTotals(
   lines: Array<Pick<PurchaseLine, "qty" | "cost">>,
   vatIncluded: boolean,
-  adjustment: string,
-  adjustmentType: "percent" | "thb",
+  discount: string,
+  discountType: PurchaseDiscountType,
+  discountTiming: PurchaseDiscountTiming,
 ) {
   const totalQty = lines.reduce((sum, line) => sum + positivePurchaseNumber(line.qty), 0);
   const subtotal = lines.reduce((sum, line) => (
     sum + positivePurchaseNumber(line.qty) * positivePurchaseNumber(line.cost)
   ), 0);
-  const adjustmentValue = positivePurchaseNumber(adjustment);
-  const adjustmentAmount = adjustmentType === "percent"
-    ? (subtotal * Math.min(adjustmentValue, 99)) / 100
-    : adjustmentValue;
-  const vatAmount = vatIncluded ? 0 : subtotal * 0.07;
+  const discountValue = positivePurchaseNumber(discount);
+  const vatBeforeDiscount = vatIncluded ? 0 : subtotal * 0.07;
+  const discountBase = discountTiming === "afterVat"
+    ? subtotal + vatBeforeDiscount
+    : subtotal;
+  const rawDiscountAmount = discountType === "percent"
+    ? (discountBase * Math.min(discountValue, 100)) / 100
+    : discountValue;
+  const discountAmount = roundPurchaseCurrency(Math.min(rawDiscountAmount, discountBase));
+  const discountedSubtotal = Math.max(subtotal - discountAmount, 0);
+  const vatAmount = roundPurchaseCurrency(vatIncluded
+    ? 0
+    : discountTiming === "beforeVat"
+      ? discountedSubtotal * 0.07
+      : vatBeforeDiscount);
+  const netTotal = discountTiming === "beforeVat"
+    ? discountedSubtotal + vatAmount
+    : subtotal + vatAmount - discountAmount;
   return {
     totalQty,
     subtotal,
-    adjustmentAmount,
+    discountAmount,
     vatAmount,
-    netTotal: Math.max(subtotal + vatAmount + adjustmentAmount, 0),
+    netTotal: roundPurchaseCurrency(Math.max(netTotal, 0)),
+  };
+}
+
+export function calculatePurchaseLineActualCost(
+  existingLines: Array<Pick<PurchaseLine, "qty" | "cost">>,
+  draftLine: Pick<PurchaseLine, "qty" | "cost">,
+  vatIncluded: boolean,
+  discount: string,
+  discountType: PurchaseDiscountType,
+  discountTiming: PurchaseDiscountTiming,
+) {
+  const quantity = positivePurchaseNumber(draftLine.qty);
+  const baseCost = positivePurchaseNumber(draftLine.cost);
+  if (quantity === 0 || baseCost === 0) {
+    return { baseCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
+  }
+
+  const totals = calculatePurchaseTotals(
+    [...existingLines, draftLine],
+    vatIncluded,
+    discount,
+    discountType,
+    discountTiming,
+  );
+  if (totals.subtotal === 0) {
+    return { baseCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
+  }
+
+  const unitAllocation = baseCost / totals.subtotal;
+  const discountPerUnit = roundPurchaseCurrency(totals.discountAmount * unitAllocation);
+  const vatPerUnit = roundPurchaseCurrency(totals.vatAmount * unitAllocation);
+  return {
+    baseCost,
+    discountPerUnit,
+    vatPerUnit,
+    actualCost: roundPurchaseCurrency(Math.max(baseCost - discountPerUnit + vatPerUnit, 0)),
   };
 }
 

@@ -1,4 +1,5 @@
 import { MemberAvatar } from '@/components/member/MemberAvatar';
+import { FormattedDateInput } from '@/components/forms/FormattedDateInput';
 import styles from '../NewSale.module.css';
 import { PHARMACISTS } from './saleTypes';
 import { CustomSelect, IconClose } from './SalePrimitives';
@@ -29,10 +30,15 @@ export function SaleCustomerField({ sale }: { sale: SaleWorkflow }) {
 
   return (
     <div className={styles.metaRow}>
-      <label className={`${styles.metaField} ${styles.dateField}`}>
-        <span className={styles.metaLabel}>{t('newSale.billDate')}</span>
-        <input type="date" value={billDate} onChange={(event) => setBillDate(event.target.value)} className={styles.dateInput} />
-      </label>
+      <div className={`${styles.metaField} ${styles.dateField}`}>
+        <label className={styles.metaLabel} htmlFor="sale-bill-date">{t('newSale.billDate')}</label>
+        <FormattedDateInput
+          id="sale-bill-date"
+          value={billDate}
+          onChange={setBillDate}
+          calendarLabel={t('purchaseEntry.openCalendar', { label: t('newSale.billDate') })}
+        />
+      </div>
 
       <div className={`${styles.metaField} ${styles.customerField}`} ref={customerFieldRef}>
         <span className={styles.metaLabel}>{t('sales.customer')}</span>

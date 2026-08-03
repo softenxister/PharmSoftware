@@ -457,7 +457,7 @@
 
 .metaRow {
   display: grid;
-  grid-template-columns: 168px minmax(360px, 1fr) 220px;
+  grid-template-columns: 144px minmax(360px, 1fr) 220px;
   align-items: start;
   gap: 14px;
   padding: 12px 20px;
@@ -475,7 +475,7 @@
 
 .dateField {
   min-width: 0;
-  width: 168px;
+  width: 144px;
 }
 
 .customerField {
@@ -498,7 +498,6 @@
   color: var(--ink-muted);
 }
 
-.dateInput,
 .textInput {
   border: 1px solid var(--border);
   border-radius: 9px;
@@ -510,16 +509,10 @@
   background: var(--surface);
 }
 
-.dateInput {
-  width: 168px;
-  padding-right: 6px;
-}
-
 .textInput {
   width: 100%;
 }
 
-.dateInput:focus-visible,
 .textInput:focus-visible {
   outline: none;
   border-color: var(--primary);
@@ -2388,10 +2381,6 @@
     justify-self: stretch;
     width: 100%;
     min-width: 0;
-  }
-
-  .dateInput {
-    width: 100%;
   }
 
   .editorPrimaryRow {

@@ -1,52 +1,30 @@
-import { useRef, useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { useId, useState } from "react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import { FormattedDateInput } from "@/components/forms/FormattedDateInput";
 import styles from "@/features/purchase/new/PurchaseEntry.module.css";
-import { formatPurchaseExpiryDate as formatDateDisplay } from "@/lib/expiryDate";
+
+function localTodayIso() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export function DateField({ label }: { label: string }) {
   const { t } = usePreferences();
-  const [displayDate, setDisplayDate] = useState("");
-  const pickerRef = useRef<HTMLInputElement>(null);
-
-  const openPicker = () => {
-    if (pickerRef.current?.showPicker) {
-      pickerRef.current.showPicker();
-      return;
-    }
-
-    pickerRef.current?.click();
-  };
+  const inputId = useId();
+  const [date, setDate] = useState(localTodayIso);
 
   return (
-    <div>
-      <label className={styles.fieldLabel}>{label}</label>
-      <div className={`${styles.field} ${styles.fieldGroup}`}>
-        <button
-          type="button"
-          onClick={openPicker}
-          className={styles.dateButton}
-          aria-label={t("purchaseEntry.openCalendar", { label })}
-        >
-          <CalendarDays size={15} color="#47745a" />
-        </button>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={displayDate}
-          onChange={event => setDisplayDate(event.target.value)}
-          placeholder="dd/mm/yy"
-          className={styles.fieldInput}
-        />
-        <input
-          ref={pickerRef}
-          type="date"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={event => setDisplayDate(formatDateDisplay(event.target.value))}
-          className={styles.hiddenDateInput}
-        />
-      </div>
+    <div className={styles.purchaseDateField}>
+      <label className={styles.fieldLabel} htmlFor={inputId}>{label}</label>
+      <FormattedDateInput
+        id={inputId}
+        value={date}
+        onChange={setDate}
+        calendarLabel={t("purchaseEntry.openCalendar", { label })}
+      />
     </div>
   );
 }

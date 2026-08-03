@@ -1,5 +1,6 @@
 import { DateField } from "@/features/purchase/components/DateField";
 import { DistributorField } from "@/features/purchase/components/DistributorField";
+import { selectPurchaseDiscountType, type PurchaseDiscountType } from "./purchaseDraft";
 import type { PurchaseWorkflow } from "./usePurchaseWorkflow";
 import styles from "../PurchaseEntry.module.css";
 
@@ -8,9 +9,16 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
     t, workflowStep, isEditable, isLoadingPurchase, distributor, setDistributor,
     matches, showMatches, setShowMatches, highlightedDistributorIndex,
     setHighlightedDistributorIndex, handleDistributorKeyDown, distributorSearchRef,
-    vatIncluded, setVatIncluded, salesAdjustment, setSalesAdjustment,
-    salesAdjustmentType, setSalesAdjustmentType, billNo, setBillNo,
+    vatIncluded, setVatIncluded, purchaseDiscount, setPurchaseDiscount,
+    purchaseDiscountType, setPurchaseDiscountType,
+    purchaseDiscountTiming, setPurchaseDiscountTiming, billNo, setBillNo,
   } = workflow;
+
+  const selectDiscountType = (type: PurchaseDiscountType) => {
+    const selection = selectPurchaseDiscountType(purchaseDiscount, type);
+    setPurchaseDiscount(selection.value);
+    setPurchaseDiscountType(selection.type);
+  };
   return (
     <>
           <div className={styles.workflowSteps} aria-label={t("purchaseEntry.progress")}>
@@ -58,38 +66,53 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                   <small>{vatIncluded ? t("purchaseEntry.vatIncluded") : t("purchaseEntry.vatPlus")}</small>
                 </span>
               </label>
-              <div className={styles.salesAdjustBox}>
-                <label className={styles.fieldLabel} htmlFor="purchase-sales-adjustment">{t("nav.sales")}</label>
-                <div className={styles.salesAdjustControl}>
+              <div className={styles.discountBox}>
+                <label className={styles.fieldLabel} htmlFor="purchase-discount">{t("purchaseEntry.discount")}</label>
+                <div className={styles.discountControl}>
                   <input
-                    id="purchase-sales-adjustment"
+                    id="purchase-discount"
                     type="text"
                     inputMode="decimal"
-                    value={salesAdjustment}
-                    onChange={event => {
-                      const nextValue = event.target.value;
-                      setSalesAdjustment(salesAdjustmentType === "percent" ? nextValue.slice(0, 2) : nextValue);
-                    }}
-                    maxLength={salesAdjustmentType === "percent" ? 2 : undefined}
-                    aria-label={t("purchaseEntry.salesAdjustment")}
+                    value={purchaseDiscount}
+                    onChange={event => setPurchaseDiscount(event.target.value)}
+                    aria-label={t("purchaseEntry.discount")}
                   />
-                  <div className={styles.salesTypeToggle} aria-label={t("purchaseEntry.adjustmentType")}>
+                  <div className={styles.discountTypeToggle} role="group" aria-label={t("purchaseEntry.discountType")}>
                     <button
                       type="button"
-                      className={salesAdjustmentType === "percent" ? styles.salesTypeActive : styles.salesTypeButton}
-                      onClick={() => {
-                        setSalesAdjustmentType("percent");
-                        setSalesAdjustment(value => value.slice(0, 2));
-                      }}
+                      className={purchaseDiscountType === "percent" ? styles.segmentButtonActive : styles.segmentButton}
+                      aria-pressed={purchaseDiscountType === "percent"}
+                      aria-label={t("purchaseEntry.percent")}
+                      onClick={() => selectDiscountType("percent")}
                     >
                       %
                     </button>
                     <button
                       type="button"
-                      className={salesAdjustmentType === "thb" ? styles.salesTypeActive : styles.salesTypeButton}
-                      onClick={() => setSalesAdjustmentType("thb")}
+                      className={purchaseDiscountType === "thb" ? styles.segmentButtonActive : styles.segmentButton}
+                      aria-pressed={purchaseDiscountType === "thb"}
+                      aria-label={t("purchaseEntry.baht")}
+                      onClick={() => selectDiscountType("thb")}
                     >
                       ฿
+                    </button>
+                  </div>
+                  <div className={styles.discountTimingToggle} role="group" aria-label={t("purchaseEntry.discountTiming")}>
+                    <button
+                      type="button"
+                      className={purchaseDiscountTiming === "beforeVat" ? styles.segmentButtonActive : styles.segmentButton}
+                      aria-pressed={purchaseDiscountTiming === "beforeVat"}
+                      onClick={() => setPurchaseDiscountTiming("beforeVat")}
+                    >
+                      {t("purchaseEntry.beforeVat")}
+                    </button>
+                    <button
+                      type="button"
+                      className={purchaseDiscountTiming === "afterVat" ? styles.segmentButtonActive : styles.segmentButton}
+                      aria-pressed={purchaseDiscountTiming === "afterVat"}
+                      onClick={() => setPurchaseDiscountTiming("afterVat")}
+                    >
+                      {t("purchaseEntry.afterVat")}
                     </button>
                   </div>
                 </div>

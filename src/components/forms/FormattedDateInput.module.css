@@ -1,0 +1,79 @@
+.control {
+  position: relative;
+  display: flex;
+  width: 144px;
+  max-width: 100%;
+  height: 36px;
+  min-width: 0;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 9px;
+  background: var(--app-surface);
+  color: var(--app-ink);
+}
+
+.control:focus-within {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-accent-soft);
+}
+
+.controlInvalid {
+  border-color: #b65b52;
+}
+
+.textInput {
+  width: 100%;
+  height: 34px;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  padding: 0 4px 0 10px;
+}
+
+.textInput::placeholder {
+  color: var(--app-muted);
+  opacity: 0.72;
+}
+
+.calendarButton {
+  display: inline-flex;
+  width: 32px;
+  height: 30px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  margin-right: 2px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--app-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.calendarButton:hover {
+  background: var(--app-accent-soft);
+  color: var(--app-accent-dark);
+}
+
+.calendarButton:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: -2px;
+}
+
+.nativePicker {
+  position: absolute;
+  right: 8px;
+  bottom: 3px;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}

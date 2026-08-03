@@ -10,17 +10,18 @@ import {
   isPurchaseExpiryDate as isValidExpiryDate,
 } from "@/lib/expiryDate";
 import {
-  calculatePurchaseTotals, canSavePurchase, getDistributorMatches,
+  calculatePurchaseLineActualCost, calculatePurchaseTotals, canSavePurchase, getDistributorMatches,
   getPurchaseItemSearchPriority, mergePurchaseCatalog, purchaseUnitMultiplier,
 } from "./purchaseDraft";
 import type {
-  CurrentPharmUser, EditablePurchaseBill, PurchaseCorrection, PurchaseLine,
+  CurrentPharmUser, EditablePurchaseBill, PurchaseCorrection, PurchaseDiscountTiming,
+  PurchaseDiscountType, PurchaseLine,
 } from "./purchaseDraft";
 import { persistPurchaseWorkflow, requestPurchaseCorrection } from "./purchasePersistence";
 
 export function usePurchaseWorkflow(purchaseId?: string) {
   const navigate = useNavigate();
-  const { t, preferences } = usePreferences();
+  const { t, preferences, formatMoney } = usePreferences();
   const localizeUnit = useCallback(
     (value: string) => localizeUnitExpression(preferences.locale, value),
     [preferences.locale],
@@ -45,8 +46,9 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   const [expiryDate, setExpiryDate] = useState("");
   const [purchaseLines, setPurchaseLines] = useState<PurchaseLine[]>([]);
   const [vatIncluded, setVatIncluded] = useState(true);
-  const [salesAdjustment, setSalesAdjustment] = useState("0");
-  const [salesAdjustmentType, setSalesAdjustmentType] = useState<"percent" | "thb">("percent");
+  const [purchaseDiscount, setPurchaseDiscount] = useState("0");
+  const [purchaseDiscountType, setPurchaseDiscountType] = useState<PurchaseDiscountType>("percent");
+  const [purchaseDiscountTiming, setPurchaseDiscountTiming] = useState<PurchaseDiscountTiming>("beforeVat");
   const [isSavingPurchase, setIsSavingPurchase] = useState(false);
   const [purchaseSaveError, setPurchaseSaveError] = useState("");
   const [purchaseLoadError, setPurchaseLoadError] = useState("");
@@ -129,22 +131,37 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   const {
     totalQty,
     subtotal,
-    adjustmentAmount: salesAdjustmentAmount,
+    discountAmount: purchaseDiscountAmount,
     vatAmount,
     netTotal: netPurchaseTotal,
   } = useMemo(
     () => calculatePurchaseTotals(
       purchaseLines,
       vatIncluded,
-      salesAdjustment,
-      salesAdjustmentType,
+      purchaseDiscount,
+      purchaseDiscountType,
+      purchaseDiscountTiming,
     ),
-    [purchaseLines, salesAdjustment, salesAdjustmentType, vatIncluded],
+    [purchaseDiscount, purchaseDiscountTiming, purchaseDiscountType, purchaseLines, vatIncluded],
   );
   const isEditable = editingBillStatus === null || editingBillStatus === "draft";
   const hasValidBill = canSavePurchase(purchaseLines.length, netPurchaseTotal);
   const hasPendingCorrection = correctionRequests.some(request => request.status === "pending");
   const workflowStep = editingBillStatus === "received" ? 2 : editingBillStatus === "partial" ? 1 : 0;
+  const lineActualCost = useMemo(
+    () => calculatePurchaseLineActualCost(
+      purchaseLines,
+      { qty: lineQty, cost: lineCost },
+      vatIncluded,
+      purchaseDiscount,
+      purchaseDiscountType,
+      purchaseDiscountTiming,
+    ),
+    [
+      lineCost, lineQty, purchaseDiscount, purchaseDiscountTiming,
+      purchaseDiscountType, purchaseLines, vatIncluded,
+    ],
+  );
 
   useEffect(() => {
     function closeDropdownsOnOutsideClick(event: MouseEvent) {
@@ -510,7 +527,7 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   }, [selectedItem]);
 
   return {
-    navigate, t, localizeUnit,
+    navigate, t, localizeUnit, formatMoney,
     activePurchaseId, distributor, setDistributor, billNo, setBillNo,
     manualItem, setManualItem, catalog, itemSearchLoading,
     itemDropdownOpen, setItemDropdownOpen,
@@ -522,8 +539,9 @@ export function usePurchaseWorkflow(purchaseId?: string) {
     freeQty, setFreeQty, lotNo, setLotNo, expiryDate, setExpiryDate,
     purchaseLines, setPurchaseLines,
     vatIncluded, setVatIncluded,
-    salesAdjustment, setSalesAdjustment,
-    salesAdjustmentType, setSalesAdjustmentType,
+    purchaseDiscount, setPurchaseDiscount,
+    purchaseDiscountType, setPurchaseDiscountType,
+    purchaseDiscountTiming, setPurchaseDiscountTiming,
     isSavingPurchase, purchaseSaveError, purchaseLoadError, isLoadingPurchase,
     editingBillStatus, reviewConfirmed, setReviewConfirmed, currentUser,
     correctionRequests, correctionDialogOpen, setCorrectionDialogOpen,
@@ -534,7 +552,7 @@ export function usePurchaseWorkflow(purchaseId?: string) {
     fileRef, qtyInputRef, distributorSearchRef, purchaseItemSearchRef,
     matches, itemMatches, showScanCarousel, selectedUnitOptions,
     canAddPurchaseLine,
-    totalQty, subtotal, salesAdjustmentAmount, vatAmount, netPurchaseTotal,
+    totalQty, subtotal, purchaseDiscountAmount, vatAmount, netPurchaseTotal, lineActualCost,
     isEditable, hasValidBill, hasPendingCorrection, workflowStep,
     openPurchaseLine, closePurchaseLine, addPurchaseLine,
     handlePurchaseFlowEnter, handleDistributorKeyDown, handleItemSearchKeyDown,
