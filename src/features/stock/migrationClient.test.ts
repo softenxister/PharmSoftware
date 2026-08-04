@@ -1,11 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  submitCwMigration,
   submitCustomerPurchaseHistoryMigration,
   submitProductCategoryNormalization,
   submitLotExpiryMigration,
   submitProductMeasurementNormalization,
 } from "./migration/migrationClient";
+
+test("CW stock migration binds the selected mode to preview and import requests", async () => {
+  let requestedBody: FormData | null = null;
+  const fetcher: typeof fetch = async (_input, init) => {
+    requestedBody = init?.body as FormData;
+    return new Response(JSON.stringify({ data: { mode: "generic-cost-update", updatedCount: 1 } }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  const file = new File(["csv"], "Stock.csv");
+
+  await submitCwMigration(
+    "import",
+    "generic-cost-update",
+    file,
+    "d".repeat(64),
+    fetcher,
+  );
+
+  assert.equal(requestedBody?.get("action"), "import");
+  assert.equal(requestedBody?.get("mode"), "generic-cost-update");
+  assert.equal(requestedBody?.get("file"), file);
+  assert.equal(requestedBody?.get("confirmationToken"), "d".repeat(64));
+});
 
 test("customer purchase-history migration posts XLSX preview and import data to its endpoint", async () => {
   let requestedUrl = "";

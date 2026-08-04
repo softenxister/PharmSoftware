@@ -8,12 +8,15 @@ import {
   previewCwStockMigration,
 } from "@server/db/migration/cwStockMigrationRepository";
 import {
+  CwStockDetailUpdateConfirmationError,
+  importCwStockDetailUpdate,
+  previewCwStockDetailUpdate,
+} from "@server/db/migration/cwStockDetailUpdateRepository";
+import {
   decodeCwStockUpload,
   MAX_CW_STOCK_REQUEST_BYTES,
   validateCwStockUpload,
 } from "@server/import/cwStockUpload";
-
-type MigrationAction = "preview" | "import";
 
 function errorResponse(code: string, message: string, status: number) {
   return Response.json({ error: { code, message } }, { status });
@@ -41,12 +44,16 @@ export async function POST(request: Request) {
     }
 
     const action = formData.get("action");
+    const mode = formData.get("mode");
     const file = formData.get("file");
     if (action !== "preview" && action !== "import") {
       return errorResponse("INVALID_ACTION", "Choose preview or import.", 400);
     }
     if (!(file instanceof File)) {
       return errorResponse("FILE_REQUIRED", "Choose a CW stock CSV file.", 400);
+    }
+    if (mode !== "full" && mode !== "generic-cost-update") {
+      return errorResponse("INVALID_MODE", "Choose full import or generic-name and cost update.", 400);
     }
     const uploadError = validateCwStockUpload(file);
     if (uploadError) return errorResponse("INVALID_FILE", uploadError, 400);
@@ -56,8 +63,10 @@ export async function POST(request: Request) {
       return errorResponse("INVALID_FILE", "The CSV file contains unsupported binary data.", 400);
     }
 
-    if ((action as MigrationAction) === "preview") {
-      const preview = await previewCwStockMigration(csvText);
+    if (action === "preview") {
+      const preview = mode === "full"
+        ? await previewCwStockMigration(csvText)
+        : await previewCwStockDetailUpdate(csvText);
       return Response.json({ data: preview });
     }
 
@@ -65,7 +74,9 @@ export async function POST(request: Request) {
     if (typeof confirmationToken !== "string" || !/^[a-f0-9]{64}$/.test(confirmationToken)) {
       return errorResponse("CONFIRMATION_REQUIRED", "Preview and confirm this file before importing.", 400);
     }
-    const result = await importCwStockMigration(csvText, confirmationToken, file.name, owner);
+    const result = mode === "full"
+      ? await importCwStockMigration(csvText, confirmationToken, file.name, owner)
+      : await importCwStockDetailUpdate(csvText, confirmationToken, file.name, owner);
     return Response.json({ data: result }, { status: 201 });
   } catch (error) {
     if (isAuthenticationError(error)) {
@@ -74,7 +85,8 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "Purchase permission denied.") {
       return errorResponse("PERMISSION_DENIED", "Only an owner can import stock data.", 403);
     }
-    if (error instanceof CwMigrationConfirmationError) {
+    if (error instanceof CwMigrationConfirmationError
+      || error instanceof CwStockDetailUpdateConfirmationError) {
       return errorResponse("PREVIEW_EXPIRED", error.message, 409);
     }
     if (error instanceof Error && (

@@ -116,7 +116,7 @@ type ProductGroup = {
   unitRows: Array<{ sourceRow: number; row: CsvRecord }>;
 };
 
-function parseCsvRows(csvText: string): string[][] {
+export function parseCwStockCsvRows(csvText: string): string[][] {
   const text = csvText.replace(/^\uFEFF/, "");
   const rows: string[][] = [];
   let row: string[] = [];
@@ -161,7 +161,7 @@ function parseCsvRows(csvText: string): string[][] {
 }
 
 function rowsToRecords(csvText: string): CsvRecord[] {
-  const rows = parseCsvRows(csvText);
+  const rows = parseCwStockCsvRows(csvText);
   const headers = rows.shift()?.map((header) => header.trim()) ?? [];
   const missingHeaders = CW_STOCK_HEADERS.filter((header) => !headers.includes(header));
   if (missingHeaders.length > 0) {

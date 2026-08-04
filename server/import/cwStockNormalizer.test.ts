@@ -29,6 +29,19 @@ test("normalizes a base unit and parent unit using quantity in base units", () =
   });
 });
 
+test("latest cost comes from the product-code row and represents base-unit cost", () => {
+  const csv = [
+    header,
+    "1,True,P-7784,เม็ด[1]: 111,Example,เม็ด,Paracetamol,Medicine,1.25,เม็ด[1]: 1,48,เม็ด[1]: 5,ข.ย.9,Maker",
+    ",,,กล่อง[100]: 222,,,,,999,กล่อง[100]: 100,,กล่อง[100]: 450,,",
+  ].join("\n");
+
+  const normalized = normalizeCwStockCsv(csv);
+
+  assert.equal(normalized.products[0].externalProductCode, "P-7784");
+  assert.equal(normalized.products[0].lastCostThb, 1.25);
+});
+
 test("keeps additional barcodes as aliases instead of discarding them", () => {
   const csv = [
     header,

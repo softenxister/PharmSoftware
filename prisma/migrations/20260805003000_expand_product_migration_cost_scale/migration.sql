@@ -1,0 +1,2 @@
+ALTER TABLE "Product"
+ALTER COLUMN "migrationCostThb" TYPE DECIMAL(16,4);

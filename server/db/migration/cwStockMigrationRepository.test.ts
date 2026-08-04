@@ -33,6 +33,15 @@ test("CW stock migration persists the uploaded latest cost on the product", () =
   assert.match(repository, /source\.lastCostThb/);
 });
 
+test("CW stock migration persists the uploaded raw generic name separately from verified ingredients", () => {
+  const schema = readFileSync(new URL("../../../prisma/schema.prisma", import.meta.url), "utf8");
+  const repository = readFileSync(new URL("./cwStockMigrationRepository.ts", import.meta.url), "utf8");
+
+  assert.match(schema, /migrationGenericName\s+String\?/);
+  assert.match(repository, /"migrationGenericName"/);
+  assert.match(repository, /source\.genericName/);
+});
+
 test("average-cost migration removes dummy purchase history first", () => {
   const migration = readFileSync(
     new URL("../../../prisma/migrations/20260804233000_add_product_migration_cost/migration.sql", import.meta.url),

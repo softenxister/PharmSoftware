@@ -14,6 +14,7 @@ import type {
   StockState,
   StockTableSortKey,
 } from "./stockInventoryModel";
+import { roundMarkupPercentForDisplay } from "./stockInventoryModel";
 import type { StockInventoryController } from "./useStockInventory";
 import styles from "@/features/stock/Stock.module.css";
 
@@ -37,10 +38,16 @@ export function StockInventoryTable({
       : <ArrowDown size={14} aria-hidden="true" />;
   };
 
-  const sortHeader = (key: StockTableSortKey, label: string) => (
+  const sortHeader = (
+    key: StockTableSortKey,
+    label: string,
+    alignment: "start" | "end" = "start",
+  ) => (
     <button
       type="button"
-      className={`${styles.headerCell} ${styles.sortButton}`}
+      className={`${styles.headerCell} ${styles.sortButton} ${
+        alignment === "end" ? styles.sortButtonEnd : ""
+      }`}
       onClick={() => controller.changeSort(key)}
       aria-label={t("member.sortBy", { label })}
     >
@@ -95,18 +102,18 @@ export function StockInventoryTable({
                   {sortHeader("name", t("stock.itemName"))}
                 </th>
                 <th aria-sort={ariaSort("minimum")}>
-                  {sortHeader("minimum", t("stock.minimumShort"))}
+                  {sortHeader("minimum", t("stock.minimumShort"), "end")}
                 </th>
                 <th aria-sort={ariaSort("maximum")}>
-                  {sortHeader("maximum", t("stock.maximumShort"))}
+                  {sortHeader("maximum", t("stock.maximumShort"), "end")}
                 </th>
                 <th aria-sort={ariaSort("stock")}>
-                  {sortHeader("stock", t("nav.stock"))}
+                  {sortHeader("stock", t("nav.stock"), "end")}
                 </th>
                 <th>{t("stock.locationShort")}</th>
-                <th>{t("stock.marginShort")}</th>
+                <th>{t("stock.markupShort")}</th>
                 <th aria-sort={ariaSort("sellPrice")}>
-                  {sortHeader("sellPrice", t("stock.sellPrice"))}
+                  {sortHeader("sellPrice", t("stock.sellPrice"), "end")}
                 </th>
                 <th className={styles.actionCol} aria-label={t("stock.itemActions")} />
               </tr>
@@ -174,13 +181,16 @@ export function StockInventoryTable({
                   </td>
                   <td>
                     <span className={`${styles.marginValue} ${
-                      item.marginPercent !== undefined && item.marginPercent < 0
+                      item.markupPercent !== undefined && item.markupPercent < 0
                         ? styles.marginValueNegative
                         : ""
                     }`}>
-                      {item.marginPercent === undefined
+                      {item.markupPercent === undefined
                         ? "—"
-                        : `${formatNumber(item.marginPercent, { maximumFractionDigits: 2 })}%`}
+                        : `${formatNumber(
+                          roundMarkupPercentForDisplay(item.markupPercent),
+                          { maximumFractionDigits: 0 },
+                        )}%`}
                     </span>
                   </td>
                   <td>

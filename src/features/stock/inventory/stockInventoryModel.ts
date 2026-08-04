@@ -5,7 +5,7 @@ import type {
   StockSortDirection,
 } from "@/api/stockCatalogClient";
 import { getStockMeasurementLabel } from "@/lib/productMeasurement";
-import { marginPercent } from "@/lib/stockCost";
+import { markupPercent } from "@/lib/stockCost";
 
 export const STOCK_PAGE_SIZE = 50;
 export const SIDEBAR_MIN_WIDTH = 230;
@@ -150,11 +150,15 @@ export type StockInventoryItem = {
   max: number;
   stock: number;
   loc: string;
-  marginPercent?: number;
+  markupPercent?: number;
   sellPrice: number;
   imageUrl: string;
   state: StockState;
 };
+
+export function roundMarkupPercentForDisplay(value: number): number {
+  return Math.ceil(value);
+}
 
 export function createEmptyDraftFilters(): DraftStockFilters {
   return {
@@ -252,7 +256,7 @@ export function projectStockInventoryItem(product: SalesProduct): StockInventory
     max,
     stock,
     loc: product.location,
-    marginPercent: marginPercent(
+    markupPercent: markupPercent(
       product.batches[0]?.sellPriceThb ?? 0,
       product.averageCostThb,
     ),

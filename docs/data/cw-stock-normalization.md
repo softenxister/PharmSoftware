@@ -19,9 +19,9 @@ The source CSV uses a product row followed by optional continuation rows for lar
 | `จำนวนคงเหลือ` | `availableStock` | Synthetic `ProductBatch.availableStock`, measured in base units |
 | `กลุ่มสินค้า` | `category` | `Category.name` |
 | `บริษัทผลิต` | `manufacturerName` | `Manufacturer.name`; an `SPR-...:` prefix is removed |
-| `ชื่อสามัญ` | `genericName` | Preserved for ingredient reconciliation; not inserted directly |
+| `ชื่อสามัญ` | `genericName` | `Product.migrationGenericName`; preserved as raw CW text and kept separate from verified active ingredients |
 | `กลุ่มใบอนุญาต` | `licenseGroup` | Preserved in output; no current destination column |
-| `ราคาทุนรับหลังสุด` | `lastCostThb` | Preserved in output; current cost is derived from purchase lines |
+| `ราคาทุนรับหลังสุด` | `lastCostThb` | `Product.migrationCostThb`; read from the product-code row and treated as cost per product base unit |
 
 ## Unit rule
 
@@ -49,3 +49,9 @@ node --import tsx scripts/data-maintenance/normalize-cw-stock.ts /path/to/source
 ```
 
 The preview deliberately does not write to PostgreSQL. The operational schema supports multiple barcodes through `ProductBarcodeAlias`, independent parent-unit prices through `ProductParentPack.sellPriceThb`, and same-name unit variants through the unique combination of product, unit name, and base-unit quantity.
+
+## Re-import modes
+
+- **Full stock import** creates or fully refreshes product identity, barcodes, packaging, selling prices, stock, raw generic name, and migrated base-unit cost.
+- **Update generic name & latest cost** matches only the exact `รหัสสินค้า` value. It reads `ชื่อสามัญ` and `ราคาทุนรับหลังสุด` only from the row containing that product code, ignores packaging continuation rows, and never changes names, barcodes, units, selling prices, stock, categories, manufacturers, or verified ingredients.
+- In focused update mode, blank `ชื่อสามัญ` and blank or zero `ราคาทุนรับหลังสุด` preserve the current stored value.

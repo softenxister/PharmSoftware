@@ -6,6 +6,8 @@ export type MigrationRow = {
   brandMatchedAlias: string | null;
   baseUnit: string;
   baseBarcode: string;
+  genericName: string;
+  lastCostThb: number;
   availableStock: number;
   baseSellPriceThb: number;
   unitCount: number;
@@ -25,6 +27,7 @@ export type MigrationRow = {
 
 export type MigrationPreview = {
   sourceSoftware: "CW";
+  mode: "full";
   confirmationToken: string;
   summary: {
     totalRows: number;
@@ -38,12 +41,55 @@ export type MigrationPreview = {
 };
 
 export type MigrationResult = {
+  mode: "full";
   migrationId: string;
   createdCount: number;
   updatedCount: number;
   skippedConflictCount: number;
   stockReplacedCount: number;
 };
+
+export type StockDetailUpdateRow = {
+  sourceRow: number;
+  externalProductCode: string;
+  migrationGenericName: string | null;
+  migrationCostThb: number | null;
+  status: "changed" | "unchanged" | "unmatched" | "invalid";
+  matchedProductId: string | null;
+  matchedItemName: string | null;
+  currentGenericName: string | null;
+  currentCostThb: number | null;
+  nextGenericName: string | null;
+  nextCostThb: number | null;
+  issue: string | null;
+};
+
+export type StockDetailUpdatePreview = {
+  sourceSoftware: "CW";
+  mode: "generic-cost-update";
+  confirmationToken: string;
+  summary: {
+    totalRows: number;
+    changedCount: number;
+    unchangedCount: number;
+    unmatchedCount: number;
+    invalidCount: number;
+  };
+  rows: StockDetailUpdateRow[];
+};
+
+export type StockDetailUpdateResult = {
+  mode: "generic-cost-update";
+  migrationId: string;
+  updatedCount: number;
+  unchangedCount: number;
+  unmatchedCount: number;
+  invalidCount: number;
+};
+
+export type CwMigrationMode = "full" | "generic-cost-update";
+export type CwMigrationPreview = MigrationPreview | StockDetailUpdatePreview;
+export type CwMigrationResult = MigrationResult | StockDetailUpdateResult;
 
 export type LotExpiryMigrationBatch = {
   lotNo: string;
@@ -255,15 +301,18 @@ export async function submitProductMeasurementNormalization(
 
 export async function submitCwMigration<T>(
   action: "preview" | "import",
+  mode: CwMigrationMode,
   file: File,
   confirmationToken?: string,
+  fetcher: typeof fetch = fetch,
 ): Promise<T> {
   const body = new FormData();
   body.set("action", action);
+  body.set("mode", mode);
   body.set("file", file);
   if (confirmationToken) body.set("confirmationToken", confirmationToken);
 
-  const response = await fetch("/api/stock/migrations/cw", { method: "POST", body });
+  const response = await fetcher("/api/stock/migrations/cw", { method: "POST", body });
   const payload = await response.json().catch(() => ({})) as ApiError & { data?: T };
   if (!response.ok) throw new Error(payload.error?.message ?? "The CW migration request failed.");
   if (!payload.data) throw new Error("The CW migration response was incomplete.");

@@ -34,12 +34,12 @@ export function averageProductCost(
   );
 }
 
-export function marginPercent(
+export function markupPercent(
   sellPriceThb: number,
   averageCostThb?: number,
 ): number | undefined {
   if (!Number.isFinite(sellPriceThb) || sellPriceThb <= 0) return undefined;
   if (averageCostThb === undefined
     || !Number.isFinite(averageCostThb) || averageCostThb <= 0) return undefined;
-  return roundCurrency(((sellPriceThb - averageCostThb) / sellPriceThb) * 100);
+  return roundCurrency(((sellPriceThb - averageCostThb) / averageCostThb) * 100);
 }

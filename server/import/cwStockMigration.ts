@@ -22,6 +22,8 @@ export type CwStockMigrationRow = {
   brandMatchedAlias: string | null;
   baseUnit: string;
   baseBarcode: string;
+  genericName: string;
+  lastCostThb: number;
   availableStock: number;
   baseSellPriceThb: number;
   unitCount: number;
@@ -50,6 +52,7 @@ export type CwStockMigrationSummary = {
 
 export type CwStockMigrationPreview = {
   sourceSoftware: "CW";
+  mode: "full";
   confirmationToken: string;
   summary: CwStockMigrationSummary;
   rows: CwStockMigrationRow[];
@@ -149,6 +152,8 @@ export function prepareCwStockMigration(
       brandMatchedAlias: product.brandMatchedAlias,
       baseUnit: product.baseUnit,
       baseBarcode: product.baseBarcode,
+      genericName: product.genericName,
+      lastCostThb: product.lastCostThb,
       availableStock: product.availableStock,
       baseSellPriceThb: product.baseSellPriceThb,
       unitCount: units.length,
@@ -172,6 +177,7 @@ export function prepareCwStockMigration(
     normalized,
     preview: {
       sourceSoftware: "CW",
+      mode: "full",
       confirmationToken: createCwPreviewConfirmationToken(csvText, rows),
       summary: {
         totalRows: rows.length,

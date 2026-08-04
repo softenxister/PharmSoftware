@@ -109,3 +109,11 @@ test("preview exposes every base and larger unit with barcodes and price", () =>
     },
   ]);
 });
+
+test("full preview identifies its write mode and exposes product-row generic name and base-unit cost", () => {
+  const preview = buildCwStockMigrationPreview(cwCsv.replace("Matched item,ซอง,,ยา,10", "Matched item,ซอง,Paracetamol,ยา,10"), []);
+
+  assert.equal(preview.mode, "full");
+  assert.equal(preview.rows[0].genericName, "Paracetamol");
+  assert.equal(preview.rows[0].lastCostThb, 10);
+});

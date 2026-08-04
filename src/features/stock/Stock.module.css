@@ -756,6 +756,11 @@
   text-transform: inherit;
 }
 
+.sortButtonEnd {
+  flex-direction: row-reverse;
+  margin: 0 -7px 0 0;
+}
+
 .sortButton:hover {
   background: var(--app-accent-soft);
   color: var(--app-highlight-ink);

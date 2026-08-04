@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   averageProductCost,
-  marginPercent,
+  markupPercent,
   normalizePurchaseCost,
 } from "./stockCost";
 
@@ -24,9 +24,9 @@ test("average product cost gives each distributor and migration one observation"
   assert.equal(averageProductCost([], 0), undefined);
 });
 
-test("margin percent uses profit divided by sell price", () => {
-  assert.equal(marginPercent(45, 30), 33.33);
-  assert.equal(marginPercent(20, 25), -25);
-  assert.equal(marginPercent(0, 10), undefined);
-  assert.equal(marginPercent(20, undefined), undefined);
+test("markup percent uses profit divided by cost", () => {
+  assert.equal(markupPercent(45, 30), 50);
+  assert.equal(markupPercent(20, 25), -20);
+  assert.equal(markupPercent(0, 10), undefined);
+  assert.equal(markupPercent(20, undefined), undefined);
 });

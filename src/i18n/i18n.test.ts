@@ -56,6 +56,11 @@ test("stock adjustment helper text is translated", () => {
   );
 });
 
+test("stock profit percentage is labeled as markup", () => {
+  assert.equal(translate("en", "stock.markupShort"), "Markup %");
+  assert.equal(translate("th", "stock.markupShort"), "กำไรต่อต้นทุน %");
+});
+
 test("color themes use descriptive names in both languages", () => {
   const themeKeys = [
     "appearance.pharmacyGreen",
