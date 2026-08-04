@@ -36,6 +36,7 @@ export function productRowToSalesProduct(
   product: StockProductRow,
   batchCosts: ReadonlyMap<string, number> = new Map(),
   weeklySold?: number,
+  averageCostThb?: number,
 ): SalesProduct {
   return {
     id: product.id,
@@ -82,6 +83,7 @@ export function productRowToSalesProduct(
     category: product.category.name,
     imageUrl: product.imageUrl,
     weeklySold: weeklySold ?? product.weeklySold,
+    ...(averageCostThb === undefined ? {} : { averageCostThb }),
     compositionStatus: product.compositionStatus.toLowerCase() as SalesProduct["compositionStatus"],
     activeIngredients: product.activeIngredients.map(({ ingredient, strength, sourceName, sourceUrl }) => ({
       id: ingredient.id,

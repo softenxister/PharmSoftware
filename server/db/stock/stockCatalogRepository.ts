@@ -9,6 +9,7 @@ import {
   stockBatchIdentityKey,
   type StockProductRow,
 } from "./stockProductProjection";
+import { averageProductCost } from "@/lib/stockCost";
 
 export type StockProductPage = {
   products: SalesProduct[];
@@ -279,10 +280,13 @@ async function readBatchCosts(productIds: string[]): Promise<ReadonlyMap<string,
       line."productId",
       line."batchNo",
       line."expiryDate",
-      line."cost"
+      line."cost" / NULLIF(line."unitMultiplier", 0) AS "cost"
     FROM "PurchaseLine" line
     INNER JOIN "PurchaseBill" bill ON bill."id" = line."purchaseBillId"
     WHERE line."productId" IN (${Prisma.join(productIds)})
+      AND bill.status = 'RECEIVED'
+      AND line."cost" > 0
+      AND line."unitMultiplier" > 0
     ORDER BY line."productId", line."batchNo", line."expiryDate", bill."purchasedAt" DESC, bill."createdAt" DESC
   `);
   const batchCosts = new Map<string, number>();
@@ -293,6 +297,60 @@ async function readBatchCosts(productIds: string[]): Promise<ReadonlyMap<string,
     );
   }
   return batchCosts;
+}
+
+async function readAverageProductCosts(productIds: string[]): Promise<ReadonlyMap<string, number>> {
+  if (productIds.length === 0) return new Map();
+  const [purchaseCosts, products] = await Promise.all([
+    prisma.$queryRaw<Array<{
+      productId: string;
+      costThb: unknown;
+      unitMultiplier: unknown;
+    }>>(Prisma.sql`
+      SELECT DISTINCT ON (
+        line."productId",
+        COALESCE(bill."distributorId", LOWER(BTRIM(bill."distributorName")))
+      )
+        line."productId",
+        line."cost" AS "costThb",
+        line."unitMultiplier"
+      FROM "PurchaseLine" line
+      INNER JOIN "PurchaseBill" bill ON bill."id" = line."purchaseBillId"
+      WHERE line."productId" IN (${Prisma.join(productIds)})
+        AND bill.status = 'RECEIVED'
+        AND line."cost" > 0
+        AND line."unitMultiplier" > 0
+      ORDER BY
+        line."productId",
+        COALESCE(bill."distributorId", LOWER(BTRIM(bill."distributorName"))),
+        bill."purchasedAt" DESC,
+        bill."createdAt" DESC,
+        line.id DESC
+    `),
+    prisma.$queryRaw<Array<{ id: string; migrationCostThb: unknown }>>(Prisma.sql`
+      SELECT id, "migrationCostThb"
+      FROM "Product"
+      WHERE id IN (${Prisma.join(productIds)})
+    `),
+  ]);
+  const distributorCostsByProductId = new Map<string, Array<{
+    costThb: number;
+    unitMultiplier: number;
+  }>>();
+  for (const row of purchaseCosts) {
+    const costs = distributorCostsByProductId.get(row.productId) ?? [];
+    costs.push({ costThb: Number(row.costThb), unitMultiplier: Number(row.unitMultiplier) });
+    distributorCostsByProductId.set(row.productId, costs);
+  }
+  const averageCosts = new Map<string, number>();
+  for (const product of products) {
+    const average = averageProductCost(
+      distributorCostsByProductId.get(product.id) ?? [],
+      product.migrationCostThb === null ? null : Number(product.migrationCostThb),
+    );
+    if (average !== undefined) averageCosts.set(product.id, average);
+  }
+  return averageCosts;
 }
 
 async function readWeeklySoldQuantities(productIds: string[]): Promise<ReadonlyMap<string, number>> {
@@ -319,14 +377,16 @@ async function rowsToSalesProducts(
 ): Promise<SalesProduct[]> {
   const productIds = products.map((product) => product.id);
   const missingWeeklySoldProductIds = productIds.filter((id) => !weeklySoldByProductId.has(id));
-  const [batchCosts, missingWeeklySoldByProductId] = await Promise.all([
+  const [batchCosts, averageCosts, missingWeeklySoldByProductId] = await Promise.all([
     readBatchCosts(productIds),
+    readAverageProductCosts(productIds),
     readWeeklySoldQuantities(missingWeeklySoldProductIds),
   ]);
   return products.map((product) => productRowToSalesProduct(
     product,
     batchCosts,
     weeklySoldByProductId.get(product.id) ?? missingWeeklySoldByProductId.get(product.id) ?? 0,
+    averageCosts.get(product.id),
   ));
 }
 

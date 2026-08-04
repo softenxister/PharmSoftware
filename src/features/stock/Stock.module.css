@@ -870,6 +870,16 @@
   font-weight: 800;
 }
 
+.marginValue {
+  color: var(--stock-primary);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.marginValueNegative {
+  color: var(--stock-danger);
+}
+
 .actionCell {
   display: flex;
   width: 100%;

@@ -32,6 +32,11 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
     handleDistributorKeyDown, handleItemSearchKeyDown,
   } = workflow;
 
+  const openFirstBarcodeItem = () => {
+    const firstBarcodeItem = catalog.find(product => /^\d{13}$/.test(product.barcode));
+    if (firstBarcodeItem) openPurchaseLine(firstBarcodeItem);
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.toolbarRow}>
@@ -153,18 +158,68 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                 <div className={styles.swapStage}>
                   <button
                     type="button"
+                    className={`${styles.swapPage} ${styles.csvPage}`}
+                    onClick={() => fileRef.current?.click()}
+                    aria-label={t("purchaseEntry.uploadCsvFile")}
+                  >
+                    <span className={styles.photoIconFrame}>
+                      <span className={styles.csvFileArt}>
+                        <span className={styles.csvFold} />
+                        <span className={styles.csvBadge}>CSV</span>
+                        <span className={styles.csvLine} />
+                        <span className={styles.csvLine} />
+                        <span className={styles.csvLineShort} />
+                      </span>
+                    </span>
+                    <span className={styles.swapCopy}>
+                      <strong>{t("purchaseEntry.uploadCsv")}</strong>
+                      <span>{t("purchaseEntry.uploadHint")}</span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`${styles.swapPage} ${styles.scannerPage}`}
+                    onClick={openFirstBarcodeItem}
+                    aria-label={t("purchaseEntry.barcodeScanner")}
+                  >
+                    <span className={styles.scannerScene}>
+                      <span className={styles.counterScanner}>
+                        <span className={styles.scannerHead}>
+                          <span className={styles.scannerLens} />
+                        </span>
+                        <span className={styles.scannerHandle}>
+                          <span className={styles.scannerTrigger} />
+                        </span>
+                      </span>
+                      <span className={styles.scannerLightPath} />
+                      <span className={`${styles.productBottle} ${styles.counterBottle}`}>
+                        <span className={styles.bottleCap} />
+                        <span className={styles.bottleNeck} />
+                        <span className={styles.bottleBody}>
+                          <span className={styles.bottleLabel} />
+                          <span className={styles.bottleBarcode} />
+                        </span>
+                        <span className={styles.scannerRedBeam} />
+                      </span>
+                    </span>
+                    <span className={styles.swapCopy}>
+                      <strong>{t("purchaseEntry.barcodeScanner")}</strong>
+                      <span>{t("purchaseEntry.barcodeScannerHint")}</span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
                     className={`${styles.swapPage} ${styles.barcodePage}`}
-                    onClick={() => {
-                      const firstBarcodeItem = catalog.find(product => /^\d{13}$/.test(product.barcode));
-                      if (firstBarcodeItem) openPurchaseLine(firstBarcodeItem);
-                    }}
+                    onClick={openFirstBarcodeItem}
                     aria-label={t("purchaseEntry.scanBarcode")}
                   >
                     <span className={styles.applePhone}>
                       <span className={styles.phoneSpeaker} />
                       <span className={styles.phoneScreen}>
                         <span className={styles.phoneTop}>
-                          <Phone size={13} color="#47745a" />
+                          <Phone size={13} />
                           <span className={styles.scanLabel}>SCAN</span>
                         </span>
                         <span className={styles.barcodeBox}>
@@ -187,29 +242,9 @@ export function PurchaseEntry({ purchaseId }: { purchaseId?: string }) {
                       <span>{t("purchaseEntry.scanHint")}</span>
                     </span>
                   </button>
-
-                  <button
-                    type="button"
-                    className={`${styles.swapPage} ${styles.csvPage}`}
-                    onClick={() => fileRef.current?.click()}
-                    aria-label={t("purchaseEntry.uploadCsvFile")}
-                  >
-                    <span className={styles.photoIconFrame}>
-                      <span className={styles.csvFileArt}>
-                        <span className={styles.csvFold} />
-                        <span className={styles.csvBadge}>CSV</span>
-                        <span className={styles.csvLine} />
-                        <span className={styles.csvLine} />
-                        <span className={styles.csvLineShort} />
-                      </span>
-                    </span>
-                    <span className={styles.swapCopy}>
-                      <strong>{t("purchaseEntry.uploadCsv")}</strong>
-                      <span>{t("purchaseEntry.uploadHint")}</span>
-                    </span>
-                  </button>
                 </div>
                 <div className={styles.swapDots} aria-hidden="true">
+                  <span />
                   <span />
                   <span />
                 </div>

@@ -132,6 +132,7 @@ model Product {
   minimumStock         Int                       @default(20)
   maximumStock         Int                       @default(200)
   discountPercent      Int                       @default(0)
+  migrationCostThb     Decimal?                  @db.Decimal(14, 2)
   isDiscountLocked     Boolean                   @default(false)
   isReturnable         Boolean                   @default(true)
   defaultDoseMorning   Int                       @default(0)

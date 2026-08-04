@@ -69,6 +69,7 @@ export type SalesProduct = {
   category: string;
   imageUrl: string;
   weeklySold: number;
+  averageCostThb?: number;
   compositionStatus?: ProductCompositionStatus;
   activeIngredients?: ProductIngredient[];
   batches: ProductBatch[];

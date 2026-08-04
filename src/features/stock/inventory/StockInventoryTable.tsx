@@ -104,7 +104,7 @@ export function StockInventoryTable({
                   {sortHeader("stock", t("nav.stock"))}
                 </th>
                 <th>{t("stock.locationShort")}</th>
-                <th>{t("stock.discountShort")}</th>
+                <th>{t("stock.marginShort")}</th>
                 <th aria-sort={ariaSort("sellPrice")}>
                   {sortHeader("sellPrice", t("stock.sellPrice"))}
                 </th>
@@ -172,7 +172,17 @@ export function StockInventoryTable({
                       {item.loc}
                     </span>
                   </td>
-                  <td>{item.discount}%</td>
+                  <td>
+                    <span className={`${styles.marginValue} ${
+                      item.marginPercent !== undefined && item.marginPercent < 0
+                        ? styles.marginValueNegative
+                        : ""
+                    }`}>
+                      {item.marginPercent === undefined
+                        ? "—"
+                        : `${formatNumber(item.marginPercent, { maximumFractionDigits: 2 })}%`}
+                    </span>
+                  </td>
                   <td>
                     <span className={styles.priceValue}>
                       ฿{formatNumber(item.sellPrice, { maximumFractionDigits: 0 })}

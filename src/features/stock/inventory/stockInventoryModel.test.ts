@@ -21,6 +21,7 @@ const product: SalesProduct = {
   weeklySold: 0,
   minimumStock: 10,
   maximumStock: 50,
+  averageCostThb: 30,
   batches: [{
     batchNo: "LOT-1",
     expiryDate: "2027-08-01",
@@ -41,6 +42,7 @@ test("inventory renders the authoritative server page without filtering it again
   assert.equal(page.items.length, 1);
   assert.equal(page.items[0].name, "Server-selected product");
   assert.equal(page.items[0].state, "low");
+  assert.equal(page.items[0].marginPercent, 33.33);
   assert.equal(page.page, 3);
   assert.equal(page.total, 121);
   assert.equal(page.hasMore, false);

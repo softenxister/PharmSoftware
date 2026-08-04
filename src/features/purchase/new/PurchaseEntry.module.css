@@ -544,8 +544,10 @@
   font: inherit;
   opacity: 0;
   padding: 32px 32px;
+  pointer-events: none;
   text-align: left;
   transform: translateX(24px);
+  visibility: hidden;
 }
 
 .swapPage:focus-visible {
@@ -553,12 +555,16 @@
   outline: none;
 }
 
-.barcodePage {
-  animation: barcodePageSwap 5.2s ease-in-out infinite;
+.csvPage {
+  animation: csvPageSwap 7.8s ease-in-out infinite;
 }
 
-.csvPage {
-  animation: csvPageSwap 5.2s ease-in-out infinite;
+.scannerPage {
+  animation: scannerPageSwap 7.8s ease-in-out infinite;
+}
+
+.barcodePage {
+  animation: barcodePageSwap 7.8s ease-in-out infinite;
 }
 
 .swapStage:hover .swapPage,
@@ -643,6 +649,121 @@
   width: 36px;
 }
 
+.scannerScene {
+  position: relative;
+  display: block;
+  width: 142px;
+  height: 142px;
+  justify-self: center;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--app-surface-muted), var(--app-surface-soft));
+}
+
+.scannerScene::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 22px;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface);
+  content: '';
+}
+
+.counterScanner {
+  position: absolute;
+  z-index: 3;
+  top: 23px;
+  left: 14px;
+  width: 66px;
+  height: 86px;
+  transform: rotate(-8deg);
+  transform-origin: 30px 20px;
+}
+
+.scannerHead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 38px;
+  border: 1px solid #282c30;
+  border-radius: 11px 15px 9px 8px;
+  background: linear-gradient(145deg, #666c71, #34383c);
+  box-shadow: 0 7px 12px rgba(32, 33, 36, 0.18);
+}
+
+.scannerLens {
+  position: absolute;
+  top: 7px;
+  right: -3px;
+  width: 14px;
+  height: 24px;
+  border: 2px solid #303438;
+  border-radius: 3px 7px 7px 3px;
+  background: #17191c;
+  box-shadow: inset -2px 0 0 rgba(216, 59, 50, 0.74);
+}
+
+.scannerHandle {
+  position: absolute;
+  top: 31px;
+  left: 14px;
+  width: 25px;
+  height: 53px;
+  border: 1px solid #2b2f33;
+  border-radius: 5px 5px 9px 10px;
+  background: linear-gradient(90deg, #3c4145, #5b6166 58%, #35393d);
+  transform: rotate(-10deg);
+  transform-origin: top center;
+}
+
+.scannerTrigger {
+  position: absolute;
+  top: 8px;
+  right: -1px;
+  width: 7px;
+  height: 13px;
+  border-radius: 3px 0 0 3px;
+  background: #b73c36;
+}
+
+.scannerLightPath {
+  position: absolute;
+  z-index: 1;
+  top: 41px;
+  left: 72px;
+  width: 62px;
+  height: 58px;
+  background: linear-gradient(90deg, rgba(214, 48, 43, 0.28), rgba(214, 48, 43, 0.04));
+  clip-path: polygon(0 43%, 100% 4%, 100% 96%, 0 57%);
+  transform: rotate(3deg);
+  transform-origin: left center;
+  animation: scannerLightPulse 1.5s ease-in-out infinite;
+}
+
+.productBottle.counterBottle {
+  position: absolute;
+  z-index: 2;
+  right: 13px;
+  bottom: 12px;
+  transform: scale(0.86);
+  transform-origin: right bottom;
+}
+
+.scannerRedBeam {
+  position: absolute;
+  right: -5px;
+  left: -5px;
+  height: 3px;
+  border-radius: 999px;
+  background: #d6302b;
+  box-shadow: 0 0 9px rgba(214, 48, 43, 0.72);
+  animation: scannerRedSweep 1.5s ease-in-out infinite;
+}
+
 .swapCopy {
   display: flex;
   min-width: 0;
@@ -674,11 +795,15 @@
   height: 6px;
   border-radius: 999px;
   background: var(--app-border);
-  animation: swapDotOne 5.2s ease-in-out infinite;
+  animation: swapDotOne 7.8s ease-in-out infinite;
 }
 
-.swapDots span + span {
+.swapDots span:nth-child(2) {
   animation-name: swapDotTwo;
+}
+
+.swapDots span:nth-child(3) {
+  animation-name: swapDotThree;
 }
 
 .applePhone {
@@ -687,10 +812,10 @@
   width: 112px;
   height: 174px;
   justify-self: center;
-  border: 2px solid #17231d;
+  border: 2px solid #303338;
   border-radius: 24px;
-  background: #17231d;
-  box-shadow: 0 10px 20px rgba(24, 38, 29, 0.16);
+  background: #303338;
+  box-shadow: 0 10px 20px rgba(32, 33, 36, 0.16);
 }
 
 .phoneSpeaker {
@@ -702,14 +827,14 @@
   height: 7px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: #111a15;
+  background: #202124;
 }
 
 .phoneScreen {
   position: absolute;
   inset: 7px;
   border-radius: 18px;
-  background: #edf5f0;
+  background: var(--app-surface-muted);
   padding: 22px 9px 9px;
 }
 
@@ -717,6 +842,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: var(--app-icon-ink);
   margin-bottom: 5px;
 }
 
@@ -732,9 +858,9 @@
   height: 94px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #bdd1c5;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: linear-gradient(180deg, var(--app-surface-muted) 0%, #e8f3ee 100%);
+  background: linear-gradient(180deg, var(--app-surface) 0%, var(--app-surface-soft) 100%);
 }
 
 .productBottle {
@@ -784,6 +910,10 @@
   background: linear-gradient(90deg, #d7efe7, #78b8a5, #d7efe7);
 }
 
+.scannerScene .bottleLabel {
+  background: linear-gradient(90deg, #f4cfcc, #c94a43, #f4cfcc);
+}
+
 .bottleBarcode {
   position: absolute;
   right: 11px;
@@ -815,31 +945,37 @@
 .phoneLinePrimary {
   width: 100%;
   margin-top: 6px;
-  background: #cfe1d6;
+  background: var(--app-border);
 }
 
 .phoneLineSecondary {
   width: 66%;
   margin-top: 4px;
-  background: #dbe9e0;
+  background: var(--app-border-soft);
 }
 
 @keyframes barcodePageSwap {
   0%,
-  43% {
-    opacity: 1;
-    transform: translateX(0);
+  60% {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(24px);
+    visibility: hidden;
   }
 
-  50%,
-  93% {
-    opacity: 0;
-    transform: translateX(-24px);
+  65%,
+  95% {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    visibility: visible;
   }
 
   100% {
-    opacity: 1;
-    transform: translateX(0);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-24px);
+    visibility: hidden;
   }
 }
 
@@ -858,59 +994,132 @@
 
 @keyframes csvPageSwap {
   0%,
-  43% {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-
-  50%,
-  93% {
+  27%,
+  100% {
     opacity: 1;
+    pointer-events: auto;
     transform: translateX(0);
+    visibility: visible;
   }
 
+  32%,
+  95% {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-24px);
+    visibility: hidden;
+  }
+}
+
+@keyframes scannerPageSwap {
+  0%,
+  27% {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(24px);
+    visibility: hidden;
+  }
+
+  32%,
+  60% {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  65%,
   100% {
     opacity: 0;
-    transform: translateX(24px);
+    pointer-events: none;
+    transform: translateX(-24px);
+    visibility: hidden;
   }
 }
 
 @keyframes swapDotOne {
   0%,
-  43%,
+  27%,
   100% {
     background: var(--primary);
   }
 
-  50%,
-  93% {
+  32%,
+  95% {
     background: var(--app-border);
   }
 }
 
 @keyframes swapDotTwo {
   0%,
-  43%,
+  27%,
   100% {
     background: var(--app-border);
   }
 
-  50%,
-  93% {
+  32%,
+  60% {
     background: var(--primary);
+  }
+
+  65% {
+    background: var(--app-border);
+  }
+}
+
+@keyframes swapDotThree {
+  0%,
+  60%,
+  100% {
+    background: var(--app-border);
+  }
+
+  65%,
+  95% {
+    background: var(--primary);
+  }
+}
+
+@keyframes scannerLightPulse {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: rotate(1deg);
+  }
+
+  50% {
+    opacity: 0.92;
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes scannerRedSweep {
+  0%,
+  100% {
+    top: 9px;
+    opacity: 0.42;
+  }
+
+  50% {
+    top: 70px;
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .swapPage,
   .scanBeam,
+  .scannerLightPath,
+  .scannerRedBeam,
   .swapDots span {
     animation: none;
   }
 
-  .barcodePage {
+  .csvPage {
     opacity: 1;
+    pointer-events: auto;
     transform: translateX(0);
+    visibility: visible;
   }
 }
 
