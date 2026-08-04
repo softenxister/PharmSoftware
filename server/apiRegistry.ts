@@ -19,6 +19,7 @@ import * as staff from "./routes/staff";
 import * as stock from "./routes/stock";
 import * as stockAdjustments from "./routes/stockAdjustments";
 import * as stockBatchAdjustments from "./routes/stockBatchAdjustments";
+import * as customerPurchaseHistoryMigration from "./routes/stockMigrations/customerPurchases";
 import * as distributorDataMigration from "./routes/stockMigrations/distributors";
 import * as cwStockMigration from "./routes/stockMigrations/cwStock";
 import * as lotExpiryMigration from "./routes/stockMigrations/lotExpiry";
@@ -96,6 +97,11 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "PUT", path: "/api/stock/photos/:productId", handler: handler(stockPhotos.PUT) },
   { method: "POST", path: "/api/stock/migrations/cw", handler: handler(cwStockMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/lots", handler: handler(lotExpiryMigration.POST) },
+  {
+    method: "POST",
+    path: "/api/stock/migrations/customer-purchases",
+    handler: handler(customerPurchaseHistoryMigration.POST),
+  },
   { method: "POST", path: "/api/stock/migrations/distributors", handler: handler(distributorDataMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/members", handler: handler(memberDataMigration.POST) },
   { method: "GET", path: "/api/store-pos-settings", handler: handler(storePosSettings.GET) },

@@ -63,6 +63,8 @@ export const purchaseEnglish = {
   "purchaseEntry.perUnit": "per {unit}",
   "purchaseEntry.actions": "Actions",
   "purchaseEntry.importOptions": "Purchase import options",
+  "purchaseEntry.barcodeScanner": "Barcode scanner",
+  "purchaseEntry.barcodeScannerHint": "Use the counter scanner to add item lines.",
   "purchaseEntry.scanBarcode": "Scan barcode",
   "purchaseEntry.scanHint": "Phone scan adds item lines quickly.",
   "purchaseEntry.uploadCsv": "Upload CSV",
@@ -104,6 +106,8 @@ export const purchaseEnglish = {
   "purchaseEntry.selectUnit": "Select unit",
   "purchaseEntry.searchUnit": "Search unit",
   "purchaseEntry.noUnit": "No unit found",
+  "purchaseEntry.editLine": "Edit {item}",
+  "purchaseEntry.updateLine": "Update item",
 } as const;
 
 export const purchaseThai = {
@@ -171,6 +175,8 @@ export const purchaseThai = {
   "purchaseEntry.perUnit": "ต่อ {unit}",
   "purchaseEntry.actions": "คำสั่ง",
   "purchaseEntry.importOptions": "ตัวเลือกนำเข้าบิลซื้อ",
+  "purchaseEntry.barcodeScanner": "เครื่องสแกนบาร์โค้ด",
+  "purchaseEntry.barcodeScannerHint": "ใช้เครื่องสแกนที่เคาน์เตอร์เพื่อเพิ่มรายการสินค้า",
   "purchaseEntry.scanBarcode": "สแกนบาร์โค้ด",
   "purchaseEntry.scanHint": "สแกนด้วยมือถือเพื่อเพิ่มรายการได้เร็ว",
   "purchaseEntry.uploadCsv": "อัปโหลด CSV",
@@ -212,4 +218,6 @@ export const purchaseThai = {
   "purchaseEntry.selectUnit": "เลือกหน่วย",
   "purchaseEntry.searchUnit": "ค้นหาหน่วย",
   "purchaseEntry.noUnit": "ไม่พบหน่วย",
+  "purchaseEntry.editLine": "แก้ไข {item}",
+  "purchaseEntry.updateLine": "อัปเดตรายการ",
 } as const;

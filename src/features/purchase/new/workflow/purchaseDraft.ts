@@ -54,6 +54,57 @@ export type PurchaseCorrection = {
 export type PurchaseDiscountType = "percent" | "thb";
 export type PurchaseDiscountTiming = "beforeVat" | "afterVat";
 
+export type PurchaseLineEditorDraft = {
+  unit: string;
+  lineQty: string;
+  lineCost: string;
+  includeFreeQty: boolean;
+  freeQty: string;
+  freeUnit: string;
+  lotNo: string;
+  expiryDate: string;
+};
+
+export function getPurchaseLineEditorDraft(line: PurchaseLine): PurchaseLineEditorDraft {
+  return {
+    unit: line.unit,
+    lineQty: line.qty,
+    lineCost: line.cost,
+    includeFreeQty: line.freeQty.trim().length > 0,
+    freeQty: line.freeQty,
+    freeUnit: line.freeUnit,
+    lotNo: line.lotNo,
+    expiryDate: line.expiryDate,
+  };
+}
+
+export function applyPurchaseLineChange(
+  lines: PurchaseLine[],
+  nextLine: PurchaseLine,
+  editingLineId: string | null,
+): PurchaseLine[] {
+  if (!editingLineId) return [...lines, nextLine];
+  return lines.map((line) => (
+    line.id === editingLineId ? { ...nextLine, id: line.id } : line
+  ));
+}
+
+export function isPurchaseLineRowActivationKey(key: string): boolean {
+  return key === "Enter" || key === " ";
+}
+
+export function getPurchaseLineEnterAction(
+  key: string,
+  flowField: string | undefined,
+): "submit" | "advance" | "ignore" {
+  if (key !== "Enter") return "ignore";
+  return flowField === "expiry" ? "submit" : "advance";
+}
+
+export function getPurchaseUnitDisplayValue(value: string): string {
+  return value.replace(/\[1\]$/, "");
+}
+
 export function selectPurchaseDiscountType(
   value: string,
   type: PurchaseDiscountType,

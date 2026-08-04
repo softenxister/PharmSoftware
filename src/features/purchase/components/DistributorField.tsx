@@ -31,9 +31,7 @@ export function DistributorField({
     <div className={styles.fieldGroup}>
       <label className={styles.fieldLabel}>{t("purchaseEntry.distributor")}</label>
       <div className={styles.field}>
-        <div className={styles.searchIconBox}>
-          <Search size={16} color="#47745a" />
-        </div>
+        <Search size={14} className={styles.fieldSearchIcon} aria-hidden="true" />
         <input
           value={value}
           onChange={event => onChange(event.target.value)}

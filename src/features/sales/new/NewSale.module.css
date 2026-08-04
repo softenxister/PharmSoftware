@@ -480,6 +480,7 @@
 
 .customerField {
   min-width: 360px;
+  container-type: inline-size;
 }
 
 .pharmacistField {
@@ -527,7 +528,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0 8px;
-  background: var(--primary-soft);
+  background: var(--surface);
   width: 100%;
   min-width: 0;
 }
@@ -541,6 +542,7 @@
 .avatar {
   width: 30px;
   height: 30px;
+  border: 1px solid var(--border);
   border-radius: 50%;
   background: var(--surface);
   color: var(--primary-dark);
@@ -560,15 +562,17 @@
 }
 
 .customerChipMeta {
-  display: flex;
+  display: grid;
+  grid-template-columns: 350px 156px 124px 78px;
   align-items: center;
-  gap: 10px;
-  flex: 1;
+  column-gap: 10px;
+  flex: 0 0 auto;
   min-width: 0;
+  max-width: 100%;
 }
 
 .customerChipName {
-  flex: 0 1 42%;
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
@@ -577,26 +581,60 @@
   text-overflow: ellipsis;
 }
 
-.customerChipMobile {
-  position: relative;
-  flex: 1 1 auto;
+.customerChipMobile,
+.customerChipRank,
+.customerChipPoints {
   min-width: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--primary-dark);
   white-space: nowrap;
+}
+
+.customerMetaCell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.customerMetaIcon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.customerMetaText {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.customerChipMobile::before {
-  content: "";
-  display: inline-block;
-  width: 4px;
-  height: 4px;
-  margin: 0 10px 2px 0;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--primary) 45%, transparent);
+.customerChipMobile {
+  color: var(--ink-muted);
+}
+
+.customerChipPoints {
+  color: #9a6a0a;
+}
+
+.customerRankBronze {
+  color: #8b451f;
+}
+
+.customerRankSilver {
+  color: #5c6675;
+}
+
+.customerRankGold {
+  color: #a36f00;
+}
+
+.customerRankPlatinum {
+  color: #6652a3;
+}
+
+.customerRankDiamond {
+  color: #007a9f;
 }
 
 .clearChip {
@@ -608,6 +646,7 @@
   border-radius: 50%;
   display: flex;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .clearChip:hover {
@@ -657,6 +696,19 @@
 
 .dropdownPanel:hover .customerOptionActive:not(:hover) {
   background: transparent;
+}
+
+@container (max-width: 600px) {
+  .customerChipMeta {
+    grid-template-columns: 300px 134px 200px 61px;
+    column-gap: 8px;
+  }
+}
+
+@container (max-width: 480px) {
+  .customerChipMeta {
+    grid-template-columns: 108px 94px 58px 61px;
+  }
 }
 
 /* ── Scroll area ────────────────────────────────────────────────── */

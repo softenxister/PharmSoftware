@@ -21,6 +21,7 @@ type CwProductWrite = {
   manufacturerId: string;
   categoryId: string;
   baseUnit: string;
+  migrationCostThb: number | null;
   isActive: boolean;
 };
 
@@ -103,7 +104,7 @@ async function upsertProductsInBatches(
       INSERT INTO "Product" (
         "id", "externalProductCode", "barcode", "itemName", "brandName",
         "manufacturerId", "categoryId", "packUnit", "childUnit", "childQuantity",
-        "packLabel", "location", "imageUrl", "isActive", "updatedAt"
+        "packLabel", "location", "imageUrl", "migrationCostThb", "isActive", "updatedAt"
       )
       VALUES ${Prisma.join(batch.map((product) => Prisma.sql`(
         ${product.id},
@@ -119,6 +120,7 @@ async function upsertProductsInBatches(
         ${`1 ${product.baseUnit}`},
         ${"-"},
         ${`https://placehold.co/360x360/png?text=${encodeURIComponent(product.itemName.slice(0, 18))}`},
+        ${product.migrationCostThb},
         ${product.isActive},
         CURRENT_TIMESTAMP
       )`))}
@@ -133,6 +135,7 @@ async function upsertProductsInBatches(
         "childUnit" = EXCLUDED."childUnit",
         "childQuantity" = EXCLUDED."childQuantity",
         "packLabel" = EXCLUDED."packLabel",
+        "migrationCostThb" = EXCLUDED."migrationCostThb",
         "isActive" = EXCLUDED."isActive",
         "compositionStatus" = CASE
           WHEN "Product"."barcode" IS DISTINCT FROM EXCLUDED."barcode"
@@ -319,6 +322,7 @@ export async function importCwStockMigration(
         manufacturerId,
         categoryId,
         baseUnit: replaceDeprecatedProductUnit(source.baseUnit),
+        migrationCostThb: source.lastCostThb > 0 ? source.lastCostThb : null,
         isActive: source.isActive,
       });
 

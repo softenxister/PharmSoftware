@@ -15,6 +15,7 @@ import { MigrationPreviewPanel } from "@/features/stock/migration/MigrationPrevi
 import { MemberDataMigrationCard } from "@/features/stock/migration/MemberDataMigrationCard";
 import { LotExpiryMigrationCard } from "@/features/stock/migration/LotExpiryMigrationCard";
 import { DistributorDataMigrationCard } from "@/features/stock/migration/DistributorDataMigrationCard";
+import { CustomerPurchaseHistoryMigrationCard } from "@/features/stock/migration/CustomerPurchaseHistoryMigrationCard";
 import { ProductCategoryNormalizationCard } from "@/features/stock/migration/ProductCategoryNormalizationCard";
 import { ProductMeasurementNormalizationCard } from "@/features/stock/migration/ProductMeasurementNormalizationCard";
 import {
@@ -102,7 +103,7 @@ export default function StockMigrationPage() {
         <div>
           <div className={styles.breadcrumb}><span>Stock</span><ChevronRight size={13} /><span>Data migration</span></div>
           <h1 id="migration-title">Move your pharmacy data safely</h1>
-          <p>Preview product, member, and distributor records before they reach your pharmacy database.</p>
+          <p>Preview product, member, distributor, and customer purchase-history records before they reach your pharmacy database.</p>
         </div>
         <div className={styles.secureBadge}><LockKeyhole size={15} /><span>Owner-only import</span></div>
       </header>
@@ -127,7 +128,7 @@ export default function StockMigrationPage() {
           )}
 
           <section className={styles.datasetSection} aria-labelledby="available-data-title">
-            <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>CW datasets</p><h2 id="available-data-title">Choose what to migrate</h2></div><span>4 of 4 available</span></div>
+            <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>CW datasets</p><h2 id="available-data-title">Choose what to migrate</h2></div><span>5 of 5 available</span></div>
 
             <article className={styles.activeDataset}>
               <div className={styles.datasetHeader}>
@@ -163,6 +164,7 @@ export default function StockMigrationPage() {
 
             <LotExpiryMigrationCard canImport={canImport} onStepChange={setActiveStep} />
             <MemberDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
+            <CustomerPurchaseHistoryMigrationCard canImport={canImport} onStepChange={setActiveStep} />
             <DistributorDataMigrationCard canImport={canImport} onStepChange={setActiveStep} />
           </section>
 
@@ -172,7 +174,7 @@ export default function StockMigrationPage() {
           {error && <div ref={errorRef} className={styles.errorNotice} role="alert"><ArchiveRestore size={18} /><span><strong>Import did not complete.</strong>{error}</span></div>}
           {preview && <MigrationPreviewPanel preview={preview} result={result} confirmed={confirmed} busy={busy === "import"} onConfirmedChange={setConfirmed} onImport={handleImport} />}
 
-          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>Stock uses CW product codes and barcodes. Lot and expiry imports require an exact CW product-code match and report unmatched codes. Members update by member code. Distributors match by CW code first, then exact name.</p></div></aside>
+          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>Stock uses CW product codes and barcodes. Lot, expiry, and customer purchase history require exact CW product-code matches. Purchase history also requires an existing member code, skips unknown-customer sequence 1, and reports every missing code by Excel row. Members update by member code. Distributors match by CW code first, then exact name.</p></div></aside>
         </div>
       </div>
     </section>

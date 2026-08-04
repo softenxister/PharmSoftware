@@ -65,15 +65,6 @@ export function StockInventoryTable({
             placeholder={t("stock.search")}
           />
         </label>
-        <div className={styles.toolbarSpacer} />
-        <button
-          type="button"
-          className={`${styles.toolbarAddButton} ${styles.createActionButton}`}
-          onClick={controller.productEntry.openCreate}
-        >
-          <PackagePlus size={17} aria-hidden="true" />
-          <span>{t("stock.createItem")}</span>
-        </button>
       </div>
 
       <div className={styles.tablePanel}>
@@ -113,7 +104,7 @@ export function StockInventoryTable({
                   {sortHeader("stock", t("nav.stock"))}
                 </th>
                 <th>{t("stock.locationShort")}</th>
-                <th>{t("stock.discountShort")}</th>
+                <th>{t("stock.marginShort")}</th>
                 <th aria-sort={ariaSort("sellPrice")}>
                   {sortHeader("sellPrice", t("stock.sellPrice"))}
                 </th>
@@ -181,7 +172,17 @@ export function StockInventoryTable({
                       {item.loc}
                     </span>
                   </td>
-                  <td>{item.discount}%</td>
+                  <td>
+                    <span className={`${styles.marginValue} ${
+                      item.marginPercent !== undefined && item.marginPercent < 0
+                        ? styles.marginValueNegative
+                        : ""
+                    }`}>
+                      {item.marginPercent === undefined
+                        ? "—"
+                        : `${formatNumber(item.marginPercent, { maximumFractionDigits: 2 })}%`}
+                    </span>
+                  </td>
                   <td>
                     <span className={styles.priceValue}>
                       ฿{formatNumber(item.sellPrice, { maximumFractionDigits: 0 })}

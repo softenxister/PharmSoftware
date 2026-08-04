@@ -11,6 +11,14 @@ A person or organization that purchases from the pharmacy, whether or not enroll
 A customer enrolled in the pharmacy's membership program.
 _Avoid_: Active customer
 
+**Membership Rank**:
+A Member loyalty tier determined by accumulated Loyalty Points: Bronze 0–100, Silver 101–500, Gold 501–2,000, Platinum 2,001–10,000, and Diamond above 10,000.
+_Avoid_: Regular rank
+
+**Loyalty Point**:
+A whole-number reward unit earned by a Member from a paid sale at one point per ฿10 of net payable; an incomplete ฿10 does not earn a point.
+_Avoid_: Partial point, pending-sale point
+
 **Member Code**:
 The pharmacy-issued business identifier for a member, distinct from the internal customer ID and any barcode.
 _Avoid_: Barcode, customer ID

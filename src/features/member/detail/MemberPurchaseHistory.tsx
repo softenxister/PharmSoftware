@@ -184,16 +184,20 @@ export function MemberPurchaseHistory({ member }: { member: MemberDetailRecord }
               <tr>
                 <th>{t("member.item")}</th>
                 <th>{t("member.quantityPurchased")}</th>
+                <th>{t("member.totalPurchase")}</th>
                 <th>{t("member.purchaseCount")}</th>
                 <th>{t("member.lastPurchased")}</th>
               </tr>
             </thead>
             <tbody>
               {member.purchasedItems.map((item) => (
-                <tr key={item.productId}>
-                  <td><strong>{item.itemName}</strong></td>
+                <tr key={item.historyKey}>
+                  <td><strong title={item.itemName}>{item.itemName}</strong></td>
                   <td>{formatNumber(item.totalQuantity)} {item.unit}</td>
-                  <td>{formatNumber(item.purchaseCount)}</td>
+                  <td className={styles.amount}>฿{formatMoney(item.totalAmount)}</td>
+                  <td>{item.purchaseCount === null
+                    ? <span title="Purchase count is not available in the imported aggregate report.">—</span>
+                    : formatNumber(item.purchaseCount)}</td>
                   <td>{formatDate(item.lastPurchasedAt)}</td>
                 </tr>
               ))}

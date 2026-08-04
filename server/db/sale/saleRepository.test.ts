@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  loyaltyPointsForSale,
   summarizeSaleLines,
   validateSale,
   type SaleInput,
@@ -49,6 +50,12 @@ test("sales reject fractional item quantities", () => {
 
 test("pending sales can be saved without customer payment", () => {
   assert.doesNotThrow(() => validateSale(saleInput({ status: "pending", customerPaid: null })));
+});
+
+test("only a paid member sale earns loyalty points", () => {
+  assert.equal(loyaltyPointsForSale("paid", true, 129.99), 12);
+  assert.equal(loyaltyPointsForSale("pending", true, 129.99), 0);
+  assert.equal(loyaltyPointsForSale("paid", false, 129.99), 0);
 });
 
 test("sales accept stock stored in a blank batch", () => {

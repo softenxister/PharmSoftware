@@ -43,7 +43,7 @@ test("member import writes CSV profile fields but preserves internal state on up
     address: "12/50 Bangna",
     isMember: true,
     points: 0,
-    membershipRank: "Regular",
+    membershipRank: "Bronze",
     createdAt: new Date("2026-03-20T00:00:00.000Z"),
   });
 });

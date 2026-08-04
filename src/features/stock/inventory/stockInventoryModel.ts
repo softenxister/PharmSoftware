@@ -5,6 +5,7 @@ import type {
   StockSortDirection,
 } from "@/api/stockCatalogClient";
 import { getStockMeasurementLabel } from "@/lib/productMeasurement";
+import { marginPercent } from "@/lib/stockCost";
 
 export const STOCK_PAGE_SIZE = 50;
 export const SIDEBAR_MIN_WIDTH = 230;
@@ -149,7 +150,7 @@ export type StockInventoryItem = {
   max: number;
   stock: number;
   loc: string;
-  discount: number;
+  marginPercent?: number;
   sellPrice: number;
   imageUrl: string;
   state: StockState;
@@ -251,7 +252,10 @@ export function projectStockInventoryItem(product: SalesProduct): StockInventory
     max,
     stock,
     loc: product.location,
-    discount: product.discountPercent ?? 0,
+    marginPercent: marginPercent(
+      product.batches[0]?.sellPriceThb ?? 0,
+      product.averageCostThb,
+    ),
     sellPrice: product.batches[0]?.sellPriceThb ?? 0,
     imageUrl: product.imageUrl,
     state: stock < min ? "low" : stock > max ? "overstock" : "normal",

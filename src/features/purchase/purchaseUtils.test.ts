@@ -4,6 +4,10 @@ import {
   canSavePurchase,
 } from "./new/workflow/purchaseDraft";
 import {
+  isEditablePurchaseBillRow,
+  isPurchaseBillRowActivationKey,
+} from "./purchaseRowInteraction";
+import {
   formatPurchaseExpiryDate as formatDateDisplay,
   formatPurchaseExpiryInput as formatExpiryDateInput,
   isPurchaseExpiryDate as isValidExpiryDate,
@@ -20,6 +24,15 @@ test("expiry date input inserts DD-MM-YY separators", () => {
 test("pasted full years convert to the short Christian-year display", () => {
   assert.equal(formatExpiryDateInput("31/12/2569"), "31-12-26");
   assert.equal(formatExpiryDateInput("2029-12-02"), "02-12-29");
+});
+
+test("Buddhist short years stay unchanged in the editor and convert for display", () => {
+  assert.equal(formatExpiryDateInput("31-12-69"), "31-12-69");
+  assert.equal(formatExpiryDateInput("31-12-70"), "31-12-70");
+  assert.equal(formatExpiryDateInput("31-12-68"), "31-12-68");
+  assert.equal(formatDateDisplay("31-12-69"), "31-12-26");
+  assert.equal(formatDateDisplay("31-12-70"), "31-12-27");
+  assert.equal(toDatabaseExpiryDate("31-12-69"), "2026-12-31");
 });
 
 test("stored ISO dates display as DD-MM-YY on purchase cards", () => {
@@ -43,4 +56,16 @@ test("purchase save is blocked for empty or invalid totals", () => {
   assert.equal(canSavePurchase(1, 0), false);
   assert.equal(canSavePurchase(1, Number.NaN), false);
   assert.equal(canSavePurchase(1, 100), true);
+});
+
+test("only draft purchase bills use the whole row as an edit target", () => {
+  assert.equal(isEditablePurchaseBillRow("draft"), true);
+  assert.equal(isEditablePurchaseBillRow("partial"), false);
+  assert.equal(isEditablePurchaseBillRow("received"), false);
+});
+
+test("draft purchase rows activate from Enter or Space only", () => {
+  assert.equal(isPurchaseBillRowActivationKey("Enter"), true);
+  assert.equal(isPurchaseBillRowActivationKey(" "), true);
+  assert.equal(isPurchaseBillRowActivationKey("Escape"), false);
 });

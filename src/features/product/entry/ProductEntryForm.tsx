@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type FormEvent, type KeyboardEvent } from "react";
-import { PackagePlus, Trash2 } from "lucide-react";
+import { PackagePlus, Trash2, X } from "lucide-react";
 import type { SalesProduct, StockItemInput } from "@server/db/types";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import {
@@ -25,6 +25,7 @@ type ProductEntryFormProps = {
   activeIngredients?: SalesProduct["activeIngredients"];
   compositionStatus?: SalesProduct["compositionStatus"];
   mode?: "create" | "edit";
+  onClose?: () => void;
 };
 
 function focusNextField(currentFlow: string) {
@@ -45,6 +46,7 @@ export function ProductEntryForm({
   activeIngredients,
   compositionStatus,
   mode = "create",
+  onClose,
 }: ProductEntryFormProps) {
   const { t, preferences } = usePreferences();
   const categoryOptions = useMemo(
@@ -93,11 +95,13 @@ export function ProductEntryForm({
       ref={formRef}
       className={`${styles.stockForm} ${styles.stockFormPortrait} ${
         !controller.isEditing ? styles.stockFormCreate : ""
+      } ${
+        controller.isEditing ? styles.stockFormEdit : ""
       }`}
       onSubmit={submit}
       noValidate
     >
-      <div className={styles.formHeader}>
+      <header className={styles.formHeader}>
         <div><h1>{controller.isEditing ? t("stockForm.edit") : t("stock.createItem")}</h1></div>
         <div className={styles.formHeaderActions}>
           {controller.isEditing && (
@@ -111,8 +115,19 @@ export function ProductEntryForm({
               <span>{t("stockForm.delete")}</span>
             </button>
           )}
+          {controller.isEditing && onClose && (
+            <button
+              type="button"
+              className={styles.formCloseButton}
+              disabled={controller.deleting || controller.saving}
+              onClick={onClose}
+              aria-label={t("stock.closeItemEditor")}
+            >
+              <X size={19} aria-hidden="true" />
+            </button>
+          )}
         </div>
-      </div>
+      </header>
 
       {controller.deleteConfirmationOpen && <ProductDeleteDialog controller={controller} />}
 
@@ -146,20 +161,32 @@ export function ProductEntryForm({
             {controller.saveError}
           </p>
         )}
-        <button
-          type="submit"
-          className={`${styles.toolbarAddButton} ${
-            !controller.isEditing ? styles.createActionButton : ""
-          }`}
-          disabled={!controller.canSave || controller.deleting || controller.saving}
-        >
-          <PackagePlus size={17} aria-hidden="true" />
-          <span>
-            {controller.saving
-              ? t("stockForm.saving")
-              : controller.isEditing ? t("stockForm.saveChanges") : t("stockForm.create")}
-          </span>
-        </button>
+        <div className={styles.formFooterActions}>
+          {controller.isEditing && onClose && (
+            <button
+              type="button"
+              className={styles.formCancelButton}
+              disabled={controller.deleting || controller.saving}
+              onClick={onClose}
+            >
+              {t("staff.cancel")}
+            </button>
+          )}
+          <button
+            type="submit"
+            className={`${styles.toolbarAddButton} ${
+              !controller.isEditing ? styles.createActionButton : ""
+            }`}
+            disabled={!controller.canSave || controller.deleting || controller.saving}
+          >
+            <PackagePlus size={17} aria-hidden="true" />
+            <span>
+              {controller.saving
+                ? t("stockForm.saving")
+                : controller.isEditing ? t("stockForm.saveChanges") : t("stockForm.create")}
+            </span>
+          </button>
+        </div>
       </div>
     </form>
   );

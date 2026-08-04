@@ -128,6 +128,49 @@ export type MemberMigrationResult = {
   importedCount: number;
 };
 
+export type CustomerPurchaseHistoryMigrationRow = {
+  customerRowNumber: number;
+  rowNumber: number;
+  customerCode: string;
+  customerName: string;
+  externalProductCode: string;
+  sourceItemName: string;
+  unit: string;
+  quantity: number;
+  totalAmount: number;
+  status: "matched" | "duplicate" | "unmatched_customer" | "unmatched_product" | "conflict";
+  matchedCustomerId: string | null;
+  matchedCustomerName: string | null;
+  matchedProductId: string | null;
+  matchedItemName: string | null;
+  issue: string | null;
+};
+
+export type CustomerPurchaseHistoryMigrationPreview = {
+  sourceSoftware: "CW";
+  sourceFileHash: string;
+  confirmationToken: string;
+  reportPeriod: { startedAt: string | null; endedAt: string | null };
+  summary: {
+    totalRows: number;
+    matchedCount: number;
+    duplicateCount: number;
+    unmatchedCustomerCount: number;
+    unmatchedProductCount: number;
+    conflictCount: number;
+  };
+  rows: CustomerPurchaseHistoryMigrationRow[];
+};
+
+export type CustomerPurchaseHistoryMigrationResult = {
+  migrationId: string;
+  importedCount: number;
+  skippedDuplicateCount: number;
+  skippedUnmatchedCustomerCount: number;
+  skippedUnmatchedProductCount: number;
+  skippedConflictCount: number;
+};
+
 export type DistributorMigrationRow = {
   rowNumber: number;
   code: string;
@@ -275,6 +318,37 @@ export async function submitMemberDataMigration<T>(
   const payload = await response.json().catch(() => ({})) as ApiError & { data?: T };
   if (!response.ok) throw new Error(payload.error?.message ?? "The member migration request failed.");
   if (!payload.data) throw new Error("The member migration response was incomplete.");
+  return payload.data;
+}
+
+export async function submitCustomerPurchaseHistoryMigration<T>(
+  action: "preview" | "import",
+  file: File,
+  confirmationToken?: string,
+  fetcher: typeof fetch = fetch,
+): Promise<T> {
+  const body = new FormData();
+  body.set("action", action);
+  body.set("file", file);
+  if (confirmationToken) body.set("confirmationToken", confirmationToken);
+
+  let response: Response;
+  try {
+    response = await fetcher("/api/stock/migrations/customer-purchases", { method: "POST", body });
+  } catch (error) {
+    throw new Error(
+      "The API server is unavailable. Start the Pharm API service and try again.",
+      { cause: error },
+    );
+  }
+  if ([502, 503, 504].includes(response.status)) {
+    throw new Error("The API server is unavailable. Start the Pharm API service and try again.");
+  }
+  const payload = await response.json().catch(() => ({})) as ApiError & { data?: T };
+  if (!response.ok) {
+    throw new Error(payload.error?.message ?? "The customer purchase-history migration request failed.");
+  }
+  if (!payload.data) throw new Error("The customer purchase-history migration response was incomplete.");
   return payload.data;
 }
 
