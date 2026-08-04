@@ -2,7 +2,7 @@ import { Prisma } from "@server/generated/prisma/client";
 import type { SalesProduct } from "../types";
 import type { StockReadQuery } from "./stockReadQuery";
 import { prisma } from "../core/prisma";
-import { bangkokWeekRange } from "../sale/weeklySales";
+import { recentSalesWeekRange } from "../sale/weeklySales";
 import {
   productGraph,
   productRowToSalesProduct,
@@ -88,6 +88,17 @@ const firstSellPriceSql = Prisma.sql`
     0
   )
 `;
+
+async function readRecentSalesWeekRange(): Promise<{ start: Date; end: Date }> {
+  const now = new Date();
+  const latestPaidSale = await prisma.sale.findFirst({
+    where: { status: "PAID", soldAt: { lte: now } },
+    orderBy: { soldAt: "desc" },
+    select: { soldAt: true },
+  });
+  return recentSalesWeekRange(latestPaidSale?.soldAt ?? null, now);
+}
+
 const nearestExpirySql = Prisma.sql`
   MIN(
     CASE
@@ -205,7 +216,7 @@ async function readFilteredStockProductIds(
 
   const orderBy = filteredStockOrderBy(input);
   const offset = (input.page - 1) * input.pageSize;
-  const weekRange = bangkokWeekRange();
+  const weekRange = await readRecentSalesWeekRange();
   const weeklySalesCte = input.sort === "weekly"
     ? Prisma.sql`
       weekly_sales AS (
@@ -216,7 +227,7 @@ async function readFilteredStockProductIds(
         INNER JOIN "Sale" sale ON sale.id = line."saleId"
         WHERE sale.status = 'PAID'
           AND sale."soldAt" >= ${weekRange.start}
-          AND sale."soldAt" < ${weekRange.end}
+          AND sale."soldAt" <= ${weekRange.end}
         GROUP BY line."productId"
       )
     `
@@ -286,7 +297,7 @@ async function readBatchCosts(productIds: string[]): Promise<ReadonlyMap<string,
 
 async function readWeeklySoldQuantities(productIds: string[]): Promise<ReadonlyMap<string, number>> {
   if (productIds.length === 0) return new Map();
-  const weekRange = bangkokWeekRange();
+  const weekRange = await readRecentSalesWeekRange();
   const rows = await prisma.$queryRaw<Array<{ productId: string; weeklySold: number }>>(Prisma.sql`
     SELECT
       line."productId",
@@ -296,7 +307,7 @@ async function readWeeklySoldQuantities(productIds: string[]): Promise<ReadonlyM
     WHERE line."productId" IN (${Prisma.join(productIds)})
       AND sale.status = 'PAID'
       AND sale."soldAt" >= ${weekRange.start}
-      AND sale."soldAt" < ${weekRange.end}
+      AND sale."soldAt" <= ${weekRange.end}
     GROUP BY line."productId"
   `);
   return new Map(rows.map((row) => [row.productId, Number(row.weeklySold)]));

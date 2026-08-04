@@ -1,4 +1,6 @@
 const BUDDHIST_YEAR_OFFSET = 543;
+const BUDDHIST_SHORT_YEAR_MINIMUM = 69;
+const BUDDHIST_SHORT_YEAR_CENTURY = 2500;
 
 type ExpiryDateParts = {
   year: number;
@@ -8,6 +10,12 @@ type ExpiryDateParts = {
 
 const toChristianYear = (year: number) => (
   year >= 2400 ? year - BUDDHIST_YEAR_OFFSET : year
+);
+
+const toChristianYearFromTwoDigits = (year: number) => (
+  year >= BUDDHIST_SHORT_YEAR_MINIMUM
+    ? BUDDHIST_SHORT_YEAR_CENTURY + year - BUDDHIST_YEAR_OFFSET
+    : 2000 + year
 );
 
 function validParts(year: number, month: number, day: number): ExpiryDateParts | null {
@@ -37,7 +45,9 @@ function parseExpiryDate(value: string | null | undefined): ExpiryDateParts | nu
   const dayFirst = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(normalized);
   if (!dayFirst) return null;
   const rawYear = Number(dayFirst[3]);
-  const year = dayFirst[3].length === 2 ? 2000 + rawYear : toChristianYear(rawYear);
+  const year = dayFirst[3].length === 2
+    ? toChristianYearFromTwoDigits(rawYear)
+    : toChristianYear(rawYear);
   return validParts(year, Number(dayFirst[2]), Number(dayFirst[1]));
 }
 
@@ -80,6 +90,14 @@ export function formatPurchaseExpiryDate(value: string | null | undefined): stri
 
 export function formatPurchaseExpiryInput(value: string): string {
   const normalized = value.trim();
+  const shortYearDate = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2})$/.exec(normalized);
+  if (shortYearDate) {
+    return [
+      shortYearDate[1].padStart(2, "0"),
+      shortYearDate[2].padStart(2, "0"),
+      shortYearDate[3],
+    ].join("-");
+  }
   const completeDigits = /^\d{8}$/.test(normalized)
     ? `${normalized.slice(0, 2)}/${normalized.slice(2, 4)}/${normalized.slice(4)}`
     : normalized;

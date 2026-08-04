@@ -1,21 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bangkokWeekRange } from "./weeklySales";
+import { recentSalesWeekRange } from "./weeklySales";
 
-test("Bangkok sales week runs from Monday midnight to the next Monday", () => {
+test("weekly product ranking keeps the most recent active sales week after a quiet period", () => {
   assert.deepEqual(
-    bangkokWeekRange(new Date("2026-07-26T16:59:59.999Z")),
+    recentSalesWeekRange(
+      new Date("2026-07-27T06:40:28.176Z"),
+      new Date("2026-08-04T05:00:00.000Z"),
+    ),
     {
-      start: new Date("2026-07-19T17:00:00.000Z"),
-      end: new Date("2026-07-26T17:00:00.000Z"),
+      start: new Date("2026-07-20T06:40:28.176Z"),
+      end: new Date("2026-07-27T06:40:28.176Z"),
     },
   );
+});
 
+test("weekly product ranking uses the current trailing week before any paid sale exists", () => {
   assert.deepEqual(
-    bangkokWeekRange(new Date("2026-07-26T17:00:00.000Z")),
+    recentSalesWeekRange(null, new Date("2026-08-04T05:00:00.000Z")),
     {
-      start: new Date("2026-07-26T17:00:00.000Z"),
-      end: new Date("2026-08-02T17:00:00.000Z"),
+      start: new Date("2026-07-28T05:00:00.000Z"),
+      end: new Date("2026-08-04T05:00:00.000Z"),
     },
   );
 });

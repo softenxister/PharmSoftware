@@ -1,4 +1,5 @@
 import type { PurchaseWorkflow } from "./usePurchaseWorkflow";
+import { getPurchaseUnitDisplayValue, isPurchaseLineRowActivationKey } from "./purchaseDraft";
 import styles from "../PurchaseEntry.module.css";
 
 const IconBin = () => (
@@ -12,7 +13,10 @@ const IconBin = () => (
 );
 
 export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) {
-  const { t, purchaseLines, setPurchaseLines, isEditable, localizeUnit } = workflow;
+  const {
+    t, purchaseLines, setPurchaseLines, isEditable, localizeUnit, editPurchaseLine,
+  } = workflow;
+  const displayUnit = (value: string) => localizeUnit(getPurchaseUnitDisplayValue(value));
   if (purchaseLines.length === 0) return null;
   return (
     <div className={styles.purchaseLineTableWrap}>
@@ -30,14 +34,34 @@ export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) 
                 </thead>
                 <tbody>
                   {purchaseLines.map(line => (
-                    <tr key={line.id}>
+                    <tr
+                      key={line.id}
+                      className={isEditable ? styles.editablePurchaseLineRow : undefined}
+                      tabIndex={isEditable ? 0 : undefined}
+                      aria-label={isEditable ? t("purchaseEntry.editLine", { item: line.itemName }) : undefined}
+                      onClick={() => {
+                        if (isEditable) editPurchaseLine(line);
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          !isEditable
+                          || event.target !== event.currentTarget
+                          || !isPurchaseLineRowActivationKey(event.key)
+                        ) return;
+                        event.preventDefault();
+                        editPurchaseLine(line);
+                      }}
+                    >
                       <td>
                         <button
                           type="button"
                           className={styles.removeLineButton}
                           aria-label={`Remove ${line.itemName}`}
                           disabled={!isEditable}
-                          onClick={() => setPurchaseLines(lines => lines.filter(candidate => candidate.id !== line.id))}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPurchaseLines(lines => lines.filter(candidate => candidate.id !== line.id));
+                          }}
                         >
                           <IconBin />
                         </button>
@@ -48,9 +72,9 @@ export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) 
                           <span>{line.itemName}</span>
                         </div>
                       </td>
-                      <td>{line.qty} {localizeUnit(line.unit)}</td>
+                      <td>{line.qty} {displayUnit(line.unit)}</td>
                       <td>฿{line.cost}</td>
-                      <td>{line.freeQty ? `${line.freeQty} ${localizeUnit(line.freeUnit)}` : "-"}</td>
+                      <td>{line.freeQty ? `${line.freeQty} ${displayUnit(line.freeUnit)}` : "-"}</td>
                       <td>{line.lotNo || "-"}</td>
                       <td>{line.expiryDate || "-"}</td>
                     </tr>

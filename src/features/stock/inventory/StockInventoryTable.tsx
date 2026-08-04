@@ -65,15 +65,6 @@ export function StockInventoryTable({
             placeholder={t("stock.search")}
           />
         </label>
-        <div className={styles.toolbarSpacer} />
-        <button
-          type="button"
-          className={`${styles.toolbarAddButton} ${styles.createActionButton}`}
-          onClick={controller.productEntry.openCreate}
-        >
-          <PackagePlus size={17} aria-hidden="true" />
-          <span>{t("stock.createItem")}</span>
-        </button>
       </div>
 
       <div className={styles.tablePanel}>

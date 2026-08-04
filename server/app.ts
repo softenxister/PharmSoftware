@@ -5,6 +5,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { runWithRequest } from "@server/auth/requestContext";
 import { MAX_CW_STOCK_REQUEST_BYTES } from "@server/import/cwStockUpload";
 import { MAX_LOT_EXPIRY_REQUEST_BYTES } from "@server/import/lotExpiryUpload";
+import { MAX_CUSTOMER_PURCHASE_HISTORY_REQUEST_BYTES } from "@server/import/customerPurchaseHistoryUpload";
 import { apiRoutes, type ApiHandler } from "./apiRegistry";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -12,6 +13,7 @@ const API_BODY_LIMIT_BYTES = 2 * 1024 * 1024;
 const STOCK_MIGRATION_PATHS = new Set([
   "/api/stock/migrations/cw",
   "/api/stock/migrations/lots",
+  "/api/stock/migrations/customer-purchases",
 ]);
 
 const defaultApiBodyLimit = bodyLimit({
@@ -19,7 +21,11 @@ const defaultApiBodyLimit = bodyLimit({
   onError: (context) => context.json({ error: "Request body is too large." }, 413),
 });
 const stockMigrationBodyLimit = bodyLimit({
-  maxSize: Math.max(MAX_CW_STOCK_REQUEST_BYTES, MAX_LOT_EXPIRY_REQUEST_BYTES),
+  maxSize: Math.max(
+    MAX_CW_STOCK_REQUEST_BYTES,
+    MAX_LOT_EXPIRY_REQUEST_BYTES,
+    MAX_CUSTOMER_PURCHASE_HISTORY_REQUEST_BYTES,
+  ),
   onError: (context) => context.json({ error: "Request body is too large." }, 413),
 });
 

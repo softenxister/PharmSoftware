@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { DiscountType, Prisma, SaleStatus } from "@server/generated/prisma/client";
 import { calculateSalePricing } from "@/lib/salePricing";
+import {
+  earnedMembershipPoints,
+  LOWEST_MEMBERSHIP_RANK,
+  nextMembershipLoyalty,
+} from "@/lib/membershipRank";
 import { createReceiptSnapshot, type ReceiptStoreSnapshot } from "@/lib/receipt";
 import { prisma } from "../core/prisma";
 import { readStoreProfile } from "../settings/storeProfileRepository";
@@ -77,6 +82,14 @@ export type SavedSale = {
 };
 
 const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+export function loyaltyPointsForSale(
+  status: SaleInput["status"],
+  isMember: boolean,
+  netTotal: number,
+): number {
+  return status === "paid" && isMember ? earnedMembershipPoints(netTotal) : 0;
+}
 
 function resolvedLineUnitPrice(line: SaleLineInput): number {
   const explicitPrice = Number(line.unitPrice);
@@ -207,9 +220,36 @@ async function upsertPeople(tx: Prisma.TransactionClient, input: SaleInput) {
         name: input.customer.name,
         mobile: input.customer.mobile?.trim() || null,
         isMember: Boolean(input.customer.isMember),
+        membershipRank: input.customer.isMember ? LOWEST_MEMBERSHIP_RANK : null,
       },
     });
   }
+}
+
+async function awardPaidSaleLoyalty(
+  tx: Prisma.TransactionClient,
+  customerId: string,
+  netTotal: number,
+): Promise<void> {
+  const [member] = await tx.$queryRaw<Array<{ points: number; isMember: boolean }>>(Prisma.sql`
+    SELECT points, "isMember"
+    FROM "Customer"
+    WHERE id = ${customerId}
+    FOR UPDATE
+  `);
+  if (!member) return;
+
+  const earnedPoints = loyaltyPointsForSale("paid", member.isMember, netTotal);
+  if (earnedPoints === 0) return;
+  const loyalty = nextMembershipLoyalty(member.points, netTotal);
+
+  await tx.customer.update({
+    where: { id: customerId },
+    data: {
+      points: loyalty.points,
+      membershipRank: loyalty.membershipRank,
+    },
+  });
 }
 
 export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
@@ -317,7 +357,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
       await tx.saleLine.deleteMany({ where: { saleId: identity.id } });
     }
 
-    return tx.sale.upsert({
+    const savedSale = await tx.sale.upsert({
       where: { id: identity.id },
       update: {
         ...saleData,
@@ -355,6 +395,12 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
         })) },
       },
     });
+
+    if (nextStatus === SaleStatus.PAID && input.customer?.id) {
+      await awardPaidSaleLoyalty(tx, input.customer.id, pricing.netPayable);
+    }
+
+    return savedSale;
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
   return {

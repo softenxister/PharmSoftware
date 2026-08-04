@@ -919,6 +919,7 @@
 
 .stockEntryWindow {
   position: relative;
+  display: flex;
   width: min(1160px, calc(100vw - 32px));
   height: min(652px, calc(100vh - 88px));
   min-height: 0;
@@ -927,6 +928,10 @@
   border-radius: 12px;
   background: var(--stock-bg);
   box-shadow: 0 24px 70px rgba(10, 31, 20, 0.32);
+}
+
+.stockEntryWindowEdit {
+  background: var(--stock-surface);
 }
 
 .adjustmentBackdrop {

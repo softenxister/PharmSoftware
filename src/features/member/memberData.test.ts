@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { filterMembers, nextMemberSort, sortMembers, type MemberRecord } from "./memberData";
+import {
+  filterMembers,
+  memberRankVisual,
+  memberRankTone,
+  nextMemberSort,
+  sortMembers,
+  type MemberRecord,
+} from "./memberData";
 
 const members: MemberRecord[] = [
   {
@@ -11,8 +18,8 @@ const members: MemberRecord[] = [
     registeredAt: "2025-02-01",
     lastOrderAt: "2026-06-10T09:00:00+07:00",
     totalPurchase: 2400,
-    points: 120,
-    membershipRank: "Regular",
+    points: 100,
+    membershipRank: "Bronze",
     topItemIds: [],
     allergies: [],
   },
@@ -24,7 +31,7 @@ const members: MemberRecord[] = [
     registeredAt: "2026-01-12",
     lastOrderAt: "2026-07-09T11:30:00+07:00",
     totalPurchase: 980,
-    points: 980,
+    points: 500,
     membershipRank: "Silver",
     topItemIds: [],
     allergies: [],
@@ -42,6 +49,26 @@ test("member search includes loyalty rank", () => {
   assert.deepEqual(filterMembers(members, "Silver").map((member) => member.id), ["m-2"]);
   assert.deepEqual(filterMembers(members, "Anong").map((member) => member.id), ["m-1"]);
   assert.deepEqual(filterMembers(members, "089-222").map((member) => member.id), ["m-2"]);
+});
+
+test("member ranks resolve to game-style color tiers", () => {
+  assert.deepEqual(
+    ["Bronze", "silver", "GOLD", "Platinum", "diamond", ""].map(memberRankTone),
+    ["bronze", "silver", "gold", "platinum", "diamond", "bronze"],
+  );
+});
+
+test("member ranks resolve to unique game-style icons", () => {
+  assert.deepEqual(
+    ["Bronze", "Silver", "Gold", "Platinum", "Diamond"].map(memberRankVisual),
+    [
+      { tone: "bronze", icon: "bronze" },
+      { tone: "silver", icon: "medal" },
+      { tone: "gold", icon: "crown" },
+      { tone: "platinum", icon: "platinum" },
+      { tone: "diamond", icon: "diamond" },
+    ],
+  );
 });
 
 test("customer names sort in both directions", () => {

@@ -156,6 +156,7 @@ model Product {
   favoriteCustomers    CustomerFavoriteProduct[]
   purchaseLines        PurchaseLine[]
   saleLines            SaleLine[]
+  importedPurchaseHistory CustomerPurchaseHistoryImport[]
   stockAdjustmentLines StockAdjustmentLine[]
   activeIngredients    ProductIngredient[]
   imageAsset           ProductImageAsset?
@@ -283,6 +284,7 @@ model Customer {
   membershipRank      String?
   favoriteProducts    CustomerFavoriteProduct[]
   sales               Sale[]
+  importedPurchaseHistory CustomerPurchaseHistoryImport[]
   ingredientAllergies CustomerIngredientAllergy[]
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
@@ -308,6 +310,32 @@ model CustomerFavoriteProduct {
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@id([customerId, productId])
+  @@index([productId])
+}
+
+model CustomerPurchaseHistoryImport {
+  id                  String   @id
+  customerId          String
+  productId           String
+  customerCode        String
+  externalProductCode String
+  sourceItemName      String
+  unit                String
+  quantity            Decimal  @db.Decimal(14, 3)
+  totalAmount         Decimal  @db.Decimal(14, 2)
+  reportStartedAt     DateTime?
+  reportEndedAt       DateTime?
+  sourceFileName      String
+  sourceFileHash      String
+  sourceRow           Int
+  customerRow         Int
+  importedBy          String
+  createdAt           DateTime @default(now())
+  customer            Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceFileHash, sourceRow])
+  @@index([customerId, reportEndedAt])
   @@index([productId])
 }
 

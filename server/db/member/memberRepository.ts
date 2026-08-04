@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { Prisma, SaleStatus } from "@server/generated/prisma/client";
+import { LOWEST_MEMBERSHIP_RANK, normalizeMembershipRank } from "@/lib/membershipRank";
 import { prisma } from "../core/prisma";
 import type { MemberProfileInput } from "./memberValidation";
 import type { IngredientSummary } from "../types";
+import {
+  combineMemberPurchaseHistory,
+  type MemberPurchaseHistoryRecord,
+} from "./memberPurchaseHistory";
 
 export type MemberSummary = {
   id: string;
@@ -36,15 +41,6 @@ type MemberTransaction = {
     unitPrice: number;
     lineTotal: number;
   }>;
-};
-
-type MemberPurchasedItem = {
-  productId: string;
-  itemName: string;
-  totalQuantity: number;
-  unit: string;
-  purchaseCount: number;
-  lastPurchasedAt: string;
 };
 
 type MemberAvatarProjection = {
@@ -97,6 +93,17 @@ type MemberDetailRow = MemberAvatarProjection & {
   membershipRank: string;
   allergies: Array<{ id: string; canonicalName: string; thaiName: string | null }>;
   sales: MemberDetailSaleRow[];
+};
+
+type ImportedMemberPurchaseRow = {
+  id: string;
+  sourceFileHash: string;
+  productId: string;
+  itemName: string;
+  unit: string;
+  quantity: number;
+  totalAmount: number;
+  purchasedAt: Date;
 };
 
 function memberAvatarReference(member: MemberAvatarProjection): string | null {
@@ -165,7 +172,7 @@ function memberSummary(customer: {
     lastOrderAt: customer.sales[0]?.soldAt.toISOString() ?? null,
     totalPurchase: customer.sales.reduce((sum, sale) => sum + Number(sale.netTotal), 0),
     points: customer.points,
-    membershipRank: customer.membershipRank?.trim() || "Regular",
+    membershipRank: normalizeMembershipRank(customer.membershipRank),
     topItemIds: [...itemTotals.entries()]
       .sort((first, second) => (
         second[1].quantity - first[1].quantity
@@ -209,6 +216,14 @@ export async function listMembers(): Promise<MemberSummary[]> {
       FROM paid_sales ps
       GROUP BY ps."customerId"
     ),
+    imported_purchase_summary AS (
+      SELECT
+        chi."customerId",
+        MAX(COALESCE(chi."reportEndedAt", chi."createdAt")) AS "lastOrderAt",
+        SUM(chi."totalAmount")::double precision AS "totalPurchase"
+      FROM "CustomerPurchaseHistoryImport" chi
+      GROUP BY chi."customerId"
+    ),
     ranked_items AS (
       SELECT
         s."customerId",
@@ -251,14 +266,17 @@ export async function listMembers(): Promise<MemberSummary[]> {
       CASE WHEN c."avatarUrl" LIKE 'data:image/%' THEN NULL ELSE c."avatarUrl" END AS "externalAvatarUrl",
       c."updatedAt",
       c."createdAt" AS "registeredAt",
-      ss."lastOrderAt",
-      COALESCE(ss."totalPurchase", 0)::double precision AS "totalPurchase",
+      GREATEST(ss."lastOrderAt", ips."lastOrderAt") AS "lastOrderAt",
+      (
+        COALESCE(ss."totalPurchase", 0) + COALESCE(ips."totalPurchase", 0)
+      )::double precision AS "totalPurchase",
       c.points,
-      COALESCE(NULLIF(BTRIM(c."membershipRank"), ''), 'Regular') AS "membershipRank",
+      COALESCE(NULLIF(BTRIM(c."membershipRank"), ''), 'Bronze') AS "membershipRank",
       COALESCE(ti."topItemIds", '[]'::json) AS "topItemIds",
       COALESCE(a.allergies, '[]'::json) AS allergies
     FROM "Customer" c
     LEFT JOIN sale_summary ss ON ss."customerId" = c.id
+    LEFT JOIN imported_purchase_summary ips ON ips."customerId" = c.id
     LEFT JOIN top_items ti ON ti."customerId" = c.id
     LEFT JOIN allergy_summary a ON a."customerId" = c.id
     WHERE c."isMember" = true
@@ -275,7 +293,7 @@ export async function listMembers(): Promise<MemberSummary[]> {
     lastOrderAt: row.lastOrderAt?.toISOString() ?? null,
     totalPurchase: row.totalPurchase,
     points: row.points,
-    membershipRank: row.membershipRank,
+    membershipRank: normalizeMembershipRank(row.membershipRank),
     topItemIds: row.topItemIds,
     allergies: ingredientSummaries(row.allergies),
   }));
@@ -292,7 +310,7 @@ export async function readMember(memberId: string) {
       c."updatedAt",
       c."createdAt" AS "registeredAt",
       c.points,
-      COALESCE(NULLIF(BTRIM(c."membershipRank"), ''), 'Regular') AS "membershipRank",
+      COALESCE(NULLIF(BTRIM(c."membershipRank"), ''), 'Bronze') AS "membershipRank",
       COALESCE((
         SELECT JSON_AGG(
           JSON_BUILD_OBJECT('id', i.id, 'canonicalName', i."canonicalName", 'thaiName', i."thaiName")
@@ -340,9 +358,25 @@ export async function readMember(memberId: string) {
   `);
   if (!customer) return null;
 
+  const importedPurchases = await prisma.$queryRaw<ImportedMemberPurchaseRow[]>(Prisma.sql`
+    SELECT
+      chi.id,
+      chi."sourceFileHash",
+      chi."productId",
+      p."itemName",
+      chi.unit,
+      chi.quantity::double precision AS quantity,
+      chi."totalAmount"::double precision AS "totalAmount",
+      COALESCE(chi."reportEndedAt", chi."createdAt") AS "purchasedAt"
+    FROM "CustomerPurchaseHistoryImport" chi
+    JOIN "Product" p ON p.id = chi."productId"
+    WHERE chi."customerId" = ${memberId}
+    ORDER BY COALESCE(chi."reportEndedAt", chi."createdAt") DESC, chi."sourceRow" ASC
+  `);
+
   const paidSales = customer.sales.filter((sale) => sale.status === SaleStatus.PAID);
   const itemTotals = new Map<string, { quantity: number; lastPurchasedAt: number }>();
-  const purchasedItems = new Map<string, MemberPurchasedItem & { saleIds: Set<string> }>();
+  const purchaseHistoryRecords: MemberPurchaseHistoryRecord[] = [];
 
   for (const sale of paidSales) {
     for (const line of sale.lines) {
@@ -351,20 +385,38 @@ export async function readMember(memberId: string) {
       itemTotal.lastPurchasedAt = Math.max(itemTotal.lastPurchasedAt, new Date(sale.soldAt).getTime());
       itemTotals.set(line.productId, itemTotal);
 
-      const current = purchasedItems.get(line.productId) ?? {
+      purchaseHistoryRecords.push({
+        recordId: sale.id,
         productId: line.productId,
         itemName: line.itemName,
-        totalQuantity: 0,
         unit: line.childUnit,
-        purchaseCount: 0,
-        lastPurchasedAt: sale.soldAt,
-        saleIds: new Set<string>(),
-      };
-      current.totalQuantity += line.quantity * line.packMultiplier;
-      current.saleIds.add(sale.id);
-      purchasedItems.set(line.productId, current);
+        quantity: line.quantity * line.packMultiplier,
+        totalAmount: line.quantity * line.sellPriceThb * line.packMultiplier,
+        purchasedAt: sale.soldAt,
+      });
     }
   }
+
+  for (const imported of importedPurchases) {
+    purchaseHistoryRecords.push({
+      recordId: imported.sourceFileHash,
+      productId: imported.productId,
+      itemName: imported.itemName,
+      unit: imported.unit,
+      quantity: imported.quantity,
+      totalAmount: imported.totalAmount,
+      purchasedAt: imported.purchasedAt.toISOString(),
+      purchaseCountKnown: false,
+    });
+  }
+
+  const purchasedItems = combineMemberPurchaseHistory(purchaseHistoryRecords);
+  const importedTotalPurchase = importedPurchases.reduce((sum, row) => sum + row.totalAmount, 0);
+  const importedLastPurchasedAt = importedPurchases[0]?.purchasedAt.toISOString() ?? null;
+  const paidLastPurchasedAt = paidSales[0]?.soldAt ?? null;
+  const lastOrderAt = [paidLastPurchasedAt, importedLastPurchasedAt]
+    .filter((value): value is string => Boolean(value))
+    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0] ?? null;
 
   const summary: MemberSummary = {
     id: customer.id,
@@ -373,10 +425,10 @@ export async function readMember(memberId: string) {
     avatarUrl: memberAvatarReference(customer),
     isMember: true,
     registeredAt: customer.registeredAt.toISOString(),
-    lastOrderAt: paidSales[0]?.soldAt ?? null,
-    totalPurchase: paidSales.reduce((sum, sale) => sum + sale.netTotal, 0),
+    lastOrderAt,
+    totalPurchase: paidSales.reduce((sum, sale) => sum + sale.netTotal, 0) + importedTotalPurchase,
     points: customer.points,
-    membershipRank: customer.membershipRank,
+    membershipRank: normalizeMembershipRank(customer.membershipRank),
     topItemIds: [...itemTotals.entries()]
       .sort((first, second) => (
         second[1].quantity - first[1].quantity
@@ -408,11 +460,7 @@ export async function readMember(memberId: string) {
         lineTotal: line.quantity * line.sellPriceThb * line.packMultiplier,
       })),
     })),
-    purchasedItems: [...purchasedItems.values()]
-      .map(({ saleIds, ...item }) => ({ ...item, purchaseCount: saleIds.size }))
-      .sort((first, second) => (
-        new Date(second.lastPurchasedAt).getTime() - new Date(first.lastPurchasedAt).getTime()
-      )),
+    purchasedItems,
   };
 }
 
@@ -433,7 +481,7 @@ export async function createMember(input: MemberProfileInput): Promise<MemberSum
       avatarUrl: input.avatarUrl,
       isMember: true,
       points: 0,
-      membershipRank: "Regular",
+      membershipRank: LOWEST_MEMBERSHIP_RANK,
       ingredientAllergies: input.allergyIngredientIds?.length
         ? { create: input.allergyIngredientIds.map((ingredientId) => ({ ingredientId })) }
         : undefined,

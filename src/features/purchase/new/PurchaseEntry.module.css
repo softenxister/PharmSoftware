@@ -124,6 +124,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-bottom: 1px solid var(--border);
+  border-radius: 7px 7px 0 0;
   background: var(--app-surface-muted);
   padding: 8px 14px;
 }
@@ -142,11 +143,17 @@
 .workflowStep:not(:last-child)::after {
   position: absolute;
   top: 50%;
-  right: -10%;
-  width: 20%;
-  height: 1px;
-  background: var(--border-strong);
+  right: 0;
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid var(--ink-muted);
+  border-right: 1.5px solid var(--ink-muted);
   content: '';
+  transform: translate(50%, -50%) rotate(45deg);
+}
+
+.workflowStepDone:not(:last-child)::after {
+  border-color: var(--primary-dark);
 }
 
 .workflowStep > span {
@@ -241,6 +248,7 @@
 }
 
 .field {
+  position: relative;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -415,18 +423,14 @@
   font: inherit;
   font-size: 13px;
   outline: none;
-  padding: 0 11px;
+  padding: 0 11px 0 34px;
 }
 
-.searchIconBox {
-  display: flex;
-  width: 36px;
-  height: 100%;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-right: 1px solid var(--border);
-  background: var(--app-surface-muted);
+.fieldSearchIcon {
+  position: absolute;
+  left: 11px;
+  color: var(--ink-muted);
+  pointer-events: none;
 }
 
 .matchList {
@@ -497,6 +501,7 @@
 .scanVisualLayer {
   display: grid;
   place-items: center;
+  border-radius: 0 0 7px 7px;
   background: var(--app-surface-muted);
   min-height: 0;
   flex: 1;
@@ -1337,6 +1342,7 @@
 .purchaseLineTableWrap {
   overflow-x: auto;
   border-bottom: 1px solid var(--app-border);
+  border-radius: 0 0 7px 7px;
   background: var(--surface);
 }
 
@@ -1381,6 +1387,21 @@
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.editablePurchaseLineRow {
+  cursor: pointer;
+  outline: none;
+  transition: background-color 120ms ease;
+}
+
+.editablePurchaseLineRow:hover {
+  background: color-mix(in srgb, var(--app-accent-soft) 62%, var(--app-surface));
+}
+
+.editablePurchaseLineRow:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
 }
 
 .purchaseLineItem {
@@ -1818,6 +1839,12 @@
   border: 1px solid var(--app-create-action);
   background: var(--app-create-action);
   color: #ffffff;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.primaryWindowButton:hover:not(:disabled) {
+  border-color: var(--app-create-action-dark);
+  background: var(--app-create-action-dark);
 }
 
 .primaryWindowButton:disabled {

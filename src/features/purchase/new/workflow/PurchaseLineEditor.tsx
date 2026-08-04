@@ -1,10 +1,10 @@
-import { Package, PackagePlus, ReceiptText, X } from "lucide-react";
+import { Package, PackagePlus, ReceiptText, Save, X } from "lucide-react";
 import {
-  formatPurchaseExpiryDate as formatDateDisplay,
   formatPurchaseExpiryInput as formatExpiryDateInput,
   isPurchaseExpiryDate as isValidExpiryDate,
 } from "@/lib/expiryDate";
 import { PurchaseUnitDropdown } from "../PurchaseUnitDropdown";
+import { getPurchaseUnitDisplayValue } from "./purchaseDraft";
 import type { PurchaseWorkflow } from "./usePurchaseWorkflow";
 import styles from "../PurchaseEntry.module.css";
 
@@ -16,11 +16,13 @@ export function PurchaseLineEditor({ workflow }: { workflow: PurchaseWorkflow })
     includeFreeQty, setIncludeFreeQty, freeQty, setFreeQty,
     freeUnit, setFreeUnit, lotNo, setLotNo, expiryDate, setExpiryDate,
     vatIncluded, lineActualCost, canAddPurchaseLine, addPurchaseLine,
+    editingPurchaseLineId,
   } = workflow;
   if (!selectedItem) return null;
   const hasActualCost = Number.isFinite(Number(lineQty))
     && Number(lineQty) > 0
     && lineActualCost.baseCost > 0;
+  const displayUnit = (value: string) => localizeUnit(getPurchaseUnitDisplayValue(value));
 
   return (
     <div className={styles.purchaseWindowBackdrop} role="presentation" onMouseDown={closePurchaseLine}>
@@ -84,7 +86,7 @@ export function PurchaseLineEditor({ workflow }: { workflow: PurchaseWorkflow })
                           label={t("purchaseEntry.purchaseUnit")}
                           value={unit}
                           options={selectedUnitOptions}
-                          getOptionLabel={localizeUnit}
+                          getOptionLabel={displayUnit}
                           onChange={setUnit}
                         />
                       </div>
@@ -116,7 +118,7 @@ export function PurchaseLineEditor({ workflow }: { workflow: PurchaseWorkflow })
                             options={selectedUnitOptions}
                             disabled={!includeFreeQty}
                             showLabel={false}
-                            getOptionLabel={localizeUnit}
+                            getOptionLabel={displayUnit}
                             onChange={setFreeUnit}
                           />
                         </div>
@@ -143,7 +145,7 @@ export function PurchaseLineEditor({ workflow }: { workflow: PurchaseWorkflow })
                             value={expiryDate}
                             aria-invalid={expiryDate.length > 0 && !isValidExpiryDate(expiryDate)}
                             onChange={event => setExpiryDate(formatExpiryDateInput(event.target.value))}
-                            onBlur={() => setExpiryDate(formatDateDisplay(expiryDate))}
+                            onBlur={() => setExpiryDate(formatExpiryDateInput(expiryDate))}
                             data-purchase-flow="expiry"
                             onKeyDown={handlePurchaseFlowEnter}
                           />
@@ -185,8 +187,8 @@ export function PurchaseLineEditor({ workflow }: { workflow: PurchaseWorkflow })
             data-purchase-flow="add"
             onKeyDown={handlePurchaseFlowEnter}
           >
-            <PackagePlus size={16} />
-            {t("newSale.add")}
+            {editingPurchaseLineId ? <Save size={16} /> : <PackagePlus size={16} />}
+            {editingPurchaseLineId ? t("purchaseEntry.updateLine") : t("newSale.add")}
           </button>
         </footer>
       </section>

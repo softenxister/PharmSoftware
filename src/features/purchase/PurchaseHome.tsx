@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { PackagePlus, Search } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import {
+  isEditablePurchaseBillRow,
+  isPurchaseBillRowActivationKey,
+  type PurchaseBillStatus,
+} from "./purchaseRowInteraction";
 import styles from "./PurchaseHome.module.css";
-
-type PurchaseBillStatus = "received" | "draft" | "partial";
 
 type PurchaseBill = {
   id: string;
@@ -147,35 +150,72 @@ export function PurchaseHome() {
                 </tr>
               </thead>
               <tbody>
-                {visibleBills.map((bill) => (
-                  <tr key={bill.id}>
-                    <td>
-                      <div className={styles.billCell}>
-                        <button
-                          type="button"
-                          className={styles.billLink}
-                          aria-label={t(bill.status === "received" ? "purchase.viewCompleted" : "purchase.open", { bill: bill.billNo })}
-                          onClick={() => navigate(`/purchase/new?id=${encodeURIComponent(bill.id)}`)}
-                        >
-                          <span className={styles.billNo}>{bill.billNo}</span>
-                          <span className={styles.billDate}>{formatDate(bill.date, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-                        </button>
-                      </div>
-                    </td>
-                    <td><span className={styles.cellText} title={bill.invoiceNo}>{bill.invoiceNo}</span></td>
-                    <td><span className={styles.cellText} title={bill.distributor}>{bill.distributor}</span></td>
-                    <td>{bill.itemCount}</td>
-                    <td>{formatNumber(bill.totalQty)}</td>
-                    <td className={styles.alignRight}>
-                      <span className={styles.amount}>฿{formatMoney(bill.netTotal)}</span>
-                    </td>
-                    <td>
-                      <span className={`${styles.status} ${styles[`status_${bill.status}`]}`}>
-                        {statusLabel(bill.status)}
+                {visibleBills.map((bill) => {
+                  const isEditableRow = isEditablePurchaseBillRow(bill.status);
+                  const openBill = () => navigate(`/purchase/new?id=${encodeURIComponent(bill.id)}`);
+                  const billLabel = t(
+                    bill.status === "received" ? "purchase.viewCompleted" : "purchase.open",
+                    { bill: bill.billNo },
+                  );
+                  const billContent = (
+                    <>
+                      <span className={styles.billNo}>{bill.billNo}</span>
+                      <span className={styles.billDate}>
+                        {formatDate(bill.date, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                       </span>
-                    </td>
-                  </tr>
-                ))}
+                    </>
+                  );
+
+                  return (
+                    <tr
+                      key={bill.id}
+                      className={isEditableRow ? styles.editableRow : undefined}
+                      tabIndex={isEditableRow ? 0 : undefined}
+                      aria-label={isEditableRow ? billLabel : undefined}
+                      onClick={() => {
+                        if (isEditableRow) openBill();
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          !isEditableRow
+                          || event.target !== event.currentTarget
+                          || !isPurchaseBillRowActivationKey(event.key)
+                        ) return;
+                        event.preventDefault();
+                        openBill();
+                      }}
+                    >
+                      <td>
+                        <div className={styles.billCell}>
+                          {isEditableRow ? (
+                            <span className={styles.billLink}>{billContent}</span>
+                          ) : (
+                            <button
+                              type="button"
+                              className={styles.billLink}
+                              aria-label={billLabel}
+                              onClick={openBill}
+                            >
+                              {billContent}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td><span className={styles.cellText} title={bill.invoiceNo}>{bill.invoiceNo}</span></td>
+                      <td><span className={styles.cellText} title={bill.distributor}>{bill.distributor}</span></td>
+                      <td>{bill.itemCount}</td>
+                      <td>{formatNumber(bill.totalQty)}</td>
+                      <td className={styles.alignRight}>
+                        <span className={styles.amount}>฿{formatMoney(bill.netTotal)}</span>
+                      </td>
+                      <td>
+                        <span className={`${styles.status} ${styles[`status_${bill.status}`]}`}>
+                          {statusLabel(bill.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

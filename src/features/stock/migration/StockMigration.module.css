@@ -114,6 +114,7 @@
 .previewHeading { align-items: center; margin: 0; padding: 18px; }
 .previewHeading p:not(.eyebrow), .successPanel p:not(.eyebrow) { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
 .summaryGrid { display: grid; grid-template-columns: repeat(5, minmax(62px, 1fr)); overflow: hidden; border: 1px solid var(--border); border-radius: 7px; }
+.purchaseHistorySummary { grid-template-columns: repeat(6, minmax(62px, 1fr)); }
 .summaryGrid div { display: flex; min-width: 65px; flex-direction: column; align-items: center; border-left: 1px solid var(--border-soft); padding: 7px 10px; }
 .summaryGrid div:first-child { border-left: 0; }
 .summaryGrid strong { font-size: 16px; }
@@ -133,6 +134,9 @@
 .new { background: #e6f2f7; color: #26637a; }
 .update { background: var(--green-soft); color: var(--green-dark); }
 .conflict { background: var(--red-soft); color: var(--red); }
+.matched { background: var(--green-soft); color: var(--green-dark); }
+.duplicate { background: #f2eee5; color: #6f5d36; }
+.unmatched_customer, .unmatched_product { background: var(--amber-soft); color: var(--amber); }
 .unitList { display: flex; min-width: 118px; flex-direction: column; gap: 7px; }
 .unitList > span { display: block; }
 .unitList strong, .unitList small { display: block; white-space: nowrap; }
@@ -154,6 +158,17 @@
 .rawPhone, .memberDate { white-space: pre-wrap; }
 .phoneWarning { color: var(--amber) !important; font-weight: 700; line-height: 1.35; }
 .memberIssue { display: block; line-height: 1.4; }
+.purchaseHistoryTable { min-width: 1120px; table-layout: fixed; }
+.purchaseHistoryTable th:nth-child(1) { width: 108px; }
+.purchaseHistoryTable th:nth-child(2) { width: 58px; }
+.purchaseHistoryTable th:nth-child(3) { width: 180px; }
+.purchaseHistoryTable th:nth-child(4) { width: 230px; }
+.purchaseHistoryTable th:nth-child(5) { width: 80px; }
+.purchaseHistoryTable th:nth-child(6) { width: 90px; }
+.purchaseHistoryTable th:nth-child(7) { width: 105px; }
+.purchaseHistoryTable th:nth-child(8) { width: 240px; }
+.purchaseHistoryTable td:nth-child(3) small,
+.purchaseHistoryTable td:nth-child(4) strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .distributorTable { min-width: 760px; table-layout: fixed; }
 .distributorTable th:nth-child(1) { width: 118px; }
 .distributorTable th:nth-child(2) { width: 58px; }

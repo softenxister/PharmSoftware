@@ -1,10 +1,38 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  submitCustomerPurchaseHistoryMigration,
   submitProductCategoryNormalization,
   submitLotExpiryMigration,
   submitProductMeasurementNormalization,
 } from "./migration/migrationClient";
+
+test("customer purchase-history migration posts XLSX preview and import data to its endpoint", async () => {
+  let requestedUrl = "";
+  let requestedBody: FormData | null = null;
+  const fetcher: typeof fetch = async (input, init) => {
+    requestedUrl = String(input);
+    requestedBody = init?.body as FormData;
+    return new Response(JSON.stringify({ data: { importedCount: 4 } }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  const file = new File(["xlsx"], "Rep_CustBuy_Det.xlsx");
+
+  const result = await submitCustomerPurchaseHistoryMigration<{ importedCount: number }>(
+    "import",
+    file,
+    "c".repeat(64),
+    fetcher,
+  );
+
+  assert.equal(requestedUrl, "/api/stock/migrations/customer-purchases");
+  assert.equal(requestedBody?.get("action"), "import");
+  assert.equal(requestedBody?.get("file"), file);
+  assert.equal(requestedBody?.get("confirmationToken"), "c".repeat(64));
+  assert.deepEqual(result, { importedCount: 4 });
+});
 
 test("lot and expiry migration posts the XLSX and confirmation to its endpoint", async () => {
   let requestedUrl = "";

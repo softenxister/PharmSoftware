@@ -1,3 +1,5 @@
+import { normalizeMembershipRank } from "@/lib/membershipRank";
+
 export type MemberRecord = {
   id: string;
   name: string;
@@ -21,6 +23,31 @@ export type MemberSort = {
   key: "name" | "registeredAt" | "lastOrderAt";
   direction: "asc" | "desc";
 };
+
+export type MemberRankTone = "bronze" | "silver" | "gold" | "platinum" | "diamond";
+export type MemberRankIcon = "bronze" | "medal" | "crown" | "platinum" | "diamond";
+
+const memberRankIcons: Record<MemberRankTone, MemberRankIcon> = {
+  bronze: "bronze",
+  silver: "medal",
+  gold: "crown",
+  platinum: "platinum",
+  diamond: "diamond",
+};
+
+export function memberRankTone(rank: string): MemberRankTone {
+  const normalizedRank = normalizeMembershipRank(rank).toLocaleLowerCase("en-US");
+  if (normalizedRank === "silver") return "silver";
+  if (normalizedRank === "gold") return "gold";
+  if (normalizedRank === "platinum") return "platinum";
+  if (normalizedRank === "diamond") return "diamond";
+  return "bronze";
+}
+
+export function memberRankVisual(rank: string): { tone: MemberRankTone; icon: MemberRankIcon } {
+  const tone = memberRankTone(rank);
+  return { tone, icon: memberRankIcons[tone] };
+}
 
 export function filterMembers(members: MemberRecord[], query: string): MemberRecord[] {
   const normalizedQuery = query.trim().toLocaleLowerCase();

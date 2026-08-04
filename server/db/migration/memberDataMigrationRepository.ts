@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@server/generated/prisma/client";
+import { LOWEST_MEMBERSHIP_RANK } from "@/lib/membershipRank";
 import {
   prepareMemberDataMigration,
   type ExistingCustomerIdentity,
@@ -28,7 +29,7 @@ export type MemberImportWrite = {
     address: string | null;
     isMember: true;
     points: 0;
-    membershipRank: "Regular";
+    membershipRank: typeof LOWEST_MEMBERSHIP_RANK;
     createdAt: Date;
   };
   update: {
@@ -66,7 +67,7 @@ export function buildMemberImportWrite(row: MemberDataImportRow, id: string): Me
       memberCode: row.memberCode,
       ...profile,
       points: 0,
-      membershipRank: "Regular",
+      membershipRank: LOWEST_MEMBERSHIP_RANK,
     },
     update: profile,
   };

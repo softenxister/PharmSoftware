@@ -29,11 +29,13 @@ export type MemberTransaction = {
 };
 
 export type MemberPurchasedItem = {
+  historyKey: string;
   productId: string;
   itemName: string;
   totalQuantity: number;
+  totalAmount: number;
   unit: string;
-  purchaseCount: number;
+  purchaseCount: number | null;
   lastPurchasedAt: string;
 };
 

@@ -296,6 +296,16 @@
   background: color-mix(in srgb, var(--app-accent-soft) 62%, var(--app-surface));
 }
 
+.editableRow {
+  cursor: pointer;
+  outline: none;
+}
+
+.editableRow:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-accent) 45%, transparent);
+  outline-offset: -2px;
+}
+
 .billCell {
   display: flex;
   min-width: 0;
