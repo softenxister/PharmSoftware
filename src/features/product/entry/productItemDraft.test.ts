@@ -111,3 +111,17 @@ test("product identity selection and edit shortcuts remain mode-specific", () =>
     repeat: false,
   }), false);
 });
+
+test("product save shortcut follows the physical S key across keyboard layouts", () => {
+  const thaiLayoutCtrlS = {
+    key: "ห",
+    code: "KeyS",
+    ctrlKey: true,
+    metaKey: false,
+    altKey: false,
+    shiftKey: false,
+    repeat: false,
+  };
+
+  assert.equal(isProductSaveShortcut("edit", thaiLayoutCtrlS), true);
+});

@@ -10,6 +10,40 @@ export const STOCK_PAGE_SIZE = 50;
 export const SIDEBAR_MIN_WIDTH = 230;
 export const SIDEBAR_MAX_WIDTH = 360;
 export const SIDEBAR_DEFAULT_WIDTH = 270;
+const SIDEBAR_CLOSE_DRAG_DISTANCE = 110;
+const SIDEBAR_REOPEN_DRAG_DISTANCE = 110;
+
+export type StockSidebarDragResult = {
+  isClosed: boolean;
+  width: number;
+};
+
+export function clampStockSidebarWidth(width: number): number {
+  return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
+}
+
+export function resizeStockSidebarFromDrag(
+  startWidth: number,
+  pointerDelta: number,
+): StockSidebarDragResult {
+  const requestedWidth = startWidth + pointerDelta;
+  if (requestedWidth <= SIDEBAR_MIN_WIDTH - SIDEBAR_CLOSE_DRAG_DISTANCE) {
+    return { isClosed: true, width: SIDEBAR_MIN_WIDTH };
+  }
+  return { isClosed: false, width: clampStockSidebarWidth(requestedWidth) };
+}
+
+export function reopenStockSidebarFromEdgeDrag(pointerDelta: number): StockSidebarDragResult {
+  if (pointerDelta < SIDEBAR_REOPEN_DRAG_DISTANCE) {
+    return { isClosed: true, width: SIDEBAR_MIN_WIDTH };
+  }
+  return {
+    isClosed: false,
+    width: clampStockSidebarWidth(
+      SIDEBAR_MIN_WIDTH + pointerDelta - SIDEBAR_REOPEN_DRAG_DISTANCE,
+    ),
+  };
+}
 
 export const COMMON_DOSAGE_TYPES = [
   "Tablet",

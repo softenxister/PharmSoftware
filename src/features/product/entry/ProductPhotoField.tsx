@@ -1,6 +1,10 @@
-import type { KeyboardEvent } from "react";
-import { ImagePlus, Wand2 } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { Camera, ImagePlus, Wand2 } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import {
+  PRODUCT_PHOTO_FILE_TYPES,
+  validateProductPhotoFile,
+} from "@/api/stockCatalogClient";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
@@ -15,16 +19,79 @@ export function ProductPhotoField({
 }) {
   const { t } = usePreferences();
   const { draft } = controller;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [photoError, setPhotoError] = useState("");
+
+  useEffect(() => {
+    if (!controller.photoFile) {
+      setPreviewUrl("");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(controller.photoFile);
+    setPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [controller.photoFile]);
+
+  const choosePhoto = (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (validateProductPhotoFile(file)) {
+      setPhotoError(t("stockForm.photoFileError"));
+      input.value = "";
+      return;
+    }
+    setPhotoError("");
+    controller.setPhotoFile(file);
+    input.value = "";
+  };
+
+  const preview = (
+    <>
+      {(previewUrl || draft.photoUrl.trim()) ? (
+        <img src={previewUrl || draft.photoUrl} alt={t("stockForm.preview")} />
+      ) : (
+        <span><ImagePlus size={30} aria-hidden="true" /></span>
+      )}
+      {controller.isEditing && (
+        <small className={styles.photoUploadHint}>
+          <Camera size={14} aria-hidden="true" />
+          {controller.photoFile
+            ? t("stockForm.photoSelected")
+            : t("stockForm.choosePhoto")}
+        </small>
+      )}
+    </>
+  );
 
   return (
     <section className={styles.photoPanel} aria-label={t("stockForm.productPhoto")}>
-      <div className={styles.photoPreview}>
-        {draft.photoUrl.trim() ? (
-          <img src={draft.photoUrl} alt={t("stockForm.preview")} />
-        ) : (
-          <span><ImagePlus size={30} aria-hidden="true" /></span>
-        )}
-      </div>
+      {controller.isEditing ? (
+        <button
+          type="button"
+          className={`${styles.photoPreview} ${styles.photoPreviewButton}`}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={controller.saving || controller.deleting}
+          aria-label={t("stockForm.choosePhoto")}
+        >
+          {preview}
+        </button>
+      ) : (
+        <div className={styles.photoPreview}>{preview}</div>
+      )}
+      {controller.isEditing && (
+        <input
+          ref={fileInputRef}
+          className={styles.photoFileInput}
+          type="file"
+          accept={PRODUCT_PHOTO_FILE_TYPES.join(",")}
+          onChange={choosePhoto}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      )}
+      {photoError && <small className={styles.photoUploadError} role="alert">{photoError}</small>}
       <label className={styles.field}>
         <span>{t("stockForm.photo")}</span>
         <input
@@ -32,7 +99,11 @@ export function ProductPhotoField({
           value={draft.photoUrl}
           placeholder="https://example.com/photo.jpg"
           onClick={(event) => onSelectIdentity(event.currentTarget)}
-          onChange={(event) => controller.updateField("photoUrl", event.target.value)}
+          onChange={(event) => {
+            controller.setPhotoFile(null);
+            setPhotoError("");
+            controller.updateField("photoUrl", event.target.value);
+          }}
         />
       </label>
       <label className={styles.field} data-stock-flow="barcode" onKeyDown={onFlowEnter}>

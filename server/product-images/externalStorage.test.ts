@@ -7,6 +7,8 @@ import {
   ExternalProductImageStorageError,
   persistStoredProductImage,
   prepareExternalProductImageStorage,
+  prepareUploadedProductImageStorage,
+  UploadedProductImageValidationError,
 } from "./externalStorage";
 
 const preparedImage = {
@@ -80,6 +82,54 @@ test("external image storage failures expose a safe actionable error", async () 
       && error.message === "Photo could not be stored from that URL."
     ),
   );
+});
+
+test("uploaded image storage validates bytes and writes the managed object", async () => {
+  const bytes = new Uint8Array(24);
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  bytes.set([0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52], 8);
+  new DataView(bytes.buffer).setUint32(16, 800);
+  new DataView(bytes.buffer).setUint32(20, 800);
+  const writes: Array<{ key: string; bytes: Uint8Array; mimeType: string }> = [];
+
+  const prepared = await prepareUploadedProductImageStorage(
+    "product-1",
+    bytes,
+    "image/jpeg",
+    {
+      putObject: async (key, body, mimeType) => {
+        writes.push({ key, bytes: body, mimeType });
+      },
+    },
+  );
+
+  assert.equal(prepared.sourceUrl, "");
+  assert.equal(prepared.image.metadata.mimeType, "image/png");
+  assert.equal(prepared.image.metadata.width, 800);
+  assert.equal(prepared.image.metadata.height, 800);
+  assert.match(prepared.storageKey, /^product-images\/product-1\/[a-f0-9]{64}\.png$/);
+  assert.deepEqual(writes, [{
+    key: prepared.storageKey,
+    bytes,
+    mimeType: "image/png",
+  }]);
+});
+
+test("uploaded image storage rejects disguised non-image bytes before Backblaze", async () => {
+  let stored = false;
+
+  await assert.rejects(
+    () => prepareUploadedProductImageStorage(
+      "product-1",
+      new TextEncoder().encode("<svg><script>alert(1)</script></svg>"),
+      "image/png",
+      {
+        putObject: async () => { stored = true; },
+      },
+    ),
+    (error) => error instanceof UploadedProductImageValidationError,
+  );
+  assert.equal(stored, false);
 });
 
 test("stored image replacement cleanup keeps only the current object", async () => {

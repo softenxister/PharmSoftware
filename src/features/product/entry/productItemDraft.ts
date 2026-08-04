@@ -39,6 +39,7 @@ export type ProductPersistenceIdentity = {
 
 type ProductSaveShortcutInput = {
   key: string;
+  code?: string;
   ctrlKey: boolean;
   metaKey: boolean;
   altKey: boolean;
@@ -51,7 +52,7 @@ export function isProductSaveShortcut(
   input: ProductSaveShortcutInput,
 ): boolean {
   return mode === "edit"
-    && input.key.toLowerCase() === "s"
+    && (input.code === "KeyS" || input.key.toLowerCase() === "s")
     && (input.ctrlKey || input.metaKey)
     && !input.altKey
     && !input.shiftKey

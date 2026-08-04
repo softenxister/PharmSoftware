@@ -5,6 +5,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { runWithRequest } from "@server/auth/requestContext";
 import { MAX_CW_STOCK_REQUEST_BYTES } from "@server/import/cwStockUpload";
 import { MAX_LOT_EXPIRY_REQUEST_BYTES } from "@server/import/lotExpiryUpload";
+import { MAX_PRODUCT_IMAGE_BYTES } from "@server/product-images/imageMetadata";
 import { apiRoutes, type ApiHandler } from "./apiRegistry";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -20,6 +21,10 @@ const defaultApiBodyLimit = bodyLimit({
 });
 const stockMigrationBodyLimit = bodyLimit({
   maxSize: Math.max(MAX_CW_STOCK_REQUEST_BYTES, MAX_LOT_EXPIRY_REQUEST_BYTES),
+  onError: (context) => context.json({ error: "Request body is too large." }, 413),
+});
+const productImageBodyLimit = bodyLimit({
+  maxSize: MAX_PRODUCT_IMAGE_BYTES,
   onError: (context) => context.json({ error: "Request body is too large." }, 413),
 });
 
@@ -55,7 +60,9 @@ export function createServerApp() {
     if (!context.res.headers.has("cache-control")) context.header("Cache-Control", "no-store");
   });
   app.use("/api/*", (context, next) => (
-    STOCK_MIGRATION_PATHS.has(context.req.path)
+    /^\/api\/stock\/photos\/[^/]+$/.test(context.req.path)
+      ? productImageBodyLimit(context, next)
+      : STOCK_MIGRATION_PATHS.has(context.req.path)
       ? stockMigrationBodyLimit(context, next)
       : defaultApiBodyLimit(context, next)
   ));

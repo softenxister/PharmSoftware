@@ -27,24 +27,40 @@ test("rejects HTML, SVG, tiny images, and unsupported signatures", () => {
   assert.throws(() => inspectProductImage(new Uint8Array([1, 2, 3, 4]), "image/png"), /format/i);
 });
 
+test("accepts computer-upload images when either side is at least 400 pixels", () => {
+  assert.deepEqual(inspectProductImage(png(400, 250), "image/png"), {
+    mimeType: "image/png",
+    width: 400,
+    height: 250,
+    byteSize: 24,
+  });
+  assert.deepEqual(inspectProductImage(png(250, 400), "image/png"), {
+    mimeType: "image/png",
+    width: 250,
+    height: 400,
+    byteSize: 24,
+  });
+  assert.throws(() => inspectProductImage(png(399, 399), "image/png"), /resolution/i);
+});
+
 test("accepts smaller external images only with an explicit inspection policy", () => {
-  assert.throws(() => inspectProductImage(png(500, 500), "image/png"), /resolution/i);
+  assert.throws(() => inspectProductImage(png(300, 300), "image/png"), /resolution/i);
   assert.deepEqual(
-    inspectProductImage(png(500, 500), "image/png", {
+    inspectProductImage(png(300, 300), "image/png", {
       minimumShortSide: 300,
-      minimumLongSide: 400,
+      minimumLongSide: 300,
     }),
     {
       mimeType: "image/png",
-      width: 500,
-      height: 500,
+      width: 300,
+      height: 300,
       byteSize: 24,
     },
   );
   assert.throws(
     () => inspectProductImage(png(200, 200), "image/png", {
       minimumShortSide: 300,
-      minimumLongSide: 400,
+      minimumLongSide: 300,
     }),
     /resolution/i,
   );

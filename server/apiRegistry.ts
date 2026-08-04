@@ -93,6 +93,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   },
   { method: "PATCH", path: "/api/stock/photo-url", handler: handler(stockPhotoUrl.PATCH) },
   { method: "POST", path: "/api/stock/photos", handler: handler(stockPhotos.POST) },
+  { method: "PUT", path: "/api/stock/photos/:productId", handler: handler(stockPhotos.PUT) },
   { method: "POST", path: "/api/stock/migrations/cw", handler: handler(cwStockMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/lots", handler: handler(lotExpiryMigration.POST) },
   { method: "POST", path: "/api/stock/migrations/distributors", handler: handler(distributorDataMigration.POST) },

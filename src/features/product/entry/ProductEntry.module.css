@@ -324,6 +324,7 @@
 }
 
 .photoPreview {
+  position: relative;
   display: flex;
   height: 178px;
   align-items: center;
@@ -332,6 +333,27 @@
   border: 1px solid var(--stock-border-soft);
   border-radius: 8px;
   background: var(--app-surface-muted);
+}
+
+.photoPreviewButton {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.photoPreviewButton:hover:not(:disabled) {
+  border-color: var(--stock-primary);
+}
+
+.photoPreviewButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--stock-primary) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.photoPreviewButton:disabled {
+  cursor: progress;
+  opacity: 0.72;
 }
 
 .photoPreview img {
@@ -349,6 +371,42 @@
   border-radius: 999px;
   background: var(--app-surface-soft);
   color: var(--stock-primary-dark);
+}
+
+.photoUploadHint {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  background: rgba(152, 152, 152, 0.52);
+  color: #fff;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.photoFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.photoUploadError {
+  color: var(--stock-danger, #b42318);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .formPanel {

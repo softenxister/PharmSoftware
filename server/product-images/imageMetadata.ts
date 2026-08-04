@@ -13,8 +13,8 @@ export type ProductImageInspectionPolicy = {
 };
 
 const DEFAULT_INSPECTION_POLICY: ProductImageInspectionPolicy = {
-  minimumShortSide: 600,
-  minimumLongSide: 800,
+  minimumShortSide: 0,
+  minimumLongSide: 400,
 };
 
 function uint24Le(bytes: Uint8Array, offset: number): number {
@@ -106,9 +106,12 @@ export function inspectProductImage(
   }
   if (
     Math.min(width, height) < policy.minimumShortSide
-    && Math.max(width, height) < policy.minimumLongSide
+    || Math.max(width, height) < policy.minimumLongSide
   ) {
-    throw new Error("Product image resolution is too small.");
+    const requirement = policy.minimumShortSide > 0
+      ? `${policy.minimumShortSide} pixels on its shortest side and ${policy.minimumLongSide} pixels on its longest side`
+      : `${policy.minimumLongSide} pixels on either side`;
+    throw new Error(`Product image resolution must be at least ${requirement}.`);
   }
   const aspectRatio = width / height;
   if (aspectRatio < 0.2 || aspectRatio > 5) throw new Error("Product image aspect ratio is not useful.");

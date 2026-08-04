@@ -5,6 +5,13 @@ const STOCK_CACHE_TTL_MS = 5_000;
 const MAX_CACHE_ENTRIES = 40;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
+export const PRODUCT_PHOTO_FILE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+] as const;
+export const MAX_PRODUCT_PHOTO_FILE_BYTES = 8 * 1024 * 1024;
 
 export type StockPage = {
   products: SalesProduct[];
@@ -199,6 +206,46 @@ export async function saveStockProductPhotoUrl(
     const message = typeof payload.error === "string" && payload.error.trim()
       ? payload.error
       : "Unable to save this photo URL.";
+    throw new Error(message);
+  }
+  return { productId: result.productId, imageUrl: result.imageUrl };
+}
+
+export function validateProductPhotoFile(file: Pick<File, "size" | "type">): string | null {
+  if (file.size === 0) return "Choose a non-empty product image.";
+  if (file.size > MAX_PRODUCT_PHOTO_FILE_BYTES) return "Product images must not exceed 8 MiB.";
+  if (!PRODUCT_PHOTO_FILE_TYPES.includes(file.type as typeof PRODUCT_PHOTO_FILE_TYPES[number])) {
+    return "Choose a PNG, JPEG, WebP, or AVIF product image.";
+  }
+  return null;
+}
+
+export async function uploadStockProductPhoto(
+  productId: string,
+  file: File,
+  fetcher: typeof fetch = fetch,
+): Promise<{ productId: string; imageUrl: string }> {
+  const response = await fetcher(`/api/stock/photos/${encodeURIComponent(productId)}`, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  const data: unknown = await response.json().catch(() => null);
+  const payload = data && typeof data === "object"
+    ? data as { result?: unknown; error?: unknown }
+    : {};
+  const result = payload.result && typeof payload.result === "object"
+    ? payload.result as { productId?: unknown; imageUrl?: unknown }
+    : null;
+  if (
+    !response.ok
+    || !result
+    || typeof result.productId !== "string"
+    || typeof result.imageUrl !== "string"
+  ) {
+    const message = typeof payload.error === "string" && payload.error.trim()
+      ? payload.error
+      : "Unable to upload this product photo.";
     throw new Error(message);
   }
   return { productId: result.productId, imageUrl: result.imageUrl };

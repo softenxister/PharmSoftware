@@ -14,3 +14,5 @@ Block website :
 3 MIMS images: HTTP 403
 1 Central image: HTTP 403
 1 Lemon8 image: redirects to another host, blocked by the app’s security protection
+- meyaadee
+- yaatoyou

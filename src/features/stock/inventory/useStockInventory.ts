@@ -6,6 +6,7 @@ import {
   loadStockPage,
   saveStockProduct,
   saveStockProductPhotoUrl,
+  uploadStockProductPhoto,
 } from "@/api/stockCatalogClient";
 import { isStockPhotoUrlOnlyChange } from "@/lib/stockPhotoUrlChange";
 import {
@@ -28,7 +29,7 @@ import {
 
 export function useStockInventory() {
   const { user } = useAuth();
-  const [isFilterOpen, setIsFilterOpen] = useState(true);
+  const [isSidebarClosed, setIsSidebarClosed] = useState(false);
   const [openFilterPanel, setOpenFilterPanel] = useState<StockFilterPanel | null>(null);
   const [draftFilters, setDraftFilters] = useState(createEmptyDraftFilters);
   const [appliedFilters, setAppliedFilters] = useState(createEmptyAppliedFilters);
@@ -213,8 +214,8 @@ export function useStockInventory() {
     if (product) setDetailProduct(product);
   };
 
-  const saveProduct = async (item: StockItemInput) => {
-    if (editingProduct && isStockPhotoUrlOnlyChange(
+  const saveProduct = async (item: StockItemInput, photoFile?: File) => {
+    if (!photoFile && editingProduct && isStockPhotoUrlOnlyChange(
       productToStockItemInput(editingProduct),
       item,
     )) {
@@ -225,7 +226,12 @@ export function useStockInventory() {
       return;
     }
     const product = await saveStockProduct(item);
-    replaceVisibleProduct(product);
+    const uploadedPhoto = photoFile
+      ? await uploadStockProductPhoto(product.id, photoFile)
+      : null;
+    replaceVisibleProduct(uploadedPhoto
+      ? { ...product, imageUrl: uploadedPhoto.imageUrl }
+      : product);
     invalidateStockCatalog();
     setStockRefreshVersion((version) => version + 1);
     closeProductEntry();
@@ -291,8 +297,8 @@ export function useStockInventory() {
     sort,
     changeSort,
     filters: {
-      isOpen: isFilterOpen,
-      setIsOpen: setIsFilterOpen,
+      isSidebarClosed,
+      setIsSidebarClosed,
       openPanel: openFilterPanel,
       closePanel: () => setOpenFilterPanel(null),
       togglePanel: toggleFilterPanel,

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Prisma } from "@server/generated/prisma/client";
 import { prisma } from "@server/db/core/prisma";
 import { productImageUrl } from "./placeholder";
@@ -12,12 +12,15 @@ import {
   fetchValidatedManualProductImage,
   parseManualProductImageUrl,
 } from "./secureFetch";
+import { inspectProductImage, type ProductImageMetadata } from "./imageMetadata";
 
 export class ExternalProductImageStorageError extends Error {
   constructor() {
     super("Photo could not be stored from that URL.");
   }
 }
+
+export class UploadedProductImageValidationError extends Error {}
 
 export type PreparedExternalProductImage = {
   sourceUrl: string;
@@ -99,6 +102,58 @@ export async function prepareExternalProductImageStorage(
   } catch {
     throw new ExternalProductImageStorageError();
   }
+}
+
+export async function prepareUploadedProductImageStorage(
+  productId: string,
+  bytes: Uint8Array,
+  declaredContentType: string,
+  storage?: Pick<ReturnType<typeof createS3ProductImageStorage>, "putObject">,
+): Promise<PreparedExternalProductImage> {
+  let metadata: ProductImageMetadata;
+  try {
+    metadata = inspectProductImage(bytes, declaredContentType);
+  } catch (error) {
+    throw new UploadedProductImageValidationError(
+      error instanceof Error ? error.message : "Product image is invalid.",
+    );
+  }
+  const image = {
+    bytes,
+    metadata,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+  };
+  const storageKey = buildProductImageStorageKey(productId, image.sha256, metadata.mimeType);
+  const target = storage ?? await verifiedStorage();
+  await target.putObject(storageKey, bytes, metadata.mimeType);
+  return { sourceUrl: "", storageKey, image };
+}
+
+export async function storeUploadedProductImage(
+  productId: string,
+  bytes: Uint8Array,
+  declaredContentType: string,
+): Promise<{ productId: string; imageUrl: string } | null> {
+  const product = await readProductImageAsset(productId);
+  if (!product) return null;
+  const prepared = await prepareUploadedProductImageStorage(
+    productId,
+    bytes,
+    declaredContentType,
+  );
+  await prisma.$transaction((tx) => persistStoredProductImage(tx, {
+    ...prepared,
+    productId,
+  }));
+  try {
+    await cleanupStoredProductImageObjects(productId, prepared.storageKey);
+  } catch {
+    // The new image is already durable; stale-version cleanup can be retried later.
+  }
+  return {
+    productId,
+    imageUrl: productImageUrl(productId, prepared.image.sha256),
+  };
 }
 
 export async function persistStoredProductImage(

@@ -3,8 +3,11 @@ import test from "node:test";
 import type { SalesProduct } from "@server/db/types";
 import {
   buildFilterOptions,
+  clampStockSidebarWidth,
   parseStockRange,
   projectAuthoritativeInventoryPage,
+  reopenStockSidebarFromEdgeDrag,
+  resizeStockSidebarFromDrag,
 } from "./stockInventoryModel";
 
 const product: SalesProduct = {
@@ -62,4 +65,40 @@ test("stock range parsing accepts optional bounds and rejects invalid ranges", (
   assert.equal(parseStockRange("20", "5").isValid, false);
   assert.equal(parseStockRange("-1", "5").isValid, false);
   assert.equal(parseStockRange("five", "10").isValid, false);
+});
+
+test("inventory sidebar drag stops at its minimum and maximum widths", () => {
+  assert.equal(clampStockSidebarWidth(100), 230);
+  assert.equal(clampStockSidebarWidth(275), 275);
+  assert.equal(clampStockSidebarWidth(500), 360);
+});
+
+test("dragging left past the minimum closes the inventory sidebar deliberately", () => {
+  assert.deepEqual(resizeStockSidebarFromDrag(270, -40), {
+    isClosed: false,
+    width: 230,
+  });
+  assert.deepEqual(resizeStockSidebarFromDrag(270, -88), {
+    isClosed: false,
+    width: 230,
+  });
+  assert.deepEqual(resizeStockSidebarFromDrag(270, -150), {
+    isClosed: true,
+    width: 230,
+  });
+});
+
+test("dragging right from the screen edge reopens the inventory sidebar", () => {
+  assert.deepEqual(reopenStockSidebarFromEdgeDrag(109), {
+    isClosed: true,
+    width: 230,
+  });
+  assert.deepEqual(reopenStockSidebarFromEdgeDrag(110), {
+    isClosed: false,
+    width: 230,
+  });
+  assert.deepEqual(reopenStockSidebarFromEdgeDrag(160), {
+    isClosed: false,
+    width: 280,
+  });
 });

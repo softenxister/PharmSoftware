@@ -9,6 +9,8 @@ import {
   saveStockProduct,
   searchStockCatalog,
   saveStockProductPhotoUrl,
+  uploadStockProductPhoto,
+  validateProductPhotoFile,
 } from "./stockCatalogClient";
 import type { StockItemInput } from "@server/db/types";
 
@@ -317,4 +319,42 @@ test("a photo URL-only edit uses the fast patch endpoint without downloading", a
     productId: "p-test",
     imageUrl: "https://images.example.com/new.jpg",
   });
+});
+
+test("a computer photo upload sends the raw file to the product photo endpoint", async () => {
+  const file = new File([new Uint8Array([1, 2, 3])], "medicine.png", { type: "image/png" });
+  let requestedUrl = "";
+  let requestedMethod = "";
+  let requestedContentType = "";
+  let requestedBody: BodyInit | null | undefined;
+  const fetcher: typeof fetch = async (url, init) => {
+    requestedUrl = String(url);
+    requestedMethod = init?.method ?? "";
+    requestedContentType = new Headers(init?.headers).get("content-type") ?? "";
+    requestedBody = init?.body;
+    return Response.json({
+      result: {
+        productId: "p-test",
+        imageUrl: "/api/product-images/p-test?v=abc123",
+      },
+    });
+  };
+
+  const result = await uploadStockProductPhoto("p-test", file, fetcher);
+
+  assert.equal(requestedUrl, "/api/stock/photos/p-test");
+  assert.equal(requestedMethod, "PUT");
+  assert.equal(requestedContentType, "image/png");
+  assert.strictEqual(requestedBody, file);
+  assert.deepEqual(result, {
+    productId: "p-test",
+    imageUrl: "/api/product-images/p-test?v=abc123",
+  });
+});
+
+test("computer photo selection rejects unsupported, empty, and oversized files", () => {
+  assert.equal(validateProductPhotoFile({ type: "image/png", size: 1_024 }), null);
+  assert.match(validateProductPhotoFile({ type: "image/svg+xml", size: 1_024 }) ?? "", /PNG/i);
+  assert.match(validateProductPhotoFile({ type: "image/png", size: 0 }) ?? "", /non-empty/i);
+  assert.match(validateProductPhotoFile({ type: "image/png", size: 9 * 1024 * 1024 }) ?? "", /8 MiB/i);
 });

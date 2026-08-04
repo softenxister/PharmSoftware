@@ -19,7 +19,7 @@ import { useProductItemDraft } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
 type ProductEntryFormProps = {
-  onSave?: (item: StockItemInput) => void | Promise<void>;
+  onSave?: (item: StockItemInput, photoFile?: File) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
   initialItem?: StockItemInput;
   activeIngredients?: SalesProduct["activeIngredients"];

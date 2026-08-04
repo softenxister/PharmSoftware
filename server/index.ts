@@ -2,6 +2,9 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { createServerApp } from "./app";
 import { startProductCompositionWorker } from "@server/composition/productCompositionEnrichment";
+import { configureOutboundNetworkDefaults } from "./networkDefaults";
+
+configureOutboundNetworkDefaults();
 
 const defaultPort = process.env.NODE_ENV === "production" ? 3000 : 3001;
 const parsedPort = Number(process.env.PORT ?? defaultPort);

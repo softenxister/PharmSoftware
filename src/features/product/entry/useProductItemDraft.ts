@@ -18,7 +18,7 @@ type UseProductItemDraftInput = {
   defaultCategory: string;
   initialItem?: StockItemInput;
   mode: "create" | "edit";
-  onSave?: (item: StockItemInput) => void | Promise<void>;
+  onSave?: (item: StockItemInput, photoFile?: File) => void | Promise<void>;
   onDelete?: () => void | Promise<void>;
 };
 
@@ -37,6 +37,7 @@ export function useProductItemDraft({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [focusPackagingRowId, setFocusPackagingRowId] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const isEditing = mode === "edit";
   const canSave = getMissingProductFields(draft).length === 0;
 
@@ -90,7 +91,7 @@ export function useProductItemDraft({
         productId: initialItem?.productId,
         lotNo: initialItem?.lotNo ?? "",
         expiryDate: initialItem?.expiryDate ?? "",
-      }));
+      }), photoFile ?? undefined);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : t("stockForm.saveError"));
     } finally {
@@ -132,7 +133,9 @@ export function useProductItemDraft({
     deleteError,
     deleteConfirmationOpen,
     focusPackagingRowId,
+    photoFile,
     clearPackagingFocus: () => setFocusPackagingRowId(null),
+    setPhotoFile,
     updateField,
     patchPackagingRow,
     appendPackagingRow,

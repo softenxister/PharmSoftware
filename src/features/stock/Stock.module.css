@@ -14,6 +14,7 @@
   --stock-danger: #bd4b42;
   --stock-danger-soft: #fae8e5;
 
+  position: relative;
   display: flex;
   flex: 1;
   min-width: 0;
@@ -42,10 +43,12 @@
   transition: width 0.16s ease, min-width 0.16s ease;
 }
 
-.sidebarClosed {
-  width: 46px;
-  min-width: 46px;
+.sidebar.sidebarClosed {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
   overflow: hidden;
+  border-right: 0;
 }
 
 .sidebarResizeHandle {
@@ -74,6 +77,33 @@
   background: color-mix(in srgb, var(--stock-primary) 32%, transparent);
 }
 
+.sidebarEdgeHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 6;
+  width: 10px;
+  cursor: e-resize;
+  outline: none;
+}
+
+.sidebarEdgeHandle::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: transparent;
+  content: "";
+  transition: background 0.12s ease;
+}
+
+.sidebarEdgeHandle:hover::after,
+.sidebarEdgeHandle:focus-visible::after {
+  background: color-mix(in srgb, var(--stock-primary) 58%, transparent);
+}
+
 .sidebarHeader {
   display: flex;
   min-height: 48px;
@@ -83,11 +113,6 @@
   margin-top: 12px;
   padding: 5px 12px 5px 14px;
   border-bottom: 1px solid var(--stock-border-soft);
-}
-
-.sidebarClosed .sidebarHeader {
-  justify-content: center;
-  padding: 5px 6px;
 }
 
 .sidebarHeading {
@@ -104,7 +129,6 @@
   white-space: nowrap;
 }
 
-.sidebarIconButton,
 .actionButton {
   display: inline-flex;
   align-items: center;
@@ -115,43 +139,6 @@
   cursor: pointer;
 }
 
-.sidebarIconButton {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 auto;
-  border-radius: 6px;
-}
-
-.sidebarToggleGlyph {
-  position: relative;
-  display: inline-block;
-  width: 18px;
-  height: 15px;
-  border: 2px solid var(--app-icon-ink);
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--app-border) 0 36%, var(--app-surface) 36% 100%);
-}
-
-.sidebarToggleGlyph::after {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  left: calc(36% - 1px);
-  width: 2px;
-  background: var(--app-icon-ink);
-  content: "";
-}
-
-.sidebarToggleGlyphOpen {
-  background: linear-gradient(90deg, var(--app-icon-ink) 0 36%, var(--app-surface) 36% 100%);
-  border-color: var(--app-icon-ink);
-}
-
-.sidebarToggleGlyphOpen::after {
-  background: var(--app-icon-ink);
-}
-
-.sidebarIconButton:hover,
 .actionButton:hover {
   border-color: var(--app-border);
   background: var(--stock-primary-soft);
@@ -1608,11 +1595,6 @@
     width: 230px;
     min-width: 230px;
     max-width: 300px;
-  }
-
-  .sidebarClosed {
-    width: 46px;
-    min-width: 46px;
   }
 
   .sidebarHeader {
