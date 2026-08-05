@@ -149,7 +149,7 @@ export type StockInventoryItem = {
   min: number;
   max: number;
   stock: number;
-  averageCost: number;
+  cost: number;
   markupPercent?: number;
   sellPrice: number;
   imageUrl: string;
@@ -255,7 +255,7 @@ export function projectStockInventoryItem(product: SalesProduct): StockInventory
     min,
     max,
     stock,
-    averageCost: product.averageCostThb ?? 0,
+    cost: product.averageCostThb ?? 0,
     markupPercent: markupPercent(
       product.batches[0]?.sellPriceThb ?? 0,
       product.averageCostThb,

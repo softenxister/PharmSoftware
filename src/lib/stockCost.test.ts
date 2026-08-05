@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  averageProductCost,
+  latestProductCost,
   markupPercent,
   normalizePurchaseCost,
 } from "./stockCost";
@@ -12,16 +12,13 @@ test("purchase costs are normalized to the product base unit", () => {
   assert.equal(normalizePurchaseCost(120, 0), undefined);
 });
 
-test("average product cost gives each distributor and migration one observation", () => {
+test("product cost uses only the latest purchase observation", () => {
   assert.equal(
-    averageProductCost([
-      { costThb: 120, unitMultiplier: 12 },
-      { costThb: 18, unitMultiplier: 1 },
-    ], 10),
-    12.67,
+    latestProductCost({ costThb: 120, unitMultiplier: 12 }, 18),
+    10,
   );
-  assert.equal(averageProductCost([], 10), 10);
-  assert.equal(averageProductCost([], 0), undefined);
+  assert.equal(latestProductCost(undefined, 10), 10);
+  assert.equal(latestProductCost(undefined, 0), undefined);
 });
 
 test("markup percent uses profit divided by cost", () => {

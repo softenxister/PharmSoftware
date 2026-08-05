@@ -178,7 +178,7 @@ export function StockInventoryTable({
                   </td>
                   <td>
                     <span className={styles.priceValue}>
-                      ฿{formatNumber(item.averageCost, {
+                      ฿{formatNumber(item.cost, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}

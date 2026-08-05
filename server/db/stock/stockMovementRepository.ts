@@ -54,14 +54,17 @@ export async function receivePurchasedStock(
     const sellPriceThb = Number(fallbackBatch?.sellPriceThb ?? line.cost) || 0;
     await tx.$executeRaw(Prisma.sql`
       INSERT INTO "ProductBatch" (
-        "id", "productId", "batchNo", "expiryDate", "sellPriceThb", "availableStock"
+        "id", "productId", "batchNo", "expiryDate", "sellPriceThb", "availableStock",
+        "createdAt", "updatedAt"
       ) VALUES (
         ${`product-batch-${randomUUID()}`},
         ${product.id},
         ${batchNo},
         ${expiryDate},
         ${sellPriceThb},
-        ${stockQty}
+        ${stockQty},
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
       )
       ON CONFLICT ("productId", "batchNo", "expiryDate")
       DO UPDATE SET

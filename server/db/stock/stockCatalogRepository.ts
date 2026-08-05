@@ -10,12 +10,12 @@ import {
   type StockProductRow,
 } from "./stockProductProjection";
 import {
-  emptyStockAverageCostsCte,
+  emptyStockLatestCostsCte,
   firstStockSellPriceSql,
-  stockAverageCostsCte,
+  stockLatestCostsCte,
   stockMarkupPercentSql,
 } from "./stockInventorySortSql";
-import { averageProductCost } from "@/lib/stockCost";
+import { latestProductCost } from "@/lib/stockCost";
 
 export type StockProductPage = {
   products: SalesProduct[];
@@ -150,7 +150,7 @@ function filteredStockOrderBy(input: StockReadQuery): Prisma.Sql {
     return Prisma.sql`${totalStockSql} ${direction}, product."itemName" ASC, product.id ASC`;
   }
   if (input.sort === "cost") {
-    return Prisma.sql`COALESCE(average_costs."averageCost", 0) ${direction}, product."itemName" ASC, product.id ASC`;
+    return Prisma.sql`COALESCE(latest_costs."latestCost", 0) ${direction}, product."itemName" ASC, product.id ASC`;
   }
   if (input.sort === "markup") {
     return Prisma.sql`${stockMarkupPercentSql} ${direction} NULLS LAST, product."itemName" ASC, product.id ASC`;
@@ -240,15 +240,15 @@ async function readFilteredStockProductIds(
   const weeklySoldSelect = input.sort === "weekly"
     ? Prisma.sql`COALESCE(weekly_sales."weeklySold", 0)`
     : Prisma.sql`product."weeklySold"`;
-  const averageCostsCte = input.sort === "cost" || input.sort === "markup"
-    ? stockAverageCostsCte
-    : emptyStockAverageCostsCte;
+  const latestCostsCte = input.sort === "cost" || input.sort === "markup"
+    ? stockLatestCostsCte
+    : emptyStockLatestCostsCte;
   const rows = await prisma.$queryRaw<Array<{
     id: string;
     total: number;
     weeklySold: number;
   }>>(Prisma.sql`
-    WITH ${weeklySalesCte}, ${averageCostsCte}
+    WITH ${weeklySalesCte}, ${latestCostsCte}
     SELECT product.id, COUNT(*) OVER()::integer AS total
       , ${weeklySoldSelect}::double precision AS "weeklySold"
     FROM "Product" product
@@ -256,9 +256,9 @@ async function readFilteredStockProductIds(
     INNER JOIN "Manufacturer" manufacturer ON manufacturer.id = product."manufacturerId"
     LEFT JOIN "ProductBatch" batch ON batch."productId" = product.id
     LEFT JOIN weekly_sales ON weekly_sales."productId" = product.id
-    LEFT JOIN average_costs ON average_costs."productId" = product.id
+    LEFT JOIN latest_costs ON latest_costs."productId" = product.id
     WHERE ${Prisma.join(where, " AND ")}
-    GROUP BY product.id, weekly_sales."weeklySold", average_costs."averageCost"
+    GROUP BY product.id, weekly_sales."weeklySold", latest_costs."latestCost"
     ${having.length > 0 ? Prisma.sql`HAVING ${Prisma.join(having, " AND ")}` : Prisma.empty}
     ORDER BY ${orderBy}
     LIMIT ${input.pageSize}
@@ -304,7 +304,7 @@ async function readBatchCosts(productIds: string[]): Promise<ReadonlyMap<string,
   return batchCosts;
 }
 
-async function readAverageProductCosts(productIds: string[]): Promise<ReadonlyMap<string, number>> {
+async function readLatestProductCosts(productIds: string[]): Promise<ReadonlyMap<string, number>> {
   if (productIds.length === 0) return new Map();
   const [purchaseCosts, products] = await Promise.all([
     prisma.$queryRaw<Array<{
@@ -312,10 +312,7 @@ async function readAverageProductCosts(productIds: string[]): Promise<ReadonlyMa
       costThb: unknown;
       unitMultiplier: unknown;
     }>>(Prisma.sql`
-      SELECT DISTINCT ON (
-        line."productId",
-        COALESCE(bill."distributorId", LOWER(BTRIM(bill."distributorName")))
-      )
+      SELECT DISTINCT ON (line."productId")
         line."productId",
         line."cost" AS "costThb",
         line."unitMultiplier"
@@ -327,7 +324,6 @@ async function readAverageProductCosts(productIds: string[]): Promise<ReadonlyMa
         AND line."unitMultiplier" > 0
       ORDER BY
         line."productId",
-        COALESCE(bill."distributorId", LOWER(BTRIM(bill."distributorName"))),
         bill."purchasedAt" DESC,
         bill."createdAt" DESC,
         line.id DESC
@@ -338,24 +334,25 @@ async function readAverageProductCosts(productIds: string[]): Promise<ReadonlyMa
       WHERE id IN (${Prisma.join(productIds)})
     `),
   ]);
-  const distributorCostsByProductId = new Map<string, Array<{
+  const latestPurchaseCostByProductId = new Map<string, {
     costThb: number;
     unitMultiplier: number;
-  }>>();
+  }>();
   for (const row of purchaseCosts) {
-    const costs = distributorCostsByProductId.get(row.productId) ?? [];
-    costs.push({ costThb: Number(row.costThb), unitMultiplier: Number(row.unitMultiplier) });
-    distributorCostsByProductId.set(row.productId, costs);
+    latestPurchaseCostByProductId.set(row.productId, {
+      costThb: Number(row.costThb),
+      unitMultiplier: Number(row.unitMultiplier),
+    });
   }
-  const averageCosts = new Map<string, number>();
+  const latestCosts = new Map<string, number>();
   for (const product of products) {
-    const average = averageProductCost(
-      distributorCostsByProductId.get(product.id) ?? [],
+    const latestCost = latestProductCost(
+      latestPurchaseCostByProductId.get(product.id),
       product.migrationCostThb === null ? null : Number(product.migrationCostThb),
     );
-    if (average !== undefined) averageCosts.set(product.id, average);
+    if (latestCost !== undefined) latestCosts.set(product.id, latestCost);
   }
-  return averageCosts;
+  return latestCosts;
 }
 
 async function readWeeklySoldQuantities(productIds: string[]): Promise<ReadonlyMap<string, number>> {
@@ -382,16 +379,16 @@ async function rowsToSalesProducts(
 ): Promise<SalesProduct[]> {
   const productIds = products.map((product) => product.id);
   const missingWeeklySoldProductIds = productIds.filter((id) => !weeklySoldByProductId.has(id));
-  const [batchCosts, averageCosts, missingWeeklySoldByProductId] = await Promise.all([
+  const [batchCosts, latestCosts, missingWeeklySoldByProductId] = await Promise.all([
     readBatchCosts(productIds),
-    readAverageProductCosts(productIds),
+    readLatestProductCosts(productIds),
     readWeeklySoldQuantities(missingWeeklySoldProductIds),
   ]);
   return products.map((product) => productRowToSalesProduct(
     product,
     batchCosts,
     weeklySoldByProductId.get(product.id) ?? missingWeeklySoldByProductId.get(product.id) ?? 0,
-    averageCosts.get(product.id),
+    latestCosts.get(product.id),
   ));
 }
 

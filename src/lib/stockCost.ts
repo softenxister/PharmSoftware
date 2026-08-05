@@ -16,30 +16,25 @@ export function normalizePurchaseCost(
   return costThb / unitMultiplier;
 }
 
-export function averageProductCost(
-  distributorCosts: readonly PurchaseCostObservation[],
+export function latestProductCost(
+  latestPurchaseCost: PurchaseCostObservation | undefined,
   migrationCostThb?: number | null,
 ): number | undefined {
-  const normalizedCosts = distributorCosts.flatMap(({ costThb, unitMultiplier }) => {
-    const cost = normalizePurchaseCost(costThb, unitMultiplier);
-    return cost === undefined ? [] : [cost];
-  });
-  if (migrationCostThb !== null && migrationCostThb !== undefined
-    && Number.isFinite(migrationCostThb) && migrationCostThb > 0) {
-    normalizedCosts.push(migrationCostThb);
-  }
-  if (normalizedCosts.length === 0) return undefined;
-  return roundCurrency(
-    normalizedCosts.reduce((sum, cost) => sum + cost, 0) / normalizedCosts.length,
-  );
+  const purchaseCost = latestPurchaseCost
+    ? normalizePurchaseCost(latestPurchaseCost.costThb, latestPurchaseCost.unitMultiplier)
+    : undefined;
+  if (purchaseCost !== undefined) return roundCurrency(purchaseCost);
+  if (migrationCostThb === null || migrationCostThb === undefined
+    || !Number.isFinite(migrationCostThb) || migrationCostThb <= 0) return undefined;
+  return roundCurrency(migrationCostThb);
 }
 
 export function markupPercent(
   sellPriceThb: number,
-  averageCostThb?: number,
+  costThb?: number,
 ): number | undefined {
   if (!Number.isFinite(sellPriceThb) || sellPriceThb <= 0) return undefined;
-  if (averageCostThb === undefined
-    || !Number.isFinite(averageCostThb) || averageCostThb <= 0) return undefined;
-  return roundCurrency(((sellPriceThb - averageCostThb) / averageCostThb) * 100);
+  if (costThb === undefined
+    || !Number.isFinite(costThb) || costThb <= 0) return undefined;
+  return roundCurrency(((sellPriceThb - costThb) / costThb) * 100);
 }

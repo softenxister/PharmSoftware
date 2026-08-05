@@ -15,11 +15,11 @@ export const firstStockSellPriceSql = Prisma.sql`
 
 export const stockMarkupPercentSql = Prisma.sql`
   CASE
-    WHEN ${firstStockSellPriceSql} > 0 AND average_costs."averageCost" > 0
+    WHEN ${firstStockSellPriceSql} > 0 AND latest_costs."latestCost" > 0
       THEN ROUND(
         (
-          (${firstStockSellPriceSql} - average_costs."averageCost")
-          / average_costs."averageCost"
+          (${firstStockSellPriceSql} - latest_costs."latestCost")
+          / latest_costs."latestCost"
         ) * 100,
         2
       )
@@ -27,12 +27,9 @@ export const stockMarkupPercentSql = Prisma.sql`
   END
 `;
 
-export const stockAverageCostsCte = Prisma.sql`
-  latest_distributor_costs AS (
-    SELECT DISTINCT ON (
-      line."productId",
-      COALESCE(bill."distributorId", LOWER(BTRIM(bill."distributorName")))
-    )
+export const stockLatestCostsCte = Prisma.sql`
+  latest_purchase_costs AS (
+    SELECT DISTINCT ON (line."productId")
       line."productId",
       line."cost" / NULLIF(line."unitMultiplier", 0) AS "normalizedCost"
     FROM "PurchaseLine" line
@@ -42,29 +39,26 @@ export const stockAverageCostsCte = Prisma.sql`
       AND line."unitMultiplier" > 0
     ORDER BY
       line."productId",
-      COALESCE(bill."distributorId", LOWER(BTRIM(bill."distributorName"))),
       bill."purchasedAt" DESC,
       bill."createdAt" DESC,
       line.id DESC
   ),
-  average_costs AS (
+  latest_costs AS (
     SELECT
-      observation."productId",
-      ROUND(AVG(observation."normalizedCost"), 2) AS "averageCost"
-    FROM (
-      SELECT "productId", "normalizedCost" FROM latest_distributor_costs
-      UNION ALL
-      SELECT id AS "productId", "migrationCostThb" AS "normalizedCost"
-      FROM "Product"
-      WHERE "migrationCostThb" > 0
-    ) observation
-    GROUP BY observation."productId"
+      product.id AS "productId",
+      ROUND(
+        COALESCE(latest_purchase_costs."normalizedCost", product."migrationCostThb"),
+        2
+      ) AS "latestCost"
+    FROM "Product" product
+    LEFT JOIN latest_purchase_costs ON latest_purchase_costs."productId" = product.id
+    WHERE latest_purchase_costs."normalizedCost" > 0 OR product."migrationCostThb" > 0
   )
 `;
 
-export const emptyStockAverageCostsCte = Prisma.sql`
-  average_costs AS (
-    SELECT NULL::text AS "productId", NULL::numeric AS "averageCost"
+export const emptyStockLatestCostsCte = Prisma.sql`
+  latest_costs AS (
+    SELECT NULL::text AS "productId", NULL::numeric AS "latestCost"
     WHERE FALSE
   )
 `;
