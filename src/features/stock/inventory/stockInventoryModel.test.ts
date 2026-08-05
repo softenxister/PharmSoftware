@@ -6,6 +6,7 @@ import {
   clampStockSidebarWidth,
   parseStockRange,
   projectAuthoritativeInventoryPage,
+  projectStockInventoryItem,
   reopenStockSidebarFromEdgeDrag,
   roundMarkupPercentForDisplay,
   resizeStockSidebarFromDrag,
@@ -47,6 +48,7 @@ test("inventory renders the authoritative server page without filtering it again
   assert.equal(page.items[0].name, "Server-selected product");
   assert.equal(page.items[0].state, "low");
   assert.equal(page.items[0].markupPercent, 50);
+  assert.equal(page.items[0].averageCost, 30);
   assert.equal(page.page, 3);
   assert.equal(page.total, 121);
   assert.equal(page.hasMore, false);
@@ -56,6 +58,13 @@ test("inventory markup display rounds fractional percentages up to whole numbers
   assert.equal(roundMarkupPercentForDisplay(12.01), 13);
   assert.equal(roundMarkupPercentForDisplay(12), 12);
   assert.equal(roundMarkupPercentForDisplay(-12.99), -12);
+});
+
+test("inventory displays a missing average cost as zero", () => {
+  const item = projectStockInventoryItem({ ...product, averageCostThb: undefined });
+
+  assert.equal(item.averageCost, 0);
+  assert.equal(item.markupPercent, undefined);
 });
 
 test("inventory option lists stay stable while adding server values", () => {

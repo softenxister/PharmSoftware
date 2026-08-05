@@ -30,7 +30,7 @@ test("stock reads accept descending item-name order", () => {
 });
 
 test("stock reads accept sortable inventory columns and reject unknown sort keys", () => {
-  for (const sort of ["minimum", "maximum", "stock", "sellPrice"]) {
+  for (const sort of ["minimum", "maximum", "stock", "cost", "markup", "sellPrice"]) {
     const parsed = parseStockReadQuery(
       `http://pharm.test/api/stock?sort=${sort}&direction=desc`,
     );

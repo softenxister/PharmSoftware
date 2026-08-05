@@ -16,7 +16,16 @@ const VALID_EXPIRY_WINDOWS = new Set([
 ]);
 const VALID_STOCK_LEVELS = new Set(["Out of Stock", "Low Stock", "Normal Stock", "Overstock"]);
 
-const STOCK_SORTS = ["name", "weekly", "minimum", "maximum", "stock", "sellPrice"] as const;
+const STOCK_SORTS = [
+  "name",
+  "weekly",
+  "minimum",
+  "maximum",
+  "stock",
+  "cost",
+  "markup",
+  "sellPrice",
+] as const;
 export type StockSort = (typeof STOCK_SORTS)[number];
 export type StockSortDirection = "asc" | "desc";
 

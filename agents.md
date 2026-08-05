@@ -2,6 +2,33 @@
 
 Use these project rules for all future edits in this pharmacy retail software.
 
+## Architecture Reference
+
+- Treat `docs/reports/architecture-refactor-implementation-20260731.md` as the architectural baseline. Read the relevant section before changing module boundaries, ownership, persistence, or workflow structure; consult the companion HTML report only when a more detailed visual reference is useful.
+- Preserve the implemented deep-module design: expose one small composition or route seam and keep state, calculations, persistence mapping, and focused views privately owned by their domain module.
+- Prefer direct imports from the file that owns a responsibility. Do not introduce compatibility barrels, duplicate re-export layers, pass-through facades, or shallow utility aliases.
+- Keep handwritten implementation files under `src`, `server`, `scripts`, and `prisma` focused and normally around 300–500 lines maximum. Split by responsibility when a file grows, but do not split a cohesive workflow only to satisfy a line count. CSS and generated Prisma code are excluded.
+- Before creating or moving a file, inspect the domain map below and nearby examples. Extend the existing owner when the responsibility already has one; do not create a competing abstraction or duplicate helper.
+- Preserve existing database schema and HTTP contracts unless the task explicitly requires changing them. Do not add runtime dependencies for refactors without a concrete need and user approval.
+- When architecture guidance conflicts with current code or requested behavior, surface the conflict rather than silently creating a second pattern. Update this section and the full architecture report when an intentional architectural change makes either reference stale.
+
+### Domain Ownership Map
+
+- Sale entry: `src/features/sales/new/NewSale.tsx` is the composition seam; `src/features/sales/new/workflow/` owns lifecycle, catalog, cart, payment, persistence, drafts, and focused Sale views.
+- Purchase entry: `src/features/purchase/new/PurchaseEntry.tsx` composes `src/features/purchase/new/workflow/`; draft calculations and guards belong in `purchaseDraft.ts`, request construction in `purchasePersistence.ts`, and shared expiry behavior in `src/lib/expiryDate.ts`.
+- Product entry: `src/features/product/entry/` owns product identity, packaging, composition, regulatory data, photos, draft state, and delete behavior. Reusable searchable selects belong in `src/components/forms/SearchableSelect.tsx`.
+- Stock inventory: `src/pages/stock/StockPage.tsx` is only the route seam; `src/features/stock/inventory/` owns the inventory UI and model. Treat server results as authoritative for filtering, totals, and pagination; do not add a second client-side filtering pass.
+- Stock persistence: `server/db/stock/stockCatalogRepository.ts`, `stockProductProjection.ts`, `stockItemRepository.ts`, and `stockMovementRepository.ts` separately own reads, projections, item writes, and quantity movements. `server/product-images/stockPhotoStorage.ts` owns stock photo maintenance. Import these owners directly.
+- Member detail: `src/features/member/detail/` owns profile lifecycle, editable drafts, summaries, allergy safety, and purchase history behind `MemberDetail.tsx`.
+- I18n: `src/i18n/catalog/` stores English and Thai entries together by domain and assembles them through `assembleCatalog.ts`. Maintain exact key and placeholder parity without changing the public translation interface.
+
+### Architecture Guardrails
+
+- Do not recreate the removed `server/db/stockRepository.ts`, `src/features/stock/StockEntryForm.tsx`, `src/features/sales/new/salesPresentation.ts`, or `src/features/purchase/purchaseUtils.ts` layers.
+- Pending Sale saves must retain complete line data so bills can reopen; paid Sale submission updates stock before receipt printing becomes available.
+- Sale and Purchase guards, totals, normalization, persistence mapping, and state transitions should remain testable outside presentation components.
+- Cohesive files near the normal size ceiling are acceptable. Review them when they grow, especially `useSaleWorkflow.ts`, `usePurchaseWorkflow.ts`, and `StockAdjustment.tsx`; split only at a clear ownership seam.
+
 ## Layout Stability
 
 - Use rigid dimensions only where the workflow needs it, such as toolbar controls, fixed-format cards, summary bars, quantity controls, invoice rows, and customer fields.

@@ -44,6 +44,14 @@ export function sellPriceForPack(batch: Batch, pack: SellPack): number {
   return pack.sellPriceThb ?? batch.sellPrice * pack.priceMultiplier;
 }
 
+export function hasSellablePrice(
+  batch: Pick<Batch, 'sellPrice'>,
+  pack: Pick<SellPack, 'priceMultiplier' | 'sellPriceThb'>,
+): boolean {
+  const sellPrice = pack.sellPriceThb ?? batch.sellPrice * pack.priceMultiplier;
+  return Number.isFinite(sellPrice) && sellPrice > 0;
+}
+
 export function lineUnitPrice(line: CartLine): number {
   return Number.isFinite(line.unitPrice)
     ? line.unitPrice
@@ -119,16 +127,20 @@ export function replaceCartGroupQuantity(
   preferredBatch: Batch,
   requestedQuantity: number,
 ): CartLine[] {
+  if (!hasSellablePrice(preferredBatch, pack)) return lines;
   const targetKey = `${item.id}\u0000${pack.displayLabel}\u0000${pack.priceMultiplier}`;
   const existingLines = lines.filter((line) => cartLineGroupKey(line) === targetKey);
-  const maxQuantity = totalAvailableStockForPack(item.batches, pack);
+  const availableSellableQuantity = (batch: Batch) => (
+    hasSellablePrice(batch, pack) ? availableStockForPack(batch, pack) : 0
+  );
+  const maxQuantity = totalAvailableSaleQuantity(item.batches, availableSellableQuantity);
   if (maxQuantity <= 0 || !Number.isFinite(requestedQuantity)) return lines;
   const desiredQuantity = Math.min(maxQuantity, Math.max(1, Math.floor(requestedQuantity)));
   const allocations = allocateSaleQuantityAcrossBatches(
     item.batches,
     preferredBatch,
     desiredQuantity,
-    (batch) => availableStockForPack(batch, pack),
+    availableSellableQuantity,
   );
   const timestamp = Date.now();
   const allocatedLines = allocations.map(({ batch, quantity }, index): CartLine => {

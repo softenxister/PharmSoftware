@@ -122,6 +122,7 @@ export function useSaleWorkflow(user: PharmUser) {
     heldItemId,
     pendingConfirmation,
     setPendingConfirmation,
+    setUnpricedItemName,
     openEditorForItem,
     handleItemSearchKeyDown,
     handleSelectBatch,
@@ -302,6 +303,7 @@ export function useSaleWorkflow(user: PharmUser) {
     setCustomerQuery('');
     setItemQuery('');
     setItemDropdownOpen(false);
+    setUnpricedItemName(null);
     setDiscountOpen(false);
     setInvoiceCreated(null);
     setSaleSubmitting(false);

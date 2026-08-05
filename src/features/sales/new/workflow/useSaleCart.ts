@@ -16,6 +16,7 @@ import {
   catalogItemForLine,
   createReminderFromDefaultDosage,
   groupSaleLinesForDisplay,
+  hasSellablePrice,
   mergeCartLinesByItemPack,
   replaceCartGroupQuantity,
   totalAvailableStockForPack,
@@ -73,6 +74,7 @@ export function useSaleCart(params: Params) {
   const [heldItemId, setHeldItemId] = useState<string | null>(null);
   const holdTimerRef = useRef<number | null>(null);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [unpricedItemName, setUnpricedItemName] = useState<string | null>(null);
 
   const cartDisplayGroups = useMemo(() => groupSaleLinesForDisplay(
     cartLines,
@@ -108,6 +110,17 @@ export function useSaleCart(params: Params) {
     ) ?? item.sellPacks[0];
     const batch = nearestExpiryBatchForPack(item.batches, sellPack);
     if (!batch) return;
+    if (!hasSellablePrice(batch, sellPack)) {
+      setUnpricedItemName(item.name);
+      params.setItemQuery(item.name);
+      window.setTimeout(() => {
+        params.itemSearchInputRef.current?.focus();
+        params.itemSearchInputRef.current?.select();
+        params.setItemDropdownOpen(false);
+      }, 0);
+      return;
+    }
+    setUnpricedItemName(null);
     setEditor({ item, batch, sellPack, qty: '1', batchCardOpen: false });
     params.setItemQuery('');
     params.setItemDropdownOpen(false);
@@ -142,6 +155,11 @@ export function useSaleCart(params: Params) {
 
   function handleSelectBatch(batch: Batch) {
     if (!editor) return;
+    if (!hasSellablePrice(batch, editor.sellPack)) {
+      setUnpricedItemName(editor.item.name);
+      return;
+    }
+    setUnpricedItemName(null);
     const maxQuantity = totalAvailableStockForPack(editor.item.batches, editor.sellPack);
     const currentQuantity = parseInt(editor.qty, 10) || 1;
     setEditor({
@@ -162,6 +180,11 @@ export function useSaleCart(params: Params) {
       ? editor.batch
       : nearestExpiryBatchForPack(editor.item.batches, pack);
     if (!nextBatch) return;
+    if (!hasSellablePrice(nextBatch, pack)) {
+      setUnpricedItemName(editor.item.name);
+      return;
+    }
+    setUnpricedItemName(null);
     const maxQuantity = totalAvailableStockForPack(editor.item.batches, pack);
     const currentQuantity = parseInt(editor.qty, 10) || 1;
     setEditor({
@@ -178,6 +201,11 @@ export function useSaleCart(params: Params) {
 
   function commitEditorToCart() {
     if (!editor) return;
+    if (!hasSellablePrice(editor.batch, editor.sellPack)) {
+      setUnpricedItemName(editor.item.name);
+      return;
+    }
+    setUnpricedItemName(null);
     const maxQuantity = totalAvailableStockForPack(editor.item.batches, editor.sellPack);
     if (maxQuantity <= 0) return;
     const quantity = Math.max(1, Math.min(parseInt(editor.qty, 10) || 1, maxQuantity));
@@ -344,6 +372,8 @@ export function useSaleCart(params: Params) {
     heldItemId,
     pendingConfirmation,
     setPendingConfirmation,
+    unpricedItemName,
+    setUnpricedItemName,
     openEditorForItem,
     handleItemSearchKeyDown,
     handleSelectBatch,

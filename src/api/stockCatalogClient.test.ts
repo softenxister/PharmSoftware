@@ -160,7 +160,7 @@ test("stock page loads request descending item-name order", async () => {
 });
 
 test("stock page loads request each sortable inventory column", async () => {
-  for (const sort of ["minimum", "maximum", "stock", "sellPrice"] as const) {
+  for (const sort of ["minimum", "maximum", "stock", "cost", "markup", "sellPrice"] as const) {
     invalidateStockCatalog();
     let requestedUrl = "";
     const fetcher: typeof fetch = async (input) => {

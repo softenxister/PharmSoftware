@@ -3,7 +3,6 @@ import {
   ArrowUp,
   ChevronsUpDown,
   Edit3,
-  MapPin,
   PackagePlus,
   Search,
 } from "lucide-react";
@@ -110,8 +109,12 @@ export function StockInventoryTable({
                 <th aria-sort={ariaSort("stock")}>
                   {sortHeader("stock", t("nav.stock"), "end")}
                 </th>
-                <th>{t("stock.locationShort")}</th>
-                <th>{t("stock.markupShort")}</th>
+                <th aria-sort={ariaSort("cost")}>
+                  {sortHeader("cost", t("stock.cost"), "end")}
+                </th>
+                <th aria-sort={ariaSort("markup")}>
+                  {sortHeader("markup", t("stock.markupShort"), "end")}
+                </th>
                 <th aria-sort={ariaSort("sellPrice")}>
                   {sortHeader("sellPrice", t("stock.sellPrice"), "end")}
                 </th>
@@ -174,9 +177,11 @@ export function StockInventoryTable({
                     </span>
                   </td>
                   <td>
-                    <span className={styles.locationValue} title={item.loc}>
-                      <MapPin size={13} aria-hidden="true" />
-                      {item.loc}
+                    <span className={styles.priceValue}>
+                      ฿{formatNumber(item.averageCost, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                   </td>
                   <td>

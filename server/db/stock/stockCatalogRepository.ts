@@ -9,6 +9,12 @@ import {
   stockBatchIdentityKey,
   type StockProductRow,
 } from "./stockProductProjection";
+import {
+  emptyStockAverageCostsCte,
+  firstStockSellPriceSql,
+  stockAverageCostsCte,
+  stockMarkupPercentSql,
+} from "./stockInventorySortSql";
 import { averageProductCost } from "@/lib/stockCost";
 
 export type StockProductPage = {
@@ -66,6 +72,8 @@ function requiresAggregateStockRead(input: StockReadQuery): boolean {
   const { filters } = input;
   return input.sort === "weekly"
     || input.sort === "stock"
+    || input.sort === "cost"
+    || input.sort === "markup"
     || input.sort === "sellPrice"
     || filters.expiryWindows.length > 0
     || filters.stockLevels.length > 0
@@ -77,19 +85,6 @@ function lowerValues(values: string[]): string[] {
 }
 
 const totalStockSql = Prisma.sql`COALESCE(SUM(batch."availableStock"), 0)`;
-const firstSellPriceSql = Prisma.sql`
-  COALESCE(
-    (
-      SELECT price_batch."sellPriceThb"
-      FROM "ProductBatch" price_batch
-      WHERE price_batch."productId" = product.id
-      ORDER BY price_batch."expiryDate" ASC, price_batch."batchNo" ASC
-      LIMIT 1
-    ),
-    0
-  )
-`;
-
 async function readRecentSalesWeekRange(): Promise<{ start: Date; end: Date }> {
   const now = new Date();
   const latestPaidSale = await prisma.sale.findFirst({
@@ -154,8 +149,14 @@ function filteredStockOrderBy(input: StockReadQuery): Prisma.Sql {
   if (input.sort === "stock") {
     return Prisma.sql`${totalStockSql} ${direction}, product."itemName" ASC, product.id ASC`;
   }
+  if (input.sort === "cost") {
+    return Prisma.sql`COALESCE(average_costs."averageCost", 0) ${direction}, product."itemName" ASC, product.id ASC`;
+  }
+  if (input.sort === "markup") {
+    return Prisma.sql`${stockMarkupPercentSql} ${direction} NULLS LAST, product."itemName" ASC, product.id ASC`;
+  }
   if (input.sort === "sellPrice") {
-    return Prisma.sql`${firstSellPriceSql} ${direction}, product."itemName" ASC, product.id ASC`;
+    return Prisma.sql`${firstStockSellPriceSql} ${direction}, product."itemName" ASC, product.id ASC`;
   }
   return input.sortDirection === "desc"
     ? Prisma.sql`product."itemName" DESC, product.id DESC`
@@ -239,12 +240,15 @@ async function readFilteredStockProductIds(
   const weeklySoldSelect = input.sort === "weekly"
     ? Prisma.sql`COALESCE(weekly_sales."weeklySold", 0)`
     : Prisma.sql`product."weeklySold"`;
+  const averageCostsCte = input.sort === "cost" || input.sort === "markup"
+    ? stockAverageCostsCte
+    : emptyStockAverageCostsCte;
   const rows = await prisma.$queryRaw<Array<{
     id: string;
     total: number;
     weeklySold: number;
   }>>(Prisma.sql`
-    WITH ${weeklySalesCte}
+    WITH ${weeklySalesCte}, ${averageCostsCte}
     SELECT product.id, COUNT(*) OVER()::integer AS total
       , ${weeklySoldSelect}::double precision AS "weeklySold"
     FROM "Product" product
@@ -252,8 +256,9 @@ async function readFilteredStockProductIds(
     INNER JOIN "Manufacturer" manufacturer ON manufacturer.id = product."manufacturerId"
     LEFT JOIN "ProductBatch" batch ON batch."productId" = product.id
     LEFT JOIN weekly_sales ON weekly_sales."productId" = product.id
+    LEFT JOIN average_costs ON average_costs."productId" = product.id
     WHERE ${Prisma.join(where, " AND ")}
-    GROUP BY product.id, weekly_sales."weeklySold"
+    GROUP BY product.id, weekly_sales."weeklySold", average_costs."averageCost"
     ${having.length > 0 ? Prisma.sql`HAVING ${Prisma.join(having, " AND ")}` : Prisma.empty}
     ORDER BY ${orderBy}
     LIMIT ${input.pageSize}

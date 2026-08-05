@@ -37,6 +37,8 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
     itemMatches,
     itemSearchLoading,
     highlightedItemIndex,
+    unpricedItemName,
+    setUnpricedItemName,
     allergyWarningForItem,
     localizeUnit,
     storeSettings,
@@ -56,75 +58,91 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
   return (
     <>
       <div className={styles.searchSection} ref={itemFieldRef}>
-        <div className={styles.itemSearchField}>
-          <IconSearch className={styles.itemSearchIcon} />
-          <input
-            ref={itemSearchInputRef}
-            autoFocus
-            type="text"
-            value={itemQuery}
-            onChange={(event) => {
-              setItemQuery(event.target.value);
-              setItemDropdownOpen(true);
-            }}
-            onFocus={() => {
-              setItemDropdownOpen(true);
-              setHighlightedItemIndex(0);
-            }}
-            onKeyDown={handleItemSearchKeyDown}
-            placeholder={t('newSale.searchItem')}
-            className={`${styles.itemSearchInput} ${preferences.showKeyboardHints ? styles.itemSearchInputWithHints : ''}`}
-          />
-          {preferences.showKeyboardHints && (
-            <span className={styles.keyboardHint} aria-hidden="true">
-              <kbd>↑↓</kbd> {t('newSale.browse')} <kbd>Enter</kbd> {t('newSale.add')} <kbd>Esc</kbd> {t('newSale.close')}
-            </span>
+        <div className={styles.itemSearchControl}>
+          <div className={styles.itemSearchField}>
+            <IconSearch className={styles.itemSearchIcon} />
+            <input
+              ref={itemSearchInputRef}
+              autoFocus
+              type="text"
+              value={itemQuery}
+              onChange={(event) => {
+                setUnpricedItemName(null);
+                setItemQuery(event.target.value);
+                setItemDropdownOpen(true);
+              }}
+              onFocus={() => {
+                setItemDropdownOpen(true);
+                setHighlightedItemIndex(0);
+              }}
+              onKeyDown={handleItemSearchKeyDown}
+              placeholder={t('newSale.searchItem')}
+              aria-invalid={unpricedItemName ? true : undefined}
+              aria-describedby={unpricedItemName ? 'item-sell-price-warning' : undefined}
+              className={`${styles.itemSearchInput} ${preferences.showKeyboardHints ? styles.itemSearchInputWithHints : ''}`}
+            />
+            {preferences.showKeyboardHints && (
+              <span className={styles.keyboardHint} aria-hidden="true">
+                <kbd>↑↓</kbd> {t('newSale.browse')} <kbd>Enter</kbd> {t('newSale.add')} <kbd>Esc</kbd> {t('newSale.close')}
+              </span>
+            )}
+          </div>
+          {itemDropdownOpen && itemQuery.trim() && (
+            <div className={styles.itemDropdownPanel}>
+              {itemMatches.length === 0 && (
+                <div className={styles.dropdownEmpty}>{itemSearchLoading ? 'Loading…' : t('newSale.noItem')}</div>
+              )}
+              {itemMatches.map((item, index) => {
+                const nearest = nearestExpiryBatch(item.batches);
+                const totalStock = item.batches.reduce((sum, batch) => sum + batch.stock, 0);
+                const isHighlighted = index === highlightedItemIndex;
+                const allergyWarning = allergyWarningForItem(item);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`${styles.itemOption} ${isHighlighted ? styles.itemOptionActive : ''}`}
+                    aria-selected={isHighlighted}
+                    onMouseEnter={() => setHighlightedItemIndex(index)}
+                    onMouseMove={() => setHighlightedItemIndex(index)}
+                    onClick={() => openEditorForItem(item)}
+                  >
+                    <img src={item.image} alt="" className={styles.itemOptionThumb} />
+                    <div className={styles.itemOptionMeta}>
+                      <span className={styles.itemOptionName}>
+                        <span>{item.name}</span>
+                        {allergyWarning && <strong className={styles.allergyWarning}>{allergyWarning}</strong>}
+                      </span>
+                      <span className={styles.itemOptionSub}>
+                        {buildProductDescription({
+                          brand: item.brand,
+                          packLabel: localizeUnit(item.packLabel),
+                          location: item.loc,
+                          totalStock,
+                          showLocation: storeSettings.showProductLocation,
+                          showStock: preferences.showAvailableStock,
+                        })}
+                      </span>
+                    </div>
+                    <span className={styles.itemOptionPrice}>
+                      <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : t('newSale.outOfStock')}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
-        {itemDropdownOpen && itemQuery.trim() && (
-          <div className={styles.itemDropdownPanel}>
-            {itemMatches.length === 0 && (
-              <div className={styles.dropdownEmpty}>{itemSearchLoading ? 'Loading…' : t('newSale.noItem')}</div>
-            )}
-            {itemMatches.map((item, index) => {
-              const nearest = nearestExpiryBatch(item.batches);
-              const totalStock = item.batches.reduce((sum, batch) => sum + batch.stock, 0);
-              const isHighlighted = index === highlightedItemIndex;
-              const allergyWarning = allergyWarningForItem(item);
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`${styles.itemOption} ${isHighlighted ? styles.itemOptionActive : ''}`}
-                  aria-selected={isHighlighted}
-                  onMouseEnter={() => setHighlightedItemIndex(index)}
-                  onMouseMove={() => setHighlightedItemIndex(index)}
-                  onClick={() => openEditorForItem(item)}
-                >
-                  <img src={item.image} alt="" className={styles.itemOptionThumb} />
-                  <div className={styles.itemOptionMeta}>
-                    <span className={styles.itemOptionName}>
-                      <span>{item.name}</span>
-                      {allergyWarning && <strong className={styles.allergyWarning}>{allergyWarning}</strong>}
-                    </span>
-                    <span className={styles.itemOptionSub}>
-                      {buildProductDescription({
-                        brand: item.brand,
-                        packLabel: localizeUnit(item.packLabel),
-                        location: item.loc,
-                        totalStock,
-                        showLocation: storeSettings.showProductLocation,
-                        showStock: preferences.showAvailableStock,
-                      })}
-                    </span>
-                  </div>
-                  <span className={styles.itemOptionPrice}>
-                    <span>{nearest ? `฿${formatBaht(nearest.sellPrice)}` : t('newSale.outOfStock')}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {unpricedItemName && (
+          <span
+            id="item-sell-price-warning"
+            className={styles.itemSellPriceWarning}
+            role="alert"
+            title={t('newSale.zeroSellPriceWarning')}
+          >
+            <span aria-hidden="true">⚠</span>
+            {t('newSale.zeroSellPriceWarning')}
+          </span>
         )}
       </div>
 

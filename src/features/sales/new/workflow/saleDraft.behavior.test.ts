@@ -10,11 +10,13 @@ import {
   groupSaleLinesForDisplay,
   normalizeThaiKeyboardBarcodeInput,
   normalizeThaiKeyboardNumericInput,
+  replaceCartGroupQuantity,
   resolvePaidSaleNextStep,
   shouldUseSellPackDropdown,
   topWeeklyItemIds,
   totalAvailableSaleQuantity,
 } from "./saleDraft";
+import type { CatalogItem, SellPack } from "./saleTypes";
 
 test("batch expiry displays the full localized date in English and Thai", () => {
   assert.equal(formatBatchExpiry("en", "2031-06-04"), "04 JUN 2031");
@@ -199,6 +201,55 @@ test("sell-pack options preserve imported barcodes and explicit prices", () => {
     { key: "base:blisterpack", sellPriceThb: undefined, barcodes: ["BASE-1", "BASE-2"] },
     { key: "pack-20", sellPriceThb: 185, barcodes: ["BOX-20", "BOX-20-ALT"] },
   ]);
+});
+
+test("a zero-price item cannot be allocated into the sale cart", () => {
+  const batch = { batchId: "batch-1", batchNo: "B-1", exp: "2031-06-04", sellPrice: 0, stock: 10 };
+  const pack: SellPack = {
+    key: "base:piece",
+    unit: "piece",
+    label: "piece",
+    relationLabel: "1 piece",
+    displayLabel: "1 / piece",
+    priceMultiplier: 1,
+    barcodes: [],
+  };
+  const item = {
+    id: "zero-price",
+    name: "Unpriced item",
+    loc: "A-01",
+    batches: [batch],
+    sellPacks: [pack],
+  } as CatalogItem;
+
+  assert.deepEqual(replaceCartGroupQuantity([], item, pack, batch, 1), []);
+});
+
+test("zero-price batches are excluded when a product also has priced stock", () => {
+  const zeroPriceBatch = { batchId: "batch-zero", batchNo: "B-0", exp: "2030-06-04", sellPrice: 0, stock: 10 };
+  const pricedBatch = { batchId: "batch-priced", batchNo: "B-5", exp: "2031-06-04", sellPrice: 5, stock: 3 };
+  const pack: SellPack = {
+    key: "base:piece",
+    unit: "piece",
+    label: "piece",
+    relationLabel: "1 piece",
+    displayLabel: "1 / piece",
+    priceMultiplier: 1,
+    barcodes: [],
+  };
+  const item = {
+    id: "mixed-price",
+    name: "Mixed-price item",
+    loc: "A-01",
+    batches: [zeroPriceBatch, pricedBatch],
+    sellPacks: [pack],
+  } as CatalogItem;
+
+  const lines = replaceCartGroupQuantity([], item, pack, pricedBatch, 13);
+
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0]?.batch.batchId, "batch-priced");
+  assert.equal(lines[0]?.qty, 3);
 });
 
 test("item discounts apply before the bill discount", () => {
