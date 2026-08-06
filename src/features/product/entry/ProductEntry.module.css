@@ -1502,15 +1502,22 @@
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: 14px;
+  gap: 20px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .editRecordOptions .checkboxRow {
   flex: 0 0 auto;
+  gap: 5px;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .editRecordOptions .checkboxRow input {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
   margin: 0;
 }
 
