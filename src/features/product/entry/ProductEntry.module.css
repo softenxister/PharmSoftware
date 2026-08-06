@@ -1479,21 +1479,15 @@
   width: 100%;
 }
 
-.stockFormEdit .editPackagingPanel .packagingRowActions {
+.stockFormEdit .editPackagingPanel .editPackagingActions {
   display: flex;
   width: 100%;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-top: 1px solid var(--stock-border-soft);
-  padding: 8px 10px;
+  justify-content: flex-end;
+  padding-top: 10px;
 }
 
-.stockFormEdit .editPackagingPanel .packagingRowActions .removeRowButton {
-  margin: 0;
-}
-
-.stockFormEdit .editPackagingPanel .packagingRowActions .moreButton {
+.stockFormEdit .editPackagingPanel .editPackagingActions .moreButton {
   height: 34px;
 }
 

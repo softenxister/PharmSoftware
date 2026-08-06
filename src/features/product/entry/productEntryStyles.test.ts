@@ -107,17 +107,23 @@ test("edit packaging starts with its cards and derives their child unit", () => 
     packagingEditor,
     /\{variant === "default" && \(\s*<label[^>]*>[\s\S]*?stockForm\.subUnit/s,
   );
-  assert.match(packagingEditor, /className=\{styles\.packagingRowActions\}/);
+  assert.match(packagingEditor, /className=\{styles\.editPackagingActions\}/);
   assert.match(
     productStyles,
     /\.stockFormEdit \.editPackagingPanel\s*{[^}]*margin:\s*0;/s,
   );
 });
 
-test("edit packaging card actions place delete left and add row right", () => {
+test("edit packaging has one add-row action below the package cards", () => {
   assert.match(
     productStyles,
-    /\.stockFormEdit \.editPackagingPanel \.packagingRowActions\s*{[^}]*justify-content:\s*space-between;/s,
+    /\.stockFormEdit \.editPackagingPanel \.editPackagingActions\s*{[^}]*justify-content:\s*flex-end;/s,
+  );
+  assert.doesNotMatch(packagingEditor, /className=\{styles\.packagingRowActions\}/);
+  assert.equal(packagingEditor.match(/styles\.editPackagingActions/g)?.length, 1);
+  assert.match(
+    packagingEditor,
+    /<\/div>\s*\{variant === "edit" && \(\s*<div className=\{styles\.editPackagingActions\}>/s,
   );
   assert.match(
     productStyles,
