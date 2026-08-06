@@ -1497,23 +1497,21 @@
   height: 34px;
 }
 
-.stockFormEdit .editRegulatoryPanel {
-  height: auto;
-  border: 1px solid var(--stock-border);
-  border-radius: 9px;
-  background: var(--stock-surface);
-  box-shadow: none;
-}
-
-.stockFormEdit .editRegulatoryPanel .regulatoryFormsHeader {
-  min-height: 42px;
-  border-bottom: 1px solid var(--stock-border-soft);
-  padding: 0 12px;
-}
-
-.stockFormEdit .editRegulatoryPanel .packagingRegulatoryOptions {
+.editRecordOptions {
+  display: flex;
+  min-width: 0;
   align-items: center;
-  padding: 12px;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.editRecordOptions .checkboxRow {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.editRecordOptions .checkboxRow input {
+  margin: 0;
 }
 
 @media (max-width: 980px) {

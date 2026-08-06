@@ -242,7 +242,6 @@ export function ProductEntryForm({
                 {activeEditTab === "packaging" && (
                   <div className={styles.editPackagingTab}>
                     <ProductPackagingEditor controller={controller} variant="edit" />
-                    <ProductRegulatoryFields controller={controller} variant="edit" />
                   </div>
                 )}
               </div>

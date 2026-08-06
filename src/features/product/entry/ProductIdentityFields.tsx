@@ -11,6 +11,7 @@ import {
   type SearchableSelectOption,
 } from "@/components/forms/SearchableSelect";
 import { decimalText } from "./productItemDraft";
+import { ProductRegulatoryFields } from "./ProductRegulatoryFields";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
@@ -134,6 +135,9 @@ export function ProductIdentityFields({
             onChange={(event) => controller.updateField("brandName", event.target.value)}
           />
         </label>}
+        {section === "general" && (
+          <ProductRegulatoryFields controller={controller} variant="edit-row" />
+        )}
       </div>
     </section>
   );
