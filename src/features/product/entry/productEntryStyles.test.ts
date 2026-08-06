@@ -67,3 +67,14 @@ test("barcode and photo URL use separate boxes with labels above them", () => {
     /\.editPhotoFieldGroup > input,[\s\S]*\.editPhotoFieldGroup > \.inlineField\s*{[^}]*border:\s*1px solid var\(--stock-border\);/,
   );
 });
+
+test("edit field labels use the same font size as their values", () => {
+  assert.match(
+    productStyles,
+    /\.editInsetRow > span:first-child\s*{[^}]*font-size:\s*13px;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.editPhotoFieldGroup > span:first-child\s*{[^}]*font-size:\s*13px;/s,
+  );
+});

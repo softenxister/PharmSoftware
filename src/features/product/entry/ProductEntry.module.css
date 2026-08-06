@@ -1238,7 +1238,7 @@
 .editPhotoFieldGroup > span:first-child {
   align-self: flex-start;
   color: var(--stock-muted);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 720;
   padding-left: 2px;
   text-transform: none;
@@ -1365,7 +1365,7 @@
 .editInsetRow > span:first-child {
   overflow: hidden;
   color: var(--stock-muted);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 720;
   text-overflow: ellipsis;
   text-transform: none;
