@@ -68,8 +68,8 @@ export function ProductPhotoField({
   );
 
   const photoUrlField = (
-    <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
-      <span>{t("stockForm.photo")}</span>
+    <label className={`${styles.field} ${variant === "edit" ? styles.editPhotoFieldGroup : ""}`}>
+      <span>{variant === "edit" ? t("stockForm.photoUrl") : t("stockForm.photo")}</span>
       <input
         type="text"
         value={draft.photoUrl}
@@ -86,7 +86,7 @@ export function ProductPhotoField({
 
   const barcodeField = (
     <label
-      className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}
+      className={`${styles.field} ${variant === "edit" ? styles.editPhotoFieldGroup : ""}`}
       data-stock-flow="barcode"
       onKeyDown={onFlowEnter}
     >
@@ -143,7 +143,7 @@ export function ProductPhotoField({
       )}
       {photoError && <small className={styles.photoUploadError} role="alert">{photoError}</small>}
       {variant === "edit" ? (
-        <div className={`${styles.editInsetList} ${styles.editPhotoFields}`}>
+        <div className={styles.editPhotoFields}>
           {barcodeField}
           {photoUrlField}
         </div>

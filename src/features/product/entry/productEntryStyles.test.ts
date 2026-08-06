@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const form = readFileSync(new URL("./ProductEntryForm.tsx", import.meta.url), "utf8");
+const photoField = readFileSync(new URL("./ProductPhotoField.tsx", import.meta.url), "utf8");
 const productStyles = readFileSync(new URL("./ProductEntry.module.css", import.meta.url), "utf8");
 const stockStyles = readFileSync(new URL("../../stock/Stock.module.css", import.meta.url), "utf8");
 
@@ -43,5 +44,26 @@ test("edit item photo, inset rows, and active tab follow the visual contract", (
   assert.match(
     productStyles,
     /\.editInsetRow \+ \.editInsetRow\s*{[^}]*border-top:\s*1px solid var\(--stock-border-soft\);/s,
+  );
+});
+
+test("barcode and photo URL use separate boxes with labels above them", () => {
+  assert.equal(photoField.match(/styles\.editPhotoFieldGroup/g)?.length, 2);
+  assert.doesNotMatch(photoField, /styles\.editInsetList} \$\{styles\.editPhotoFields/);
+  assert.match(
+    productStyles,
+    /\.editPhotoFields\s*{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*gap:\s*12px;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.editPhotoFieldGroup\s*{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.editPhotoFieldGroup > span:first-child\s*{[^}]*align-self:\s*flex-start;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.editPhotoFieldGroup > input,[\s\S]*\.editPhotoFieldGroup > \.inlineField\s*{[^}]*border:\s*1px solid var\(--stock-border\);/,
   );
 });

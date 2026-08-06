@@ -1223,18 +1223,49 @@
 }
 
 .editPhotoFields {
+  display: flex;
   flex: 0 0 auto;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.editPhotoFields .editInsetRow {
-  grid-template-columns: 64px minmax(0, 1fr);
+.editPhotoFieldGroup {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  padding-right: 8px;
-  padding-left: 8px;
 }
 
-.editPhotoFields .editInsetRow > span:first-child {
-  font-size: 10.5px;
+.editPhotoFieldGroup > span:first-child {
+  align-self: flex-start;
+  color: var(--stock-muted);
+  font-size: 11px;
+  font-weight: 720;
+  padding-left: 2px;
+  text-transform: none;
+}
+
+.editPhotoFieldGroup > input,
+.editPhotoFieldGroup > .inlineField {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--stock-border);
+  border-radius: 8px;
+  background: var(--stock-surface);
+  box-shadow: none;
+  text-align: left;
+}
+
+.editPhotoFieldGroup > input {
+  padding: 0 10px;
+}
+
+.editPhotoFieldGroup > .inlineField input {
+  text-align: left;
+}
+
+.editPhotoFieldGroup > .inlineField:focus-within {
+  border-color: var(--stock-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--stock-primary) 14%, transparent);
 }
 
 .editContentColumn {
