@@ -44,7 +44,7 @@ test("edit backdrop and inventory header follow the app content boundary", () =>
   );
   assert.match(
     stockStyles,
-    /\.stockEntryWindowEdit\s*{[^}]*height:\s*min\(640px, calc\(100% - 32px\)\);/s,
+    /\.stockEntryWindowEdit\s*{[^}]*height:\s*min\(560px, calc\(100% - 32px\)\);/s,
   );
   assert.match(
     stockStyles,
