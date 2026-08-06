@@ -5,6 +5,8 @@ import {
   PRODUCT_PHOTO_FILE_TYPES,
   validateProductPhotoFile,
 } from "@/api/stockCatalogClient";
+import { getProductBarcodeSlot } from "./productItemDraft";
+import { BarcodeSlotNavigator } from "./BarcodeSlotNavigator";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
@@ -24,6 +26,7 @@ export function ProductPhotoField({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [barcodeIndex, setBarcodeIndex] = useState(0);
 
   useEffect(() => {
     if (!controller.photoFile) {
@@ -90,19 +93,25 @@ export function ProductPhotoField({
       data-stock-flow="barcode"
       onKeyDown={onFlowEnter}
     >
-      <span>{variant === "edit" ? t("stockForm.barcode") : t("stockForm.barcodes")}</span>
+      <span className={styles.barcodeFieldHeader}>
+        <span>{variant === "edit" ? t("stockForm.barcode") : t("stockForm.barcodes")}</span>
+        <span className={styles.barcodeHeaderActions}>
+          <BarcodeSlotNavigator currentIndex={barcodeIndex} onChange={setBarcodeIndex} />
+        </span>
+      </span>
       <span className={styles.inlineField}>
         <input
           type="text"
-          value={draft.barcode}
+          value={getProductBarcodeSlot(draft.barcode, barcodeIndex)}
           onClick={(event) => onSelectIdentity(event.currentTarget)}
-          onChange={(event) => controller.updateField("barcode", event.target.value)}
-          placeholder={t("stockForm.barcodesPlaceholder")}
+          onChange={(event) => controller.updateBarcodeSlot(undefined, barcodeIndex, event.target.value)}
         />
         <button
           type="button"
-          onClick={() => controller.appendGeneratedBarcode()}
+          className={styles.barcodeGenerateButton}
+          onClick={() => controller.appendGeneratedBarcode(undefined, barcodeIndex)}
           title={t("stockForm.generateBarcode")}
+          aria-label={t("stockForm.generateBarcode")}
         >
           <Wand2 size={15} aria-hidden="true" />
         </button>

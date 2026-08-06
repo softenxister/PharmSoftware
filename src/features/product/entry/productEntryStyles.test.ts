@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const form = readFileSync(new URL("./ProductEntryForm.tsx", import.meta.url), "utf8");
+const identityFields = readFileSync(new URL("./ProductIdentityFields.tsx", import.meta.url), "utf8");
+const barcodeNavigator = readFileSync(new URL("./BarcodeSlotNavigator.tsx", import.meta.url), "utf8");
 const photoField = readFileSync(new URL("./ProductPhotoField.tsx", import.meta.url), "utf8");
 const packagingEditor = readFileSync(new URL("./ProductPackagingEditor.tsx", import.meta.url), "utf8");
 const productStyles = readFileSync(new URL("./ProductEntry.module.css", import.meta.url), "utf8");
@@ -128,5 +130,70 @@ test("edit packaging has one add-row action below the package cards", () => {
   assert.match(
     productStyles,
     /\.stockFormEdit \.editPackagingPanel \.editInsetRow > span:first-child\s*{[^}]*text-align:\s*left;/s,
+  );
+});
+
+test("barcode slot controls navigate three positions in both barcode fields", () => {
+  assert.match(barcodeNavigator, /PRODUCT_BARCODE_SLOT_LIMIT/);
+  assert.match(barcodeNavigator, /<ChevronLeft size=\{16\} strokeWidth=\{3\}/);
+  assert.match(barcodeNavigator, /<ChevronRight size=\{16\} strokeWidth=\{3\}/);
+  assert.match(barcodeNavigator, /<span aria-live="polite">\{safeIndex \+ 1\}<\/span>/);
+  assert.match(
+    photoField,
+    /styles\.barcodeFieldHeader[\s\S]*BarcodeSlotNavigator[\s\S]*styles\.inlineField[\s\S]*styles\.barcodeGenerateButton/s,
+  );
+  assert.match(
+    packagingEditor,
+    /styles\.barcodeEntry[\s\S]*BarcodeSlotNavigator[\s\S]*styles\.inlineField[\s\S]*styles\.barcodeGenerateButton/s,
+  );
+  assert.doesNotMatch(photoField, /placeholder=\{t\("stockForm\.barcodesPlaceholder"\)\}/);
+  assert.doesNotMatch(packagingEditor, /placeholder=\{t\("stockForm\.barcodesPlaceholder"\)\}/);
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editPhotoPanel\s*{[^}]*gap:\s*16px;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editPackagingPanel \.editInsetRow > \.barcodeEntry\s*{[^}]*width:\s*100%;[^}]*justify-content:\s*flex-end;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editPackagingPanel \.editInsetRow > \.barcodeEntry > \.inlineField\s*{[^}]*width:\s*50%;[^}]*flex:\s*0 0 50%;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.barcodeSlotNavigator\s*{[^}]*background:\s*transparent;[^}]*color:\s*var\(--stock-muted\);/s,
+  );
+  assert.match(
+    productStyles,
+    /\.barcodeSlotNavigator button:hover:not\(:disabled\)\s*{[^}]*background:\s*transparent;[^}]*color:\s*var\(--app-create-action\);/s,
+  );
+  assert.match(productStyles, /\.barcodeSlotNavigator\s*{[^}]*gap:\s*0;/s);
+  assert.match(productStyles, /\.barcodeSlotNavigator > span\s*{[^}]*min-width:\s*18px;/s);
+  assert.match(
+    productStyles,
+    /\.editInsetRow > input:hover:not\(:focus\),[\s\S]*\.editInsetRow > div > div:first-child:hover:not\(:focus-within\)[\s\S]*box-shadow:\s*0 0 0 1px var\(--stock-border\);/s,
+  );
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editPackagingPanel \.editInsetRow > \.barcodeEntry > \.inlineField:hover:not\(:focus-within\)\s*{[^}]*box-shadow:\s*0 0 0 1px var\(--stock-border\);/s,
+  );
+  assert.match(
+    productStyles,
+    /\.barcodeFieldHeader\s*{[^}]*align-items:\s*flex-end;[^}]*gap:\s*6px;/s,
+  );
+  assert.match(productStyles, /\.editPhotoFieldGroup\s*{[^}]*gap:\s*6px;/s);
+});
+
+test("edit pricing and packaging rows use half-width boxes while general stays full width", () => {
+  assert.match(
+    productStyles,
+    /\.editPricingStockList \.editInsetRow > :is\(input, \.inlineField, div\),[\s\S]*\.stockFormEdit \.editPackagingPanel \.editInsetRow > :is\(input, \.inlineField, div\)\s*{[^}]*width:\s*50%;[^}]*justify-self:\s*end;/s,
+  );
+  assert.match(productStyles, /\.editPricingStockList\s*{[^}]*width:\s*100%;/s);
+  assert.match(productStyles, /\.stockFormEdit \.editPackagingPanel \.packagingRow\s*{[^}]*width:\s*100%;/s);
+  assert.match(
+    identityFields,
+    /section === "pricing-stock"[\s\S]*styles\.editPricingStockList/,
   );
 });

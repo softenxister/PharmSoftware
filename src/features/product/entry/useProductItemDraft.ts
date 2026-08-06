@@ -7,6 +7,7 @@ import {
   generateProductBarcode,
   getMissingProductFields,
   removePackagingRow,
+  setProductBarcodeSlot,
   serializeProductItemDraft,
   toggleRegulatoryForm,
   updatePackagingRow,
@@ -62,20 +63,25 @@ export function useProductItemDraft({
     setDraft((current) => removePackagingRow(current, id));
   };
 
-  const appendGeneratedBarcode = (packagingRowId?: string) => {
-    const barcode = generateProductBarcode();
+  const updateBarcodeSlot = (
+    packagingRowId: string | undefined,
+    barcodeIndex: number,
+    value: string,
+  ) => {
     setDraft((current) => {
       if (packagingRowId) {
         const row = current.packagingRows.find(({ id }) => id === packagingRowId);
         return row ? updatePackagingRow(current, packagingRowId, {
-          barcode: [row.barcode.trim(), barcode].filter(Boolean).join(", "),
+          barcode: setProductBarcodeSlot(row.barcode, barcodeIndex, value),
         }) : current;
       }
-      return {
-        ...current,
-        barcode: [current.barcode.trim(), barcode].filter(Boolean).join(", "),
-      };
+      return { ...current, barcode: setProductBarcodeSlot(current.barcode, barcodeIndex, value) };
     });
+  };
+
+  const appendGeneratedBarcode = (packagingRowId?: string, barcodeIndex = 0) => {
+    const barcode = generateProductBarcode();
+    updateBarcodeSlot(packagingRowId, barcodeIndex, barcode);
   };
 
   const changeRegulatoryForm = (form: string) => {
@@ -139,6 +145,7 @@ export function useProductItemDraft({
     clearPackagingFocus: () => setFocusPackagingRowId(null),
     setPhotoFile,
     updateField,
+    updateBarcodeSlot,
     patchPackagingRow,
     appendPackagingRow,
     deletePackagingRow,

@@ -679,6 +679,109 @@
   background: var(--stock-primary-soft);
 }
 
+.barcodeEntry {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.barcodeEntry > .inlineField {
+  flex: 1;
+  min-width: 0;
+}
+
+.barcodeSlotNavigator {
+  display: inline-flex;
+  height: 28px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0;
+  background: transparent;
+  color: var(--stock-muted);
+}
+
+.barcodeSlotNavigator button {
+  display: inline-flex;
+  width: 24px;
+  height: 26px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--stock-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.barcodeGenerateButton {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stock-border);
+  border-radius: 6px;
+  background: var(--app-surface-muted);
+  color: var(--stock-primary-dark);
+  cursor: pointer;
+  padding: 0;
+}
+
+.barcodeSlotNavigator button:hover:not(:disabled),
+.barcodeGenerateButton:hover {
+  background: var(--stock-primary-soft);
+}
+
+.barcodeSlotNavigator button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--app-create-action);
+}
+
+.barcodeSlotNavigator button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--stock-primary) 34%, transparent);
+  outline-offset: 1px;
+}
+
+.barcodeSlotNavigator button:disabled {
+  color: var(--app-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.barcodeSlotNavigator > span {
+  min-width: 18px;
+  color: var(--stock-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.barcodeFieldHeader {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.barcodeFieldHeader > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barcodeHeaderActions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
 .packagingPanel {
   min-width: 0;
   overflow: visible;
@@ -1229,6 +1332,10 @@
   gap: 12px;
 }
 
+.stockFormEdit .editPhotoPanel {
+  gap: 16px;
+}
+
 .editPhotoFieldGroup {
   display: flex;
   flex-direction: column;
@@ -1242,6 +1349,10 @@
   font-weight: 720;
   padding-left: 2px;
   text-transform: none;
+}
+
+.stockFormEdit .editPhotoFieldGroup > .barcodeFieldHeader {
+  align-self: stretch;
 }
 
 .editPhotoFieldGroup > input,
@@ -1348,6 +1459,10 @@
   background: var(--stock-surface);
 }
 
+.editPricingStockList {
+  width: 100%;
+}
+
 .editInsetRow {
   display: grid;
   min-width: 0;
@@ -1384,6 +1499,14 @@
 
 .editInsetRow > input {
   padding: 0 7px;
+}
+
+.editInsetRow > input:hover:not(:focus),
+.editInsetRow > .inlineField:hover:not(:focus-within),
+.editInsetRow > div > div:first-child:hover:not(:focus-within),
+.editInsetRow > .barcodeEntry > .inlineField:hover:not(:focus-within) {
+  background: var(--app-surface-muted);
+  box-shadow: 0 0 0 1px var(--stock-border);
 }
 
 .editInsetRow > input:focus,
@@ -1456,6 +1579,7 @@
 .stockFormEdit .editPackagingPanel .packagingRow {
   position: relative;
   display: flex;
+  width: 100%;
   min-width: 0;
   flex-direction: column;
   align-items: stretch;
@@ -1477,6 +1601,42 @@
 
 .stockFormEdit .editPackagingPanel .editInsetRow {
   width: 100%;
+}
+
+.editPricingStockList .editInsetRow > :is(input, .inlineField, div),
+.stockFormEdit .editPackagingPanel .editInsetRow > :is(input, .inlineField, div) {
+  width: 50%;
+  justify-self: end;
+}
+
+.stockFormEdit .editPackagingPanel .editInsetRow > .barcodeEntry {
+  width: 100%;
+  justify-content: flex-end;
+  justify-self: stretch;
+}
+
+.stockFormEdit .editPackagingPanel .editInsetRow > .barcodeEntry > .inlineField {
+  width: 50%;
+  flex: 0 0 50%;
+  height: 36px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.stockFormEdit .editPackagingPanel .editInsetRow > .barcodeEntry > .inlineField:focus-within {
+  background: var(--app-surface-muted);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--stock-primary) 18%, transparent);
+}
+
+.stockFormEdit .editPackagingPanel .editInsetRow > .barcodeEntry > .inlineField:hover:not(:focus-within) {
+  background: var(--app-surface-muted);
+  box-shadow: 0 0 0 1px var(--stock-border);
+}
+
+.stockFormEdit .editPackagingPanel .editInsetRow > .barcodeEntry > .inlineField input {
+  text-align: right;
 }
 
 .stockFormEdit .editPackagingPanel .editPackagingActions {
@@ -1509,9 +1669,9 @@
 }
 
 .editRecordOptions .checkboxRow input {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 12px;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
   margin: 0;
 }
 

@@ -6,6 +6,8 @@ import {
   canonicalizeProductUnit,
 } from "@/i18n/productUnits";
 
+export const PRODUCT_BARCODE_SLOT_LIMIT = 3;
+
 export type ProductPackagingRow = {
   id: string;
   parentUnit: string;
@@ -36,6 +38,35 @@ export type ProductPersistenceIdentity = {
   lotNo: string;
   expiryDate: string;
 };
+
+export function getProductBarcodeSlots(value: string): string[] {
+  return value.split(/[;,]/).map((barcode) => barcode.trim()).slice(0, PRODUCT_BARCODE_SLOT_LIMIT);
+}
+
+export function getProductBarcodeSlot(value: string, index: number): string {
+  return getProductBarcodeSlots(value)[index] ?? "";
+}
+
+export function normalizeProductBarcodeValues(
+  primaryValue: string | undefined,
+  aliases: readonly string[] = [],
+): string {
+  return [primaryValue ?? "", ...aliases]
+    .flatMap((value) => value.split(/[;,]/))
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, PRODUCT_BARCODE_SLOT_LIMIT)
+    .join(", ");
+}
+
+export function setProductBarcodeSlot(value: string, index: number, nextValue: string): string {
+  if (index < 0 || index >= PRODUCT_BARCODE_SLOT_LIMIT) return value;
+  const slots = getProductBarcodeSlots(value);
+  while (slots.length <= index) slots.push("");
+  slots[index] = nextValue.replace(/[;,]/g, "").trim();
+  while (slots.length > 1 && !slots[slots.length - 1]) slots.pop();
+  return slots.join(", ");
+}
 
 type ProductSerializationOptions = {
   packagingChildUnit?: string;
@@ -114,14 +145,14 @@ export function createProductItemDraft(
       PRODUCT_SUBUNIT_VALUES,
       PRODUCT_SUBUNIT_VALUES[0],
     ),
-    barcode: [row.barcode, ...(row.barcodes ?? [])].filter(Boolean).join(", "),
+    barcode: normalizeProductBarcodeValues(row.barcode, row.barcodes),
     sellPrice: row.sellPrice ?? "",
     id: `package-${index + 1}`,
   })) ?? [];
 
   return {
     photoUrl: initialItem?.photoUrl ?? "",
-    barcode: [initialItem?.barcode, ...(initialItem?.barcodes ?? [])].filter(Boolean).join(", "),
+    barcode: normalizeProductBarcodeValues(initialItem?.barcode, initialItem?.barcodes),
     itemName: initialItem?.itemName ?? "",
     location: initialItem?.location ?? "",
     manufacturer: initialItem?.manufacturer ?? "",

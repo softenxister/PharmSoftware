@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Plus, Trash2, Wand2 } from "lucide-react";
 import {
   PRODUCT_PACKAGE_VALUES,
@@ -10,7 +10,8 @@ import {
   SearchableSelect,
   type SearchableSelectOption,
 } from "@/components/forms/SearchableSelect";
-import { decimalText } from "./productItemDraft";
+import { BarcodeSlotNavigator } from "./BarcodeSlotNavigator";
+import { decimalText, getProductBarcodeSlot } from "./productItemDraft";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
@@ -23,6 +24,7 @@ export function ProductPackagingEditor({
 }) {
   const { t, preferences } = usePreferences();
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [barcodeIndexes, setBarcodeIndexes] = useState<Record<string, number>>({});
 
   const options = (values: readonly string[], currentValue: string): SearchableSelectOption[] => (
     [...new Set([...values, currentValue])]
@@ -68,7 +70,10 @@ export function ProductPackagingEditor({
       )}
 
       <div className={styles.packagingRows}>
-        {controller.draft.packagingRows.map((row) => (
+        {controller.draft.packagingRows.map((row) => {
+          const barcodeIndex = barcodeIndexes[row.id] ?? 0;
+
+          return (
           <div
             className={styles.packagingRow}
             key={row.id}
@@ -123,21 +128,33 @@ export function ProductPackagingEditor({
             </label>
             <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
               <span>{t("stockForm.barcodes")}</span>
-              <span className={styles.inlineField}>
-                <input
-                  value={row.barcode}
-                  onChange={(event) => controller.patchPackagingRow(row.id, {
-                    barcode: event.target.value,
-                  })}
-                  placeholder={t("stockForm.barcodesPlaceholder")}
+              <span className={styles.barcodeEntry}>
+                <BarcodeSlotNavigator
+                  currentIndex={barcodeIndex}
+                  onChange={(index) => setBarcodeIndexes((current) => ({
+                    ...current,
+                    [row.id]: index,
+                  }))}
                 />
-                <button
-                  type="button"
-                  onClick={() => controller.appendGeneratedBarcode(row.id)}
-                  title={t("stockForm.generateBarcode")}
-                >
-                  <Wand2 size={15} aria-hidden="true" />
-                </button>
+                <span className={styles.inlineField}>
+                  <input
+                    value={getProductBarcodeSlot(row.barcode, barcodeIndex)}
+                    onChange={(event) => controller.updateBarcodeSlot(
+                      row.id,
+                      barcodeIndex,
+                      event.target.value,
+                    )}
+                  />
+                  <button
+                    type="button"
+                    className={styles.barcodeGenerateButton}
+                    onClick={() => controller.appendGeneratedBarcode(row.id, barcodeIndex)}
+                    title={t("stockForm.generateBarcode")}
+                    aria-label={t("stockForm.generateBarcode")}
+                  >
+                    <Wand2 size={15} aria-hidden="true" />
+                  </button>
+                </span>
               </span>
             </label>
             {variant === "default" && (
@@ -153,7 +170,8 @@ export function ProductPackagingEditor({
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
       {variant === "edit" && (
         <div className={styles.editPackagingActions}>

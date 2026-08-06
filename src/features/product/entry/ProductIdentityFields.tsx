@@ -48,13 +48,16 @@ export function ProductIdentityFields({
   const fieldClassName = section === "all"
     ? styles.field
     : `${styles.field} ${styles.editInsetRow}`;
+  const listClassName = section === "pricing-stock" ? styles.editPricingStockList : "";
 
   return (
     <section
       className={`${styles.formPanel} ${section === "all" ? "" : styles.editTabPanel}`}
       aria-label={t("stockForm.itemDetail")}
     >
-      <div className={`${styles.formGrid} ${section === "all" ? "" : styles.editInsetList}`}>
+      <div
+        className={`${styles.formGrid} ${section === "all" ? "" : styles.editInsetList} ${listClassName}`}
+      >
         {showGeneral && <label className={fieldClassName} data-stock-flow="itemName" onKeyDown={onFlowEnter}>
           <span>{t("stock.itemName")}</span>
           <input

@@ -284,7 +284,6 @@ export function TopBar({ user }: { user: PharmUser }) {
             </div>
             <div className="text-left min-w-0 max-w-36">
               <p className="overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: "15px", fontWeight: 600, color: "var(--app-header-text-strong)", lineHeight: 0.95 }}>{user.name}</p>
-              <p style={{ fontSize: "12px", color: "var(--app-header-text-soft)", lineHeight: 0.85 }}>{roleLabel}</p>
             </div>
             <ChevronDown size={13.2} style={{ color: "var(--app-header-text-soft)", transform: profileOpen ? "rotate(180deg)" : undefined }} />
           </button>

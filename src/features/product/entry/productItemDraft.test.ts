@@ -3,12 +3,22 @@ import test from "node:test";
 import {
   addPackagingRow,
   createProductItemDraft,
+  getProductBarcodeSlot,
   getMissingProductFields,
   isProductSaveShortcut,
   selectProductIdentityText,
   serializeProductItemDraft,
+  setProductBarcodeSlot,
   updatePackagingRow,
 } from "./productItemDraft";
+
+test("product barcode slots are limited to three and preserve slot positions", () => {
+  assert.equal(getProductBarcodeSlot("111, 222, 333, 444", 0), "111");
+  assert.equal(getProductBarcodeSlot("111, 222, 333, 444", 2), "333");
+  assert.equal(getProductBarcodeSlot(", 222", 0), "");
+  assert.equal(setProductBarcodeSlot(", 222", 0, "111"), "111, 222");
+  assert.equal(setProductBarcodeSlot("111", 2, "333"), "111, , 333");
+});
 
 test("product drafts normalize imported package units at their boundary", () => {
   const draft = createProductItemDraft({
