@@ -6,6 +6,8 @@ import type { TranslationKey } from "@/i18n/i18n";
 import type { PharmUser } from "@server/auth/pharmUser";
 import { getSalesLandingHref } from "@/config/preferences/posPreferences";
 import { usePosPreferences } from "@/hooks/usePosPreferences";
+import logoImage from "@/styles/vector/logo.png";
+import flosteraWordmark from "@/styles/vector/flostera-light.png";
 import { shouldCloseProfileMenu } from "./profileMenu";
 import {
   Home, ShoppingCart, Package, Archive, Users,
@@ -102,22 +104,14 @@ export function TopBar({ user }: { user: PharmUser }) {
   return (
     <div
       style={{ background: "var(--app-header)", borderBottom: "1px solid var(--app-header-border)" }}
-      className="flex items-center justify-between px-4 h-14 shrink-0"
+      className="flex items-center justify-between px-4 h-12 shrink-0"
     >
       {/* Left: Logo + Nav */}
       <div className="flex items-center h-full">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 pr-5 mr-2" style={{ borderRight: "1px solid var(--app-header-divider)" }}>
-          <div className="w-8 h-8 flex items-center justify-center" style={{ background: "var(--app-header-mark)" }}>
-            <svg width="21.6" height="21.6" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z" fill="var(--app-header-text-strong)"/>
-              <path d="M9 12h6M12 9v6" stroke="var(--app-header)" strokeWidth="2.2" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <p style={{ color: "var(--app-header-text-strong)", fontSize: "15.6px", fontWeight: 700, letterSpacing: 0, lineHeight: 1 }}>RxPro</p>
-            <p style={{ color: "var(--app-header-text-soft)", fontSize: "10.8px", lineHeight: 0.9 }}>Pharmacy</p>
-          </div>
+        <div className="flex items-center gap-4 pr-5 mr-2" style={{ borderRight: "1px solid var(--app-header-divider)" }}>
+          <img src={logoImage} alt="" className="h-auto w-5 object-contain" />
+          <img src={flosteraWordmark} alt="Flostera" className="h-auto w-17 object-contain" />
         </div>
 
         {/* Nav Items */}
@@ -157,7 +151,7 @@ export function TopBar({ user }: { user: PharmUser }) {
                 style={isHome ? { transform: "translateX(-1px)" } : undefined}
               />
               {!isHome && (
-                <span style={{ fontSize: "15.6px", fontWeight: isActive ? 600 : 400 }}>{label}</span>
+                <span style={{ fontSize: "15px", fontWeight: isActive ? 600 : 400 }}>{label}</span>
               )}
             </Link>
           );
