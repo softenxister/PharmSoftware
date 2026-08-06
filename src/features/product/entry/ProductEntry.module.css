@@ -1397,16 +1397,22 @@
 }
 
 .editInsetRow > div > div:first-child {
+  flex-direction: row-reverse;
   border: 0;
   border-radius: 5px;
   background: transparent;
+  padding: 0 10px 0 7px;
 }
 
 .editInsetRow > div > div:first-child:focus-within {
   background: var(--app-surface-muted);
 }
 
-.editCompositionPanel {
+.editInsetRow > div > div:first-child > input {
+  text-align: right;
+}
+
+.stockFormEdit .editCompositionPanel {
   height: auto;
   min-height: 0;
   flex: none;
@@ -1414,7 +1420,7 @@
   overflow: visible;
   border-radius: 9px;
   background: var(--stock-surface);
-  padding: 14px;
+  padding: 12px;
 }
 
 .stockFormEdit .editCompositionPanel .genericIngredientList {

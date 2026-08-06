@@ -78,3 +78,21 @@ test("edit field labels use the same font size as their values", () => {
     /\.editPhotoFieldGroup > span:first-child\s*{[^}]*font-size:\s*13px;/s,
   );
 });
+
+test("edit dropdown values align right with their chevrons on the left", () => {
+  assert.match(
+    productStyles,
+    /\.editInsetRow > div > div:first-child\s*{[^}]*flex-direction:\s*row-reverse;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.editInsetRow > div > div:first-child > input\s*{[^}]*text-align:\s*right;/s,
+  );
+});
+
+test("ingredients panel aligns with the top edge of the other tab panels", () => {
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editCompositionPanel\s*{[^}]*margin:\s*0;/s,
+  );
+});
