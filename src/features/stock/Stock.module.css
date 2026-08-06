@@ -110,7 +110,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-top: 12px;
+  margin-top: 0;
   padding: 5px 12px 5px 14px;
   border-bottom: 1px solid var(--stock-border-soft);
 }
@@ -493,7 +493,7 @@
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  padding: 12px 14px 14px;
+  padding: 0 14px 14px;
   overflow: hidden;
 }
 
@@ -909,8 +909,8 @@
 }
 
 .stockWindowBackdrop {
-  position: fixed;
-  inset: 56px 0 0;
+  position: absolute;
+  inset: 0;
   z-index: 80;
   display: flex;
   align-items: center;
@@ -923,7 +923,7 @@
   position: relative;
   display: flex;
   width: min(1160px, calc(100vw - 32px));
-  height: min(652px, calc(100vh - 88px));
+  height: min(652px, calc(100% - 32px));
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--app-border);
@@ -934,7 +934,7 @@
 
 .stockEntryWindowEdit {
   width: min(900px, calc(100vw - 32px));
-  height: min(640px, calc(100vh - 88px));
+  height: min(640px, calc(100% - 32px));
   background: var(--stock-surface);
 }
 
@@ -1619,12 +1619,8 @@
     max-width: 300px;
   }
 
-  .sidebarHeader {
-    margin-top: 10px;
-  }
-
   .content {
-    padding: 10px;
+    padding: 0 10px 10px;
   }
 
   .searchField {

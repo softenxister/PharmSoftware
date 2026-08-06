@@ -32,3 +32,26 @@ test("sortable inventory headers align their labels with column values instead o
     /\.sortButtonEnd\s*{[^}]*flex-direction:\s*row-reverse;[^}]*margin:\s*0 -7px 0 0;/s,
   );
 });
+
+test("edit backdrop and inventory header follow the app content boundary", () => {
+  assert.match(
+    stockStyles,
+    /\.stockWindowBackdrop\s*{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s,
+  );
+  assert.doesNotMatch(
+    stockStyles,
+    /\.stockWindowBackdrop\s*{[^}]*inset:\s*56px 0 0;/s,
+  );
+  assert.match(
+    stockStyles,
+    /\.stockEntryWindowEdit\s*{[^}]*height:\s*min\(640px, calc\(100% - 32px\)\);/s,
+  );
+  assert.match(
+    stockStyles,
+    /\.sidebarHeader\s*{[^}]*margin-top:\s*0;/s,
+  );
+  assert.match(
+    stockStyles,
+    /\.content\s*{[^}]*padding:\s*0 14px 14px;/s,
+  );
+});
