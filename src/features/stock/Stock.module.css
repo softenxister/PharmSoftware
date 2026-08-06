@@ -493,7 +493,7 @@
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  padding: 0 14px 14px;
+  padding: 12px 14px 14px;
   overflow: hidden;
 }
 
@@ -1620,7 +1620,7 @@
   }
 
   .content {
-    padding: 0 10px 10px;
+    padding: 10px;
   }
 
   .searchField {
