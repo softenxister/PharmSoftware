@@ -1238,7 +1238,7 @@
 .editPhotoFieldGroup > span:first-child {
   align-self: flex-start;
   color: var(--stock-muted);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 720;
   padding-left: 2px;
   text-transform: none;

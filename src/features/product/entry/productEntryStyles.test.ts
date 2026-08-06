@@ -69,14 +69,14 @@ test("barcode and photo URL use separate boxes with labels above them", () => {
   );
 });
 
-test("edit field labels use the same font size as their values", () => {
+test("edit row labels match their values while photo metadata labels stay compact", () => {
   assert.match(
     productStyles,
     /\.editInsetRow > span:first-child\s*{[^}]*font-size:\s*13px;/s,
   );
   assert.match(
     productStyles,
-    /\.editPhotoFieldGroup > span:first-child\s*{[^}]*font-size:\s*13px;/s,
+    /\.editPhotoFieldGroup > span:first-child\s*{[^}]*font-size:\s*11px;/s,
   );
 });
 
