@@ -5,16 +5,20 @@ import styles from "./ProductEntry.module.css";
 type ProductCompositionPanelProps = {
   activeIngredients?: SalesProduct["activeIngredients"];
   compositionStatus?: SalesProduct["compositionStatus"];
+  variant?: "default" | "edit";
 };
 
 export function ProductCompositionPanel({
   activeIngredients,
   compositionStatus,
+  variant = "default",
 }: ProductCompositionPanelProps) {
   const { t } = usePreferences();
 
   return (
-    <section className={styles.genericNamePanel} aria-labelledby="stock-generic-name-label">
+    <section className={`${styles.genericNamePanel} ${
+      variant === "edit" ? styles.editCompositionPanel : ""
+    }`} aria-labelledby="stock-generic-name-label">
       <div className={styles.genericNameHeading}>
         <span id="stock-generic-name-label">{t("stockForm.genericName")}</span>
         <small>{t("stockForm.genericNameReadOnly")}</small>

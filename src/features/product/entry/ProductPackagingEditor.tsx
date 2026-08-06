@@ -16,8 +16,10 @@ import styles from "./ProductEntry.module.css";
 
 export function ProductPackagingEditor({
   controller,
+  variant = "default",
 }: {
   controller: ProductItemDraftController;
+  variant?: "default" | "edit";
 }) {
   const { t, preferences } = usePreferences();
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -47,7 +49,10 @@ export function ProductPackagingEditor({
   };
 
   return (
-    <section className={styles.packagingPanel} aria-label={t("stockForm.packaging")}>
+    <section
+      className={`${styles.packagingPanel} ${variant === "edit" ? styles.editPackagingPanel : ""}`}
+      aria-label={t("stockForm.packaging")}
+    >
       <div className={styles.packagingHeader}>
         <div><h2>{t("stockForm.packagingIn")}</h2></div>
         <button
@@ -70,7 +75,7 @@ export function ProductPackagingEditor({
               rowRefs.current[row.id] = element;
             }}
           >
-            <label className={styles.field}>
+            <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
               <span>{t("stockForm.package")}</span>
               <SearchableSelect
                 compact
@@ -80,7 +85,7 @@ export function ProductPackagingEditor({
                 onChange={(value) => controller.patchPackagingRow(row.id, { parentUnit: value })}
               />
             </label>
-            <label className={styles.field}>
+            <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
               <span>{t("stockForm.subValue")}</span>
               <input
                 type="text"
@@ -91,7 +96,7 @@ export function ProductPackagingEditor({
                 })}
               />
             </label>
-            <label className={styles.field}>
+            <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
               <span>{t("stockForm.subUnit")}</span>
               <SearchableSelect
                 compact
@@ -101,7 +106,7 @@ export function ProductPackagingEditor({
                 onChange={(value) => controller.patchPackagingRow(row.id, { childUnit: value })}
               />
             </label>
-            <label className={styles.field}>
+            <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
               <span>{t("stockForm.unitSellPrice")}</span>
               <input
                 type="text"
@@ -112,7 +117,7 @@ export function ProductPackagingEditor({
                 })}
               />
             </label>
-            <label className={styles.field}>
+            <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
               <span>{t("stockForm.barcodes")}</span>
               <span className={styles.inlineField}>
                 <input

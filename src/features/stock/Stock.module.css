@@ -933,6 +933,8 @@
 }
 
 .stockEntryWindowEdit {
+  width: min(900px, calc(100vw - 32px));
+  height: min(640px, calc(100vh - 88px));
   background: var(--stock-surface);
 }
 

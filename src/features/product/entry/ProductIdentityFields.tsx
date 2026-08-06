@@ -1,5 +1,4 @@
 import type { KeyboardEvent } from "react";
-import type { SalesProduct } from "@server/db/types";
 import {
   PRODUCT_SUBUNIT_VALUES,
   PRODUCT_UNIT_VALUES,
@@ -12,7 +11,6 @@ import {
   type SearchableSelectOption,
 } from "@/components/forms/SearchableSelect";
 import { decimalText } from "./productItemDraft";
-import { ProductCompositionPanel } from "./ProductCompositionPanel";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
@@ -28,29 +26,35 @@ function unitOptions(
 type ProductIdentityFieldsProps = {
   controller: ProductItemDraftController;
   categoryOptions: SearchableSelectOption[];
+  section?: "all" | "general" | "pricing-stock";
   onFlowEnter: (event: KeyboardEvent<HTMLElement>) => void;
   onFlowCommit: (field: string) => void;
   onSelectIdentity: (input: HTMLInputElement) => void;
-  activeIngredients?: SalesProduct["activeIngredients"];
-  compositionStatus?: SalesProduct["compositionStatus"];
 };
 
 export function ProductIdentityFields({
   controller,
   categoryOptions,
+  section = "all",
   onFlowEnter,
   onFlowCommit,
   onSelectIdentity,
-  activeIngredients,
-  compositionStatus,
 }: ProductIdentityFieldsProps) {
   const { t, preferences } = usePreferences();
   const { draft } = controller;
+  const showGeneral = section === "all" || section === "general";
+  const showPricingStock = section === "all" || section === "pricing-stock";
+  const fieldClassName = section === "all"
+    ? styles.field
+    : `${styles.field} ${styles.editInsetRow}`;
 
   return (
-    <section className={styles.formPanel} aria-label={t("stockForm.itemDetail")}>
-      <div className={styles.formGrid}>
-        <label className={styles.field} data-stock-flow="itemName" onKeyDown={onFlowEnter}>
+    <section
+      className={`${styles.formPanel} ${section === "all" ? "" : styles.editTabPanel}`}
+      aria-label={t("stockForm.itemDetail")}
+    >
+      <div className={`${styles.formGrid} ${section === "all" ? "" : styles.editInsetList}`}>
+        {showGeneral && <label className={fieldClassName} data-stock-flow="itemName" onKeyDown={onFlowEnter}>
           <span>{t("stock.itemName")}</span>
           <input
             value={draft.itemName}
@@ -58,22 +62,22 @@ export function ProductIdentityFields({
             onClick={(event) => onSelectIdentity(event.currentTarget)}
             onChange={(event) => controller.updateField("itemName", event.target.value)}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="location" onKeyDown={onFlowEnter}>
+        </label>}
+        {showGeneral && <label className={fieldClassName} data-stock-flow="location" onKeyDown={onFlowEnter}>
           <span>{t("stockForm.location")}</span>
           <input
             value={draft.location}
             onChange={(event) => controller.updateField("location", event.target.value)}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="manufacturer" onKeyDown={onFlowEnter}>
+        </label>}
+        {showGeneral && <label className={fieldClassName} data-stock-flow="manufacturer" onKeyDown={onFlowEnter}>
           <span>{t("stock.manufacturer")}</span>
           <input
             value={draft.manufacturer}
             onChange={(event) => controller.updateField("manufacturer", event.target.value)}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="sellPrice" onKeyDown={onFlowEnter}>
+        </label>}
+        {showPricingStock && <label className={fieldClassName} data-stock-flow="sellPrice" onKeyDown={onFlowEnter}>
           <span>{t("stock.sellPrice")}</span>
           <input
             type="text"
@@ -81,8 +85,8 @@ export function ProductIdentityFields({
             value={draft.sellPrice}
             onChange={(event) => controller.updateField("sellPrice", decimalText(event.target.value))}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="itemCategory">
+        </label>}
+        {showGeneral && <label className={fieldClassName} data-stock-flow="itemCategory">
           <span>{t("stock.category")}</span>
           <SearchableSelect
             compact
@@ -92,16 +96,16 @@ export function ProductIdentityFields({
             onChange={(value) => controller.updateField("itemCategory", value)}
             onCommit={() => onFlowCommit("itemCategory")}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="weightage" onKeyDown={onFlowEnter}>
+        </label>}
+        {showPricingStock && <label className={fieldClassName} data-stock-flow="weightage" onKeyDown={onFlowEnter}>
           <span>{t("stockForm.amount")}</span>
           <input
             value={draft.weightage}
             placeholder="500"
             onChange={(event) => controller.updateField("weightage", event.target.value)}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="subUnit">
+        </label>}
+        {showPricingStock && <label className={fieldClassName} data-stock-flow="subUnit">
           <span>{t("stockForm.subUnit")}</span>
           <SearchableSelect
             compact
@@ -111,8 +115,8 @@ export function ProductIdentityFields({
             onChange={(value) => controller.updateField("subUnit", value)}
             onCommit={() => onFlowCommit("subUnit")}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="unit">
+        </label>}
+        {showPricingStock && <label className={fieldClassName} data-stock-flow="unit">
           <span>{t("stockForm.unit")}</span>
           <SearchableSelect
             compact
@@ -122,21 +126,15 @@ export function ProductIdentityFields({
             onChange={(value) => controller.updateField("unit", value)}
             onCommit={() => onFlowCommit("unit")}
           />
-        </label>
-        <label className={styles.field} data-stock-flow="brandName" onKeyDown={onFlowEnter}>
+        </label>}
+        {showGeneral && <label className={fieldClassName} data-stock-flow="brandName" onKeyDown={onFlowEnter}>
           <span>{t("stockForm.brand")}</span>
           <input
             value={draft.brandName}
             onChange={(event) => controller.updateField("brandName", event.target.value)}
           />
-        </label>
+        </label>}
       </div>
-      {controller.isEditing && (
-        <ProductCompositionPanel
-          activeIngredients={activeIngredients}
-          compositionStatus={compositionStatus}
-        />
-      )}
     </section>
   );
 }

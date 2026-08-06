@@ -12,10 +12,12 @@ export function ProductPhotoField({
   controller,
   onSelectIdentity,
   onFlowEnter,
+  variant = "default",
 }: {
   controller: ProductItemDraftController;
   onSelectIdentity: (input: HTMLInputElement) => void;
   onFlowEnter: (event: KeyboardEvent<HTMLElement>) => void;
+  variant?: "default" | "edit";
 }) {
   const { t } = usePreferences();
   const { draft } = controller;
@@ -65,12 +67,60 @@ export function ProductPhotoField({
     </>
   );
 
+  const photoUrlField = (
+    <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
+      <span>{t("stockForm.photo")}</span>
+      <input
+        type="text"
+        value={draft.photoUrl}
+        placeholder="https://example.com/photo.jpg"
+        onClick={(event) => onSelectIdentity(event.currentTarget)}
+        onChange={(event) => {
+          controller.setPhotoFile(null);
+          setPhotoError("");
+          controller.updateField("photoUrl", event.target.value);
+        }}
+      />
+    </label>
+  );
+
+  const barcodeField = (
+    <label
+      className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}
+      data-stock-flow="barcode"
+      onKeyDown={onFlowEnter}
+    >
+      <span>{variant === "edit" ? t("stockForm.barcode") : t("stockForm.barcodes")}</span>
+      <span className={styles.inlineField}>
+        <input
+          type="text"
+          value={draft.barcode}
+          onClick={(event) => onSelectIdentity(event.currentTarget)}
+          onChange={(event) => controller.updateField("barcode", event.target.value)}
+          placeholder={t("stockForm.barcodesPlaceholder")}
+        />
+        <button
+          type="button"
+          onClick={() => controller.appendGeneratedBarcode()}
+          title={t("stockForm.generateBarcode")}
+        >
+          <Wand2 size={15} aria-hidden="true" />
+        </button>
+      </span>
+    </label>
+  );
+
   return (
-    <section className={styles.photoPanel} aria-label={t("stockForm.productPhoto")}>
+    <section
+      className={`${styles.photoPanel} ${variant === "edit" ? styles.editPhotoPanel : ""}`}
+      aria-label={t("stockForm.productPhoto")}
+    >
       {controller.isEditing ? (
         <button
           type="button"
-          className={`${styles.photoPreview} ${styles.photoPreviewButton}`}
+          className={`${styles.photoPreview} ${styles.photoPreviewButton} ${
+            variant === "edit" ? styles.editPhotoPreview : ""
+          }`}
           onClick={() => fileInputRef.current?.click()}
           disabled={controller.saving || controller.deleting}
           aria-label={t("stockForm.choosePhoto")}
@@ -92,39 +142,14 @@ export function ProductPhotoField({
         />
       )}
       {photoError && <small className={styles.photoUploadError} role="alert">{photoError}</small>}
-      <label className={styles.field}>
-        <span>{t("stockForm.photo")}</span>
-        <input
-          type="text"
-          value={draft.photoUrl}
-          placeholder="https://example.com/photo.jpg"
-          onClick={(event) => onSelectIdentity(event.currentTarget)}
-          onChange={(event) => {
-            controller.setPhotoFile(null);
-            setPhotoError("");
-            controller.updateField("photoUrl", event.target.value);
-          }}
-        />
-      </label>
-      <label className={styles.field} data-stock-flow="barcode" onKeyDown={onFlowEnter}>
-        <span>{t("stockForm.barcodes")}</span>
-        <span className={styles.inlineField}>
-          <input
-            type="text"
-            value={draft.barcode}
-            onClick={(event) => onSelectIdentity(event.currentTarget)}
-            onChange={(event) => controller.updateField("barcode", event.target.value)}
-            placeholder={t("stockForm.barcodesPlaceholder")}
-          />
-          <button
-            type="button"
-            onClick={() => controller.appendGeneratedBarcode()}
-            title={t("stockForm.generateBarcode")}
-          >
-            <Wand2 size={15} aria-hidden="true" />
-          </button>
-        </span>
-      </label>
+      {variant === "edit" ? (
+        <div className={`${styles.editInsetList} ${styles.editPhotoFields}`}>
+          {barcodeField}
+          {photoUrlField}
+        </div>
+      ) : (
+        <>{photoUrlField}{barcodeField}</>
+      )}
     </section>
   );
 }
