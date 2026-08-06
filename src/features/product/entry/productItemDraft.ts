@@ -37,6 +37,10 @@ export type ProductPersistenceIdentity = {
   expiryDate: string;
 };
 
+type ProductSerializationOptions = {
+  packagingChildUnit?: string;
+};
+
 type ProductSaveShortcutInput = {
   key: string;
   code?: string;
@@ -184,6 +188,7 @@ export function toggleRegulatoryForm(draft: ProductItemDraft, form: string): Pro
 export function serializeProductItemDraft(
   draft: ProductItemDraft,
   identity: ProductPersistenceIdentity,
+  options: ProductSerializationOptions = {},
 ): StockItemInput {
   return {
     productId: identity.productId,
@@ -200,7 +205,10 @@ export function serializeProductItemDraft(
     subUnit: draft.subUnit,
     unit: draft.unit,
     brandName: draft.brandName,
-    packagingRows: draft.packagingRows,
+    packagingRows: draft.packagingRows.map((row) => ({
+      ...row,
+      childUnit: options.packagingChildUnit ?? row.childUnit,
+    })),
   };
 }
 

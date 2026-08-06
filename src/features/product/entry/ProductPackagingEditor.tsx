@@ -53,17 +53,19 @@ export function ProductPackagingEditor({
       className={`${styles.packagingPanel} ${variant === "edit" ? styles.editPackagingPanel : ""}`}
       aria-label={t("stockForm.packaging")}
     >
-      <div className={styles.packagingHeader}>
-        <div><h2>{t("stockForm.packagingIn")}</h2></div>
-        <button
-          type="button"
-          className={styles.moreButton}
-          onClick={() => controller.appendPackagingRow(true)}
-        >
-          <Plus size={16} aria-hidden="true" />
-          <span>{t("stockForm.addRow")}</span>
-        </button>
-      </div>
+      {variant === "default" && (
+        <div className={styles.packagingHeader}>
+          <div><h2>{t("stockForm.packagingIn")}</h2></div>
+          <button
+            type="button"
+            className={styles.moreButton}
+            onClick={() => controller.appendPackagingRow(true)}
+          >
+            <Plus size={16} aria-hidden="true" />
+            <span>{t("stockForm.addRow")}</span>
+          </button>
+        </div>
+      )}
 
       <div className={styles.packagingRows}>
         {controller.draft.packagingRows.map((row) => (
@@ -96,16 +98,18 @@ export function ProductPackagingEditor({
                 })}
               />
             </label>
-            <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
-              <span>{t("stockForm.subUnit")}</span>
-              <SearchableSelect
-                compact
-                ariaLabel={t("stockForm.subUnit")}
-                value={row.childUnit}
-                options={options(PRODUCT_SUBUNIT_VALUES, row.childUnit)}
-                onChange={(value) => controller.patchPackagingRow(row.id, { childUnit: value })}
-              />
-            </label>
+            {variant === "default" && (
+              <label className={styles.field}>
+                <span>{t("stockForm.subUnit")}</span>
+                <SearchableSelect
+                  compact
+                  ariaLabel={t("stockForm.subUnit")}
+                  value={row.childUnit}
+                  options={options(PRODUCT_SUBUNIT_VALUES, row.childUnit)}
+                  onChange={(value) => controller.patchPackagingRow(row.id, { childUnit: value })}
+                />
+              </label>
+            )}
             <label className={`${styles.field} ${variant === "edit" ? styles.editInsetRow : ""}`}>
               <span>{t("stockForm.unitSellPrice")}</span>
               <input
@@ -136,16 +140,39 @@ export function ProductPackagingEditor({
                 </button>
               </span>
             </label>
-            <button
-              type="button"
-              className={styles.removeRowButton}
-              onClick={() => controller.deletePackagingRow(row.id)}
-              aria-label={t("stockForm.removePackaging")}
-              title={t("stockForm.removeRow")}
-              disabled={controller.draft.packagingRows.length === 1}
-            >
-              <Trash2 size={16} aria-hidden="true" />
-            </button>
+            {variant === "edit" ? (
+              <div className={styles.packagingRowActions}>
+                <button
+                  type="button"
+                  className={styles.removeRowButton}
+                  onClick={() => controller.deletePackagingRow(row.id)}
+                  aria-label={t("stockForm.removePackaging")}
+                  title={t("stockForm.removeRow")}
+                  disabled={controller.draft.packagingRows.length === 1}
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className={styles.moreButton}
+                  onClick={() => controller.appendPackagingRow(true)}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  <span>{t("stockForm.addRow")}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={styles.removeRowButton}
+                onClick={() => controller.deletePackagingRow(row.id)}
+                aria-label={t("stockForm.removePackaging")}
+                title={t("stockForm.removeRow")}
+                disabled={controller.draft.packagingRows.length === 1}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+              </button>
+            )}
           </div>
         ))}
       </div>

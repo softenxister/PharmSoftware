@@ -91,6 +91,8 @@ export function useProductItemDraft({
         productId: initialItem?.productId,
         lotNo: initialItem?.lotNo ?? "",
         expiryDate: initialItem?.expiryDate ?? "",
+      }, {
+        packagingChildUnit: mode === "edit" ? draft.unit : undefined,
       }), photoFile ?? undefined);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : t("stockForm.saveError"));

@@ -1435,6 +1435,7 @@
 }
 
 .stockFormEdit .editPackagingPanel {
+  margin: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1469,9 +1470,25 @@
   border-top: 1px solid var(--stock-border);
 }
 
-.stockFormEdit .editPackagingPanel .removeRowButton {
-  align-self: flex-end;
-  margin: 7px 10px 9px;
+.stockFormEdit .editPackagingPanel .editInsetRow > span:first-child {
+  text-align: left;
+}
+
+.stockFormEdit .editPackagingPanel .packagingRowActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--stock-border-soft);
+  padding: 8px 10px;
+}
+
+.stockFormEdit .editPackagingPanel .packagingRowActions .removeRowButton {
+  margin: 0;
+}
+
+.stockFormEdit .editPackagingPanel .packagingRowActions .moreButton {
+  height: 34px;
 }
 
 .stockFormEdit .editRegulatoryPanel {

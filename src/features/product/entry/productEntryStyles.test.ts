@@ -4,6 +4,7 @@ import test from "node:test";
 
 const form = readFileSync(new URL("./ProductEntryForm.tsx", import.meta.url), "utf8");
 const photoField = readFileSync(new URL("./ProductPhotoField.tsx", import.meta.url), "utf8");
+const packagingEditor = readFileSync(new URL("./ProductPackagingEditor.tsx", import.meta.url), "utf8");
 const productStyles = readFileSync(new URL("./ProductEntry.module.css", import.meta.url), "utf8");
 const stockStyles = readFileSync(new URL("../../stock/Stock.module.css", import.meta.url), "utf8");
 
@@ -94,5 +95,32 @@ test("ingredients panel aligns with the top edge of the other tab panels", () =>
   assert.match(
     productStyles,
     /\.stockFormEdit \.editCompositionPanel\s*{[^}]*margin:\s*0;/s,
+  );
+});
+
+test("edit packaging starts with its cards and derives their child unit", () => {
+  assert.match(
+    packagingEditor,
+    /\{variant === "default" && \(\s*<div className=\{styles\.packagingHeader\}>/s,
+  );
+  assert.match(
+    packagingEditor,
+    /\{variant === "default" && \(\s*<label[^>]*>[\s\S]*?stockForm\.subUnit/s,
+  );
+  assert.match(packagingEditor, /className=\{styles\.packagingRowActions\}/);
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editPackagingPanel\s*{[^}]*margin:\s*0;/s,
+  );
+});
+
+test("edit packaging card actions place delete left and add row right", () => {
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editPackagingPanel \.packagingRowActions\s*{[^}]*justify-content:\s*space-between;/s,
+  );
+  assert.match(
+    productStyles,
+    /\.stockFormEdit \.editPackagingPanel \.editInsetRow > span:first-child\s*{[^}]*text-align:\s*left;/s,
   );
 });

@@ -80,6 +80,29 @@ test("product serialization preserves the existing stock API contract", () => {
   });
 });
 
+test("edit serialization binds packaging conversions to the item base unit", () => {
+  const draft = {
+    ...createProductItemDraft(undefined, "medicine"),
+    unit: "blisterpack",
+    packagingRows: [{
+      id: "package-1",
+      parentUnit: "box",
+      childQuantity: "30",
+      childUnit: "tablet",
+      barcode: "",
+      sellPrice: "",
+    }],
+  };
+
+  const serialized = serializeProductItemDraft(
+    draft,
+    { lotNo: "", expiryDate: "" },
+    { packagingChildUnit: draft.unit },
+  );
+
+  assert.equal(serialized.packagingRows[0].childUnit, "blisterpack");
+});
+
 test("product identity selection and edit shortcuts remain mode-specific", () => {
   let selectCount = 0;
   selectProductIdentityText("create", { select: () => { selectCount += 1; } });
