@@ -237,6 +237,7 @@ export function ProductEntryForm({
                     variant="edit"
                     activeIngredients={activeIngredients}
                     compositionStatus={compositionStatus}
+                    genericName={controller.draft.genericName}
                   />
                 )}
                 {activeEditTab === "packaging" && (

@@ -22,6 +22,7 @@ export type CwStockDetailUpdateResult = {
 export type CwStockDetailUpdateWrite = {
   id: string;
   migrationGenericName: string | null;
+  legalCategory: string | null;
   migrationCostThb: number | null;
 };
 
@@ -37,11 +38,13 @@ export const CW_STOCK_DETAIL_UPDATE_TRANSACTION_OPTIONS = {
 export function buildCwStockDetailUpdateWrite(row: {
   matchedProductId: string;
   nextGenericName: string | null;
+  nextLegalCategory: string | null;
   nextCostThb: number | null;
 }): CwStockDetailUpdateWrite {
   return {
     id: row.matchedProductId,
     migrationGenericName: row.nextGenericName,
+    legalCategory: row.nextLegalCategory,
     migrationCostThb: row.nextCostThb,
   };
 }
@@ -56,6 +59,7 @@ async function readExistingProducts(
       externalProductCode: true,
       itemName: true,
       migrationGenericName: true,
+      legalCategory: true,
       migrationCostThb: true,
     },
   });
@@ -64,6 +68,7 @@ async function readExistingProducts(
     externalProductCode: product.externalProductCode,
     itemName: product.itemName,
     migrationGenericName: product.migrationGenericName,
+    legalCategory: product.legalCategory,
     migrationCostThb: product.migrationCostThb === null ? null : Number(product.migrationCostThb),
   }] : []);
 }
@@ -81,16 +86,18 @@ async function updateProductDetails(
     const values = batch.map((write) => Prisma.sql`(
       ${write.id}::text,
       ${write.migrationGenericName}::text,
+      ${write.legalCategory}::text,
       ${write.migrationCostThb}::decimal(16, 4)
     )`);
     await tx.$executeRaw(Prisma.sql`
       UPDATE "Product" AS product
       SET
         "migrationGenericName" = source."migrationGenericName",
+        "legalCategory" = source."legalCategory",
         "migrationCostThb" = source."migrationCostThb",
         "updatedAt" = CURRENT_TIMESTAMP
       FROM (VALUES ${Prisma.join(values)})
-        AS source("id", "migrationGenericName", "migrationCostThb")
+        AS source("id", "migrationGenericName", "legalCategory", "migrationCostThb")
       WHERE product.id = source.id
     `);
   }
@@ -121,6 +128,7 @@ export async function importCwStockDetailUpdate(
       return buildCwStockDetailUpdateWrite({
         matchedProductId: row.matchedProductId,
         nextGenericName: row.nextGenericName,
+        nextLegalCategory: row.nextLegalCategory,
         nextCostThb: row.nextCostThb,
       });
     });

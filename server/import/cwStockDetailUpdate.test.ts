@@ -7,9 +7,9 @@ import {
 } from "./cwStockDetailUpdate";
 
 const fullCwCsv = `ลำดับ,Active,รหัสสินค้า,บาร์โค้ด,ชื่อสินค้า(เต็ม),หน่วยฐาน,ชื่อสามัญ,กลุ่มสินค้า,ราคาทุนรับหลังสุด,หน่วยสินค้า,จำนวนคงเหลือ,ราคาปลีก 1,กลุ่มใบอนุญาต,บริษัทผลิต
-1,True,P-7784,เม็ด[1]: 111,Name that must be ignored,เม็ด,Paracetamol,ยา,1.25,เม็ด[1]: 1,48,เม็ด[1]: 5,,Maker
+1,True,P-7784,เม็ด[1]: 111,Name that must be ignored,เม็ด,Paracetamol,ยาแผนโบราณ*,1.25,เม็ด[1]: 1,48,เม็ด[1]: 5,,Maker
 ,,,กล่อง[100]: 112,,กล่อง,Wrong continuation generic,,999,กล่อง[100]: 100,,กล่อง[100]: 450,,
-2,True,P-9000,ขวด[1]: 222,Another ignored name,ขวด,,ยา,,ขวด[1]: 1,7,ขวด[1]: 40,,Maker`;
+2,True,P-9000,ขวด[1]: 222,Another ignored name,ขวด,,"ยาทั่วไป*, ยาใช้ภายนอก*",,ขวด[1]: 1,7,ขวด[1]: 40,,Maker`;
 
 function existing(overrides: Partial<CwStockDetailExistingProduct> = {}): CwStockDetailExistingProduct {
   return {
@@ -18,6 +18,7 @@ function existing(overrides: Partial<CwStockDetailExistingProduct> = {}): CwStoc
     itemName: "Curated product name",
     migrationGenericName: "Acetaminophen",
     migrationCostThb: 1,
+    legalCategory: null,
     ...overrides,
   };
 }
@@ -31,6 +32,7 @@ test("focused update reads generic name and base-unit cost only from the row con
       externalProductCode: "P-7784",
       migrationGenericName: "Paracetamol",
       migrationCostThb: 1.25,
+      legalCategory: "ยาแผนโบราณ",
       issue: null,
     },
     {
@@ -38,6 +40,7 @@ test("focused update reads generic name and base-unit cost only from the row con
       externalProductCode: "P-9000",
       migrationGenericName: null,
       migrationCostThb: null,
+      legalCategory: "ยาทั่วไป",
       issue: null,
     },
   ]);
@@ -57,8 +60,56 @@ test("focused update accepts a three-column file and ignores unrelated full-impo
 
   assert.equal(prepared.preview.rows[0].status, "changed");
   assert.equal(prepared.preview.rows[0].matchedItemName, "Curated product name");
-  assert.equal(prepared.preview.rows[0].nextGenericName, "Ibuprofen");
+  assert.equal(prepared.preview.rows[0].nextGenericName, "Acetaminophen");
   assert.equal(prepared.preview.rows[0].nextCostThb, 2.5);
+});
+
+test("focused update fills column G generic name only when the stored generic name is empty", () => {
+  const populated = prepareCwStockDetailUpdate(
+    `รหัสสินค้า,ชื่อสามัญ,ราคาทุนรับหลังสุด\nP-7784,Ibuprofen,2.50`,
+    [existing()],
+  );
+  const empty = prepareCwStockDetailUpdate(
+    `รหัสสินค้า,ชื่อสามัญ,ราคาทุนรับหลังสุด\nP-7784,Ibuprofen,2.50`,
+    [existing({ migrationGenericName: null })],
+  );
+
+  assert.equal(populated.preview.rows[0].nextGenericName, "Acetaminophen");
+  assert.equal(empty.preview.rows[0].nextGenericName, "Ibuprofen");
+});
+
+test("focused update ignores English-only column H values and uses the first Thai category", () => {
+  const rows = extractCwStockDetailRows(
+    `รหัสสินค้า,ชื่อสามัญ,กลุ่มสินค้า,ราคาทุนรับหลังสุด
+P-EN,,DIETARY SUPPLEMENT,
+P-TH,,"ยาทั่วไป*, ยาใช้ภายนอก*",`,
+  );
+
+  assert.equal(rows[0].legalCategory, null);
+  assert.equal(rows[1].legalCategory, "ยาทั่วไป");
+});
+
+test("focused update scans only rows whose item code starts with P-", () => {
+  const rows = extractCwStockDetailRows(
+    `รหัสสินค้า,ชื่อสามัญ,กลุ่มสินค้า,ราคาทุนรับหลังสุด
+SKU-1,Ignored,ยาอันตราย,1
+p-100,Accepted,ยาควบคุมพิเศษ*,2`,
+  );
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].externalProductCode, "p-100");
+  assert.equal(rows[0].legalCategory, "ยาควบคุมพิเศษ");
+});
+
+test("focused update imports a parsed Thai legal category independently", () => {
+  const prepared = prepareCwStockDetailUpdate(
+    `รหัสสินค้า,ชื่อสามัญ,กลุ่มสินค้า,ราคาทุนรับหลังสุด\nP-7784,,ยาอันตราย*,`,
+    [existing({ legalCategory: "ยาทั่วไป" })],
+  );
+
+  assert.equal(prepared.preview.rows[0].currentLegalCategory, "ยาทั่วไป");
+  assert.equal(prepared.preview.rows[0].nextLegalCategory, "ยาอันตราย");
+  assert.equal(prepared.importRows[0].nextLegalCategory, "ยาอันตราย");
 });
 
 test("focused update accepts latest costs with up to four decimal places", () => {

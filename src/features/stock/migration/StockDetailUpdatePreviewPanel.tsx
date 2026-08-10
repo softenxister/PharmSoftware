@@ -57,8 +57,8 @@ export function StockDetailUpdatePreviewPanel({
       <div className={styles.previewHeading}>
         <div>
           <p className={styles.eyebrow}>Review before update</p>
-          <h2 id="detail-update-preview-title">Generic name &amp; base-unit cost preview</h2>
-          <p>Only exact CW product-code matches can change. Item identity, packaging, prices, and stock stay untouched.</p>
+          <h2 id="detail-update-preview-title">Generic name, legal category &amp; base-unit cost preview</h2>
+          <p>Only exact CW product-code matches can change. Column G fills an empty generic name; column H stores the first Thai legal category.</p>
         </div>
         <div className={styles.summaryGrid} aria-label="Focused update summary">
           <div><strong>{preview.summary.changedCount}</strong><span>Changes</span></div>
@@ -78,7 +78,7 @@ export function StockDetailUpdatePreviewPanel({
 
       <div className={styles.tableWrap}>
         <table className={styles.detailUpdateTable}>
-          <thead><tr><th>Status</th><th>CSV row</th><th>CW product code</th><th>Matched product</th><th>Generic name: current → new</th><th>Base cost: current → new</th><th>Note</th></tr></thead>
+          <thead><tr><th>Status</th><th>CSV row</th><th>CW product code</th><th>Matched product</th><th>Generic name: current → new</th><th>Legal category: current → new</th><th>Base cost: current → new</th><th>Note</th></tr></thead>
           <tbody>
             {preview.rows.map((row) => (
               <tr key={`${row.sourceRow}-${row.externalProductCode}`}>
@@ -87,8 +87,9 @@ export function StockDetailUpdatePreviewPanel({
                 <td><code>{row.externalProductCode}</code></td>
                 <td><strong>{row.matchedItemName ?? "—"}</strong></td>
                 <td className={styles.changeCell}>{textChange(row.currentGenericName, row.nextGenericName)}</td>
+                <td className={styles.changeCell}>{textChange(row.currentLegalCategory, row.nextLegalCategory)}</td>
                 <td className={styles.changeCell}>{costChange(row.currentCostThb, row.nextCostThb)}</td>
-                <td>{row.issue ?? (row.status === "unchanged" ? "No new G/I value" : "Ready")}</td>
+                <td>{row.issue ?? (row.status === "unchanged" ? "No applicable G/H/I change" : "Ready")}</td>
               </tr>
             ))}
           </tbody>
@@ -98,7 +99,7 @@ export function StockDetailUpdatePreviewPanel({
       <div className={styles.confirmRow}>
         <label>
           <input type="checkbox" checked={confirmed} onChange={(event) => onConfirmedChange(event.target.checked)} />
-          <span>I confirm this update may change only the raw generic name and base-unit latest cost. Names, barcodes, packaging, selling prices, verified ingredients, and stock remain unchanged.</span>
+          <span>I confirm this update may fill an empty raw generic name, change the Thai Legal category, and update base-unit latest cost. Names, barcodes, packaging, selling prices, verified ingredients, and stock remain unchanged.</span>
         </label>
         <button type="button" className={styles.primaryButton} disabled={!confirmed || busy || preview.summary.changedCount === 0} onClick={onImport}>
           {busy ? "Updating…" : `Update ${preview.summary.changedCount} products`}

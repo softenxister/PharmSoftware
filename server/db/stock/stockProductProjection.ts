@@ -84,6 +84,8 @@ export function productRowToSalesProduct(
     imageUrl: product.imageUrl,
     weeklySold: weeklySold ?? product.weeklySold,
     ...(latestCostThb === undefined ? {} : { averageCostThb: latestCostThb }),
+    ...(product.migrationGenericName ? { genericName: product.migrationGenericName } : {}),
+    ...(product.legalCategory ? { legalCategory: product.legalCategory } : {}),
     compositionStatus: product.compositionStatus.toLowerCase() as SalesProduct["compositionStatus"],
     activeIngredients: product.activeIngredients.map(({ ingredient, strength, sourceName, sourceUrl }) => ({
       id: ingredient.id,

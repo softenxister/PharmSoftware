@@ -4,6 +4,7 @@ import { parseCwStockCsvRows } from "./cwStockNormalizer";
 const REQUIRED_HEADERS = ["รหัสสินค้า", "ชื่อสามัญ", "ราคาทุนรับหลังสุด"] as const;
 const MAX_PRODUCT_CODE_LENGTH = 100;
 const MAX_GENERIC_NAME_LENGTH = 2_000;
+const MAX_LEGAL_CATEGORY_LENGTH = 255;
 const MAX_COST_THB = 999_999_999_999.9999;
 
 const DETAIL_UPDATE_STATUS_ORDER: Record<CwStockDetailUpdateStatus, number> = {
@@ -19,6 +20,7 @@ export type CwStockDetailExistingProduct = {
   itemName: string;
   migrationGenericName: string | null;
   migrationCostThb: number | null;
+  legalCategory: string | null;
 };
 
 export type CwStockDetailSourceRow = {
@@ -26,6 +28,7 @@ export type CwStockDetailSourceRow = {
   externalProductCode: string;
   migrationGenericName: string | null;
   migrationCostThb: number | null;
+  legalCategory: string | null;
   issue: string | null;
 };
 
@@ -37,8 +40,10 @@ export type CwStockDetailUpdateRow = CwStockDetailSourceRow & {
   matchedItemName: string | null;
   currentGenericName: string | null;
   currentCostThb: number | null;
+  currentLegalCategory: string | null;
   nextGenericName: string | null;
   nextCostThb: number | null;
+  nextLegalCategory: string | null;
 };
 
 export type CwStockDetailUpdatePreview = {
@@ -75,6 +80,18 @@ function parseCost(value: string, sourceRow: number): { cost: number | null; iss
   return { cost, issue: null };
 }
 
+export function extractThaiLegalCategory(value: string): string | null {
+  for (const part of value.split(/[,，]/)) {
+    const thaiText = Array.from(part.matchAll(/[\u0E00-\u0E7F]+/g))
+      .map((match) => match[0])
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (thaiText) return thaiText;
+  }
+  return null;
+}
+
 export function extractCwStockDetailRows(csvText: string): CwStockDetailSourceRow[] {
   const rows = parseCwStockCsvRows(csvText);
   const headers = rows.shift()?.map((header) => header.trim()) ?? [];
@@ -83,12 +100,14 @@ export function extractCwStockDetailRows(csvText: string): CwStockDetailSourceRo
   const codeIndex = headers.indexOf("รหัสสินค้า");
   const genericIndex = headers.indexOf("ชื่อสามัญ");
   const costIndex = headers.indexOf("ราคาทุนรับหลังสุด");
+  const legalCategoryIndex = headers.indexOf("กลุ่มสินค้า");
 
   return rows.flatMap((row, index): CwStockDetailSourceRow[] => {
     if (!row.some((cell) => cell.trim())) return [];
     const externalProductCode = (row[codeIndex] ?? "").trim();
-    if (!externalProductCode) return [];
+    if (!/^P-/i.test(externalProductCode)) return [];
     const genericName = (row[genericIndex] ?? "").trim();
+    const legalCategory = legalCategoryIndex < 0 ? null : extractThaiLegalCategory(row[legalCategoryIndex] ?? "");
     const sourceRow = index + 2;
     const parsedCost = parseCost(row[costIndex] ?? "", sourceRow);
     let issue = parsedCost.issue;
@@ -96,12 +115,15 @@ export function extractCwStockDetailRows(csvText: string): CwStockDetailSourceRo
       issue = `Row ${sourceRow}: รหัสสินค้า must be ${MAX_PRODUCT_CODE_LENGTH} characters or fewer.`;
     } else if (genericName.length > MAX_GENERIC_NAME_LENGTH) {
       issue = `Row ${sourceRow}: ชื่อสามัญ must be ${MAX_GENERIC_NAME_LENGTH} characters or fewer.`;
+    } else if ((legalCategory?.length ?? 0) > MAX_LEGAL_CATEGORY_LENGTH) {
+      issue = `Row ${sourceRow}: กลุ่มสินค้า must be ${MAX_LEGAL_CATEGORY_LENGTH} Thai characters or fewer.`;
     }
     return [{
       sourceRow,
       externalProductCode,
       migrationGenericName: genericName || null,
       migrationCostThb: parsedCost.cost,
+      legalCategory,
       issue,
     }];
   });
@@ -123,9 +145,13 @@ export function prepareCwStockDetailUpdate(
     const matched = issue ? null : existingByCode.get(source.externalProductCode) ?? null;
     const currentGenericName = matched?.migrationGenericName ?? null;
     const currentCostThb = matched?.migrationCostThb ?? null;
-    const nextGenericName = source.migrationGenericName ?? currentGenericName;
+    const currentLegalCategory = matched?.legalCategory ?? null;
+    const nextGenericName = currentGenericName?.trim() ? currentGenericName : source.migrationGenericName ?? currentGenericName;
     const nextCostThb = source.migrationCostThb ?? currentCostThb;
-    const changed = nextGenericName !== currentGenericName || nextCostThb !== currentCostThb;
+    const nextLegalCategory = source.legalCategory ?? currentLegalCategory;
+    const changed = nextGenericName !== currentGenericName
+      || nextCostThb !== currentCostThb
+      || nextLegalCategory !== currentLegalCategory;
     const status: CwStockDetailUpdateStatus = issue
       ? "invalid"
       : !matched
@@ -139,8 +165,10 @@ export function prepareCwStockDetailUpdate(
       matchedItemName: matched?.itemName ?? null,
       currentGenericName,
       currentCostThb,
+      currentLegalCategory,
       nextGenericName,
       nextCostThb,
+      nextLegalCategory,
     };
   }).sort((left, right) => (
     DETAIL_UPDATE_STATUS_ORDER[left.status] - DETAIL_UPDATE_STATUS_ORDER[right.status]
@@ -153,6 +181,7 @@ export function prepareCwStockDetailUpdate(
     matchedProductId: row.matchedProductId,
     nextGenericName: row.nextGenericName,
     nextCostThb: row.nextCostThb,
+    nextLegalCategory: row.nextLegalCategory,
     issue: row.issue,
   }));
   const confirmationToken = createHash("sha256")

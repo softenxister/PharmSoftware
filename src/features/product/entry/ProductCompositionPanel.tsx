@@ -5,12 +5,14 @@ import styles from "./ProductEntry.module.css";
 type ProductCompositionPanelProps = {
   activeIngredients?: SalesProduct["activeIngredients"];
   compositionStatus?: SalesProduct["compositionStatus"];
+  genericName?: string;
   variant?: "default" | "edit";
 };
 
 export function ProductCompositionPanel({
   activeIngredients,
   compositionStatus,
+  genericName,
   variant = "default",
 }: ProductCompositionPanelProps) {
   const { t } = usePreferences();
@@ -23,6 +25,12 @@ export function ProductCompositionPanel({
         <span id="stock-generic-name-label">{t("stockForm.genericName")}</span>
         <small>{t("stockForm.genericNameReadOnly")}</small>
       </div>
+      {genericName && (
+        <div className={styles.importedGenericName}>
+          <small>{t("stockForm.importedGenericName")}</small>
+          <strong>{genericName}</strong>
+        </div>
+      )}
       {activeIngredients?.length ? (
         <div className={styles.genericIngredientList} role="list">
           {activeIngredients.map((ingredient) => (
@@ -37,7 +45,7 @@ export function ProductCompositionPanel({
             </div>
           ))}
         </div>
-      ) : (
+      ) : !genericName ? (
         <p className={styles.genericNameEmpty}>
           {compositionStatus === "pending"
             ? t("stockForm.genericNamePending")
@@ -45,7 +53,7 @@ export function ProductCompositionPanel({
               ? t("stockForm.genericNameNotApplicable")
               : t("stockForm.genericNameUnavailable")}
         </p>
-      )}
+      ) : null}
     </section>
   );
 }

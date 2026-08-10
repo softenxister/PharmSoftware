@@ -54,13 +54,16 @@ export type StockDetailUpdateRow = {
   externalProductCode: string;
   migrationGenericName: string | null;
   migrationCostThb: number | null;
+  legalCategory: string | null;
   status: "changed" | "unchanged" | "unmatched" | "invalid";
   matchedProductId: string | null;
   matchedItemName: string | null;
   currentGenericName: string | null;
   currentCostThb: number | null;
+  currentLegalCategory: string | null;
   nextGenericName: string | null;
   nextCostThb: number | null;
+  nextLegalCategory: string | null;
   issue: string | null;
 };
 

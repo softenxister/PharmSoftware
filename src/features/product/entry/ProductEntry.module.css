@@ -512,6 +512,30 @@
   white-space: nowrap;
 }
 
+.importedGenericName {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid var(--stock-border-soft);
+  border-radius: 6px;
+  background: var(--stock-surface);
+  padding: 8px 10px;
+}
+
+.importedGenericName small {
+  color: var(--stock-muted);
+  font-size: 10.5px;
+  font-weight: 720;
+}
+
+.importedGenericName strong {
+  overflow-wrap: anywhere;
+  color: var(--stock-ink);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .genericIngredientList {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1649,6 +1673,15 @@
 
 .stockFormEdit .editPackagingPanel .editPackagingActions .moreButton {
   height: 34px;
+}
+
+.editReadOnlyValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--stock-ink);
+  font-size: 13px;
+  font-weight: 760;
+  text-align: right;
 }
 
 .editRecordOptions {

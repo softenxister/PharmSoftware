@@ -8,6 +8,7 @@ import {
   parseStockRange,
   projectAuthoritativeInventoryPage,
   projectStockInventoryItem,
+  productToStockItemInput,
   reopenStockSidebarFromEdgeDrag,
   roundMarkupPercentForDisplay,
   resizeStockSidebarFromDrag,
@@ -28,6 +29,8 @@ const product: SalesProduct = {
   minimumStock: 10,
   maximumStock: 50,
   averageCostThb: 30,
+  genericName: "Paracetamol",
+  legalCategory: "ยาอันตราย",
   batches: [{
     batchNo: "LOT-1",
     expiryDate: "2027-08-01",
@@ -63,6 +66,13 @@ test("inventory renders the authoritative server page without filtering it again
   assert.equal(page.total, 121);
   assert.equal(page.hasMore, false);
   assert.deepEqual(page.inventory, inventory);
+});
+
+test("stock edit input carries imported generic and legal-category values", () => {
+  const input = productToStockItemInput(product);
+
+  assert.equal(input.genericName, "Paracetamol");
+  assert.equal(input.legalCategory, "ยาอันตราย");
 });
 
 test("inventory markup display rounds fractional percentages up to whole numbers", () => {

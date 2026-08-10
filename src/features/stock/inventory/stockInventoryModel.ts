@@ -290,6 +290,8 @@ export function productToStockItemInput(product: SalesProduct): StockItemInput {
     subUnit: product.pack.childUnit,
     unit: product.pack.packUnit,
     brandName: product.brandName,
+    ...(product.genericName ? { genericName: product.genericName } : {}),
+    ...(product.legalCategory ? { legalCategory: product.legalCategory } : {}),
     packagingRows: product.parentPacks.map((pack) => ({
       parentUnit: pack.packUnit,
       childQuantity: String(pack.childPackQuantity),

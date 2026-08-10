@@ -28,7 +28,7 @@ import {
 import styles from "@/features/stock/migration/StockMigration.module.css";
 
 const FULL_CW_HEADERS = ["รหัสสินค้า", "บาร์โค้ด", "ชื่อสินค้า(เต็ม)", "หน่วยฐาน", "ชื่อสามัญ", "ราคาทุนรับหลังสุด", "หน่วยสินค้า", "จำนวนคงเหลือ", "ราคาปลีก 1"];
-const DETAIL_UPDATE_HEADERS = ["รหัสสินค้า", "ชื่อสามัญ", "ราคาทุนรับหลังสุด"];
+const DETAIL_UPDATE_HEADERS = ["รหัสสินค้า", "ชื่อสามัญ", "กลุ่มสินค้า", "ราคาทุนรับหลังสุด"];
 
 function fileSize(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -167,8 +167,8 @@ export default function StockMigrationPage() {
                   disabled={!canImport || Boolean(busy)}
                   onClick={() => selectMode("generic-cost-update")}
                 >
-                  <strong>Update generic name &amp; latest cost</strong>
-                  <span>Matches exact CW item code · changes only columns G and I</span>
+                  <strong>Update generic, legal category &amp; latest cost</strong>
+                  <span>Matches P- item codes · fills empty G, imports Thai H, and updates I</span>
                 </button>
               </div>
               <div className={styles.headerMap}>
@@ -228,7 +228,7 @@ export default function StockMigrationPage() {
             />
           )}
 
-          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>Full stock import uses CW product codes and barcodes. Generic-name and latest-cost update uses only the exact CW product code from the product row; its cost is for that product’s base unit. Lot, expiry, and customer purchase history also require exact CW product-code matches. Members update by member code. Distributors match by CW code first, then exact name.</p></div></aside>
+          <aside className={styles.dataNote}><Database size={18} /><div><strong>How matching works</strong><p>Full stock import uses CW product codes and barcodes. The focused update scans P- product rows and matches the exact CW product code: column G fills only a missing generic name, column H imports the first Thai legal category, and column I updates base-unit cost. Lot, expiry, and customer purchase history also require exact CW product-code matches. Members update by member code. Distributors match by CW code first, then exact name.</p></div></aside>
         </div>
       </div>
     </section>

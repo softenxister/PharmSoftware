@@ -28,16 +28,22 @@ export function ProductRegulatoryFields({
 
   if (variant === "edit-row") {
     return (
-      <div className={`${styles.field} ${styles.editInsetRow}`}>
-        <span>{t("stockForm.record")}</span>
-        <div
-          className={styles.editRecordOptions}
-          role="group"
-          aria-label={t("stockForm.record")}
-        >
-          {options}
+      <>
+        <div className={`${styles.field} ${styles.editInsetRow}`}>
+          <span>{t("stockForm.legalCategory")}</span>
+          <output className={styles.editReadOnlyValue}>{controller.draft.legalCategory || "—"}</output>
         </div>
-      </div>
+        <div className={`${styles.field} ${styles.editInsetRow}`}>
+          <span>{t("stockForm.record")}</span>
+          <div
+            className={styles.editRecordOptions}
+            role="group"
+            aria-label={t("stockForm.record")}
+          >
+            {options}
+          </div>
+        </div>
+      </>
     );
   }
 

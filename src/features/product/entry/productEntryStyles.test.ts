@@ -6,6 +6,8 @@ const form = readFileSync(new URL("./ProductEntryForm.tsx", import.meta.url), "u
 const identityFields = readFileSync(new URL("./ProductIdentityFields.tsx", import.meta.url), "utf8");
 const barcodeNavigator = readFileSync(new URL("./BarcodeSlotNavigator.tsx", import.meta.url), "utf8");
 const photoField = readFileSync(new URL("./ProductPhotoField.tsx", import.meta.url), "utf8");
+const compositionPanel = readFileSync(new URL("./ProductCompositionPanel.tsx", import.meta.url), "utf8");
+const regulatoryFields = readFileSync(new URL("./ProductRegulatoryFields.tsx", import.meta.url), "utf8");
 const packagingEditor = readFileSync(new URL("./ProductPackagingEditor.tsx", import.meta.url), "utf8");
 const productStyles = readFileSync(new URL("./ProductEntry.module.css", import.meta.url), "utf8");
 const stockStyles = readFileSync(new URL("../../stock/Stock.module.css", import.meta.url), "utf8");
@@ -18,6 +20,13 @@ test("edit item uses an accessible four-tab workspace", () => {
   assert.match(form, /activeEditTab === "pricing-stock"/);
   assert.match(form, /activeEditTab === "ingredients"/);
   assert.match(form, /activeEditTab === "packaging"/);
+});
+
+test("edit item shows imported generic name and Thai legal category as read-only data", () => {
+  assert.match(form, /genericName=\{controller\.draft\.genericName\}/);
+  assert.match(compositionPanel, /stockForm\.importedGenericName/);
+  assert.match(regulatoryFields, /controller\.draft\.legalCategory/);
+  assert.match(regulatoryFields, /stockForm\.legalCategory/);
 });
 
 test("edit item stays wide and two-column on desktop and tablet", () => {

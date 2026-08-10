@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       return errorResponse("FILE_REQUIRED", "Choose a CW stock CSV file.", 400);
     }
     if (mode !== "full" && mode !== "generic-cost-update") {
-      return errorResponse("INVALID_MODE", "Choose full import or generic-name and cost update.", 400);
+      return errorResponse("INVALID_MODE", "Choose full import or generic-name, legal-category and cost update.", 400);
     }
     const uploadError = validateCwStockUpload(file);
     if (uploadError) return errorResponse("INVALID_FILE", uploadError, 400);

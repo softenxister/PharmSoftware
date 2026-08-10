@@ -70,6 +70,8 @@ export type SalesProduct = {
   imageUrl: string;
   weeklySold: number;
   averageCostThb?: number;
+  genericName?: string;
+  legalCategory?: string;
   compositionStatus?: ProductCompositionStatus;
   activeIngredients?: ProductIngredient[];
   batches: ProductBatch[];
@@ -121,6 +123,8 @@ export type StockItemInput = {
   subUnit?: string;
   unit: string;
   brandName: string;
+  genericName?: string;
+  legalCategory?: string;
   packagingRows: StockPackagingInput[];
 };
 

@@ -29,6 +29,8 @@ export type ProductItemDraft = {
   subUnit: string;
   unit: string;
   brandName: string;
+  genericName: string;
+  legalCategory: string;
   packagingRows: ProductPackagingRow[];
   regulatoryForms: string[];
 };
@@ -170,6 +172,8 @@ export function createProductItemDraft(
       PRODUCT_UNIT_VALUES[0],
     ),
     brandName: initialItem?.brandName ?? "",
+    genericName: initialItem?.genericName ?? "",
+    legalCategory: initialItem?.legalCategory ?? "",
     packagingRows: packagingRows.length > 0 ? packagingRows : [createPackagingRow()],
     regulatoryForms: ["ข.ย. 9"],
   };

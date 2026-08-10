@@ -133,6 +133,7 @@ model Product {
   maximumStock         Int                       @default(200)
   discountPercent      Int                       @default(0)
   migrationGenericName String?
+  legalCategory        String?
   migrationCostThb     Decimal?                  @db.Decimal(16, 4)
   isDiscountLocked     Boolean                   @default(false)
   isReturnable         Boolean                   @default(true)

@@ -10,7 +10,7 @@ import logoImage from "@/styles/vector/logo.png";
 import { shouldCloseProfileMenu } from "./profileMenu";
 import {
   Home, ShoppingCart, Package, Archive, Users,
-  BarChart2, Plug, MoreHorizontal, Settings, Globe, ChevronDown, Bell,
+  BarChart2, MoreHorizontal, Settings, Globe, ChevronDown, Bell,
   RefreshCw, Tag, SlidersHorizontal, Gauge,
   LogOut,
 } from "lucide-react";
@@ -22,7 +22,6 @@ const navItems = [
   { labelKey: "nav.stock", href: "/stock", icon: Archive },
   { labelKey: "nav.member", href: "/member", icon: Users },
   { labelKey: "nav.analysis", href: "/analysis", icon: BarChart2 },
-  { labelKey: "nav.integrations", href: "/integrations", icon: Plug },
   { labelKey: "nav.more", href: "/more", icon: MoreHorizontal },
 ] satisfies Array<{ labelKey: TranslationKey; href: string; icon: typeof Home }>;
 

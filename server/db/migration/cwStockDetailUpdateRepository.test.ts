@@ -6,19 +6,21 @@ import {
   CW_STOCK_DETAIL_UPDATE_TRANSACTION_OPTIONS,
 } from "./cwStockDetailUpdateRepository";
 
-test("focused product detail write allowlists only generic name and base-unit migration cost", () => {
+test("focused product detail write allowlists generic name, Thai legal category, and base-unit migration cost", () => {
   const write = buildCwStockDetailUpdateWrite({
     matchedProductId: "product-1",
     nextGenericName: "Paracetamol",
+    nextLegalCategory: "ยาอันตราย",
     nextCostThb: 1.25,
   });
 
   assert.deepEqual(write, {
     id: "product-1",
     migrationGenericName: "Paracetamol",
+    legalCategory: "ยาอันตราย",
     migrationCostThb: 1.25,
   });
-  assert.deepEqual(Object.keys(write).sort(), ["id", "migrationCostThb", "migrationGenericName"]);
+  assert.deepEqual(Object.keys(write).sort(), ["id", "legalCategory", "migrationCostThb", "migrationGenericName"]);
 });
 
 test("focused product detail update uses a serializable extended transaction", () => {
@@ -31,6 +33,7 @@ test("focused product detail repository does not write stock, identity, packagin
 
   assert.match(repository, /UPDATE "Product"/);
   assert.match(repository, /"migrationGenericName" = source\."migrationGenericName"/);
+  assert.match(repository, /"legalCategory" = source\."legalCategory"/);
   assert.match(repository, /"migrationCostThb" = source\."migrationCostThb"/);
   assert.match(repository, /migrationCostThb\}::decimal\(16, 4\)/);
   for (const protectedWrite of [
@@ -68,4 +71,16 @@ test("focused product detail updates have a dedicated non-stock audit model", ()
   assert.match(schema, /model ProductDataImportRun/);
   assert.match(migration, /CREATE TABLE "ProductDataImportRun"/);
   assert.doesNotMatch(migration, /(?:DELETE|TRUNCATE|DROP\s+TABLE)/i);
+});
+
+test("focused product detail legal category migration is additive and separate from merchandising category", () => {
+  const schema = readFileSync(new URL("../../../prisma/schema.prisma", import.meta.url), "utf8");
+  const migration = readFileSync(
+    new URL("../../../prisma/migrations/20260810120000_add_product_legal_category/migration.sql", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(schema, /legalCategory\s+String\?/);
+  assert.match(migration, /ALTER TABLE "Product"[\s\S]*ADD COLUMN "legalCategory" TEXT/);
+  assert.doesNotMatch(migration, /(?:DELETE|TRUNCATE|DROP)/i);
 });
