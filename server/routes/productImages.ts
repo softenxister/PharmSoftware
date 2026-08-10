@@ -2,23 +2,28 @@ import { createHash } from "node:crypto";
 import { isAuthenticationError, requireAuthenticatedUser } from "@server/auth/pharmUser";
 import { createUnresolvedProductSvg } from "@server/product-images/placeholder";
 import {
+  isProductImageNotModified,
+  productImageResponseHeaders,
+} from "@server/product-images/httpCache";
+import {
   readProductImageAsset,
   readStoredProductImage,
 } from "@server/product-images/externalStorage";
 import { routeParameter } from "@server/product-images/routeUtils";
 
-function placeholderResponse(brandName: string, version: string) {
+function placeholderResponse(request: Request, brandName: string, version: string) {
   const svg = createUnresolvedProductSvg(brandName);
-  const etag = `"placeholder-${createHash("sha256").update(`${brandName}:${version}`).digest("hex").slice(0, 24)}"`;
-  return new Response(svg, {
-    headers: {
-      "cache-control": "private, max-age=3600",
-      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'",
-      "content-type": "image/svg+xml; charset=utf-8",
-      etag,
-      "x-content-type-options": "nosniff",
-    },
+  const opaqueTag = `placeholder-${createHash("sha256").update(`${brandName}:${version}`).digest("hex").slice(0, 24)}`;
+  const headers = new Headers({
+    "cache-control": "private, max-age=3600",
+    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'",
+    "content-type": "image/svg+xml; charset=utf-8",
+    etag: `"${opaqueTag}"`,
+    "x-content-type-options": "nosniff",
   });
+  return isProductImageNotModified(request.headers.get("if-none-match"), opaqueTag)
+    ? new Response(null, { status: 304, headers })
+    : new Response(svg, { headers });
 }
 
 export async function GET(request: Request) {
@@ -35,20 +40,28 @@ export async function GET(request: Request) {
   try {
     const product = await readProductImageAsset(productId);
     if (!product) return Response.json({ error: "Product was not found." }, { status: 404 });
-    if (!product.imageAsset) return placeholderResponse(product.brandName, product.updatedAt.toISOString());
+    if (!product.imageAsset) {
+      return placeholderResponse(request, product.brandName, product.updatedAt.toISOString());
+    }
     try {
+      const headers = productImageResponseHeaders(
+        product.imageAsset,
+        new URL(request.url).searchParams.get("v"),
+      );
+      if (isProductImageNotModified(
+        request.headers.get("if-none-match"),
+        product.imageAsset.sha256,
+      )) {
+        return new Response(null, { status: 304, headers });
+      }
       const stored = await readStoredProductImage(product.imageAsset.storageKey);
-      return new Response(stored.body, {
-        headers: {
-          "cache-control": "private, max-age=86400",
-          "content-length": String(product.imageAsset.byteSize),
-          "content-type": product.imageAsset.mimeType,
-          etag: `"${product.imageAsset.sha256}"`,
-          "x-content-type-options": "nosniff",
-        },
-      });
+      return new Response(stored.body, { headers });
     } catch {
-      return placeholderResponse(product.brandName, product.imageAsset.updatedAt.toISOString());
+      return placeholderResponse(
+        request,
+        product.brandName,
+        product.imageAsset.updatedAt.toISOString(),
+      );
     }
   } catch {
     return Response.json({ error: "Unable to load the product image." }, { status: 500 });

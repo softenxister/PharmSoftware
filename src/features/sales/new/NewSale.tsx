@@ -14,36 +14,30 @@ import { SaleToolbar } from './workflow/SaleToolbar';
 import { useSaleWorkflow } from './workflow/useSaleWorkflow';
 
 export default function NewSale({ user }: { user: PharmUser }): React.ReactElement {
-  const sale = useSaleWorkflow(user);
-  const { pendingConfirmation, setPendingConfirmation, confirmPendingAction, t } = sale;
+  const workflow = useSaleWorkflow(user);
+  const confirmation = workflow.confirmationDialog;
 
   return (
     <div className={styles.page}>
-      <SaleToolbar sale={sale} />
-      <SaleCustomerField sale={sale} />
+      <SaleToolbar model={workflow.toolbar} />
+      <SaleCustomerField model={workflow.customerField} />
       <div className={styles.scrollArea}>
-        <SaleItemEntry sale={sale} />
-        <SaleCartTable sale={sale} />
-        <SaleProductBrowser sale={sale} />
+        <SaleItemEntry model={workflow.itemEntry} />
+        <SaleCartTable model={workflow.cartTable} />
+        <SaleProductBrowser model={workflow.productBrowser} />
       </div>
-      <SaleSummaryBar sale={sale} />
-      <SaleReminderPanel sale={sale} />
-      <SaleSettingsDialog sale={sale} />
-      <SalePaymentPanel sale={sale} />
-      <SaleCompletionDialog sale={sale} />
+      <SaleSummaryBar model={workflow.summaryBar} />
+      <SaleReminderPanel model={workflow.reminderPanel} />
+      <SaleSettingsDialog model={workflow.settingsDialog} />
+      <SalePaymentPanel model={workflow.paymentPanel} />
+      <SaleCompletionDialog model={workflow.completionDialog} />
       <PosConfirmationDialog
-        open={pendingConfirmation !== null}
-        title={pendingConfirmation?.kind === 'remove-item'
-          ? t('newSale.removeQuestion')
-          : t('newSale.cancelQuestion')}
-        description={pendingConfirmation?.kind === 'remove-item'
-          ? t('newSale.removeDescription', { name: pendingConfirmation.itemName })
-          : t('newSale.cancelDescription')}
-        confirmLabel={pendingConfirmation?.kind === 'remove-item'
-          ? t('newSale.removeItem')
-          : t('newSale.cancelSale')}
-        onCancel={() => setPendingConfirmation(null)}
-        onConfirm={confirmPendingAction}
+        open={confirmation.open}
+        title={confirmation.title}
+        description={confirmation.description}
+        confirmLabel={confirmation.confirmLabel}
+        onCancel={confirmation.cancel}
+        onConfirm={confirmation.confirm}
       />
     </div>
   );

@@ -1,18 +1,18 @@
 import styles from '../NewSale.module.css';
 import { formatBaht } from './saleDraft';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SaleSummaryBarModel } from './useSaleWorkflow';
 
-export function SaleSummaryBar({ sale }: { sale: SaleWorkflow }) {
+export function SaleSummaryBar({ model }: { model: SaleSummaryBarModel }) {
   const {
     t,
     totalQty,
     uniqueItemCount,
-    openDiscountDrawer,
+    openInvoiceBreakdown,
     canOpenInvoiceBreakdown,
     appliedDiscount,
-    preferences,
+    showKeyboardHints,
     netPayable,
-  } = sale;
+  } = model;
 
   return (
     <div className={styles.summaryBar}>
@@ -29,13 +29,13 @@ export function SaleSummaryBar({ sale }: { sale: SaleWorkflow }) {
       <button
         type="button"
         className={styles.netPayableCell}
-        onClick={openDiscountDrawer}
+        onClick={openInvoiceBreakdown}
         disabled={!canOpenInvoiceBreakdown}
         aria-disabled={!canOpenInvoiceBreakdown}
       >
         <span className={styles.summaryStatLabel}>
           {t('sales.netTotal')} {appliedDiscount && <span className={styles.discountBadge}>{t('newSale.discountApplied')}</span>}
-          {preferences.showKeyboardHints && <kbd className={styles.netPayableShortcut}>Ctrl + Enter</kbd>}
+          {showKeyboardHints && <kbd className={styles.netPayableShortcut}>Ctrl + Enter</kbd>}
         </span>
         <span className={styles.netPayableValue}>฿{formatBaht(netPayable)}</span>
       </button>

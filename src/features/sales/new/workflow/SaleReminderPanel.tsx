@@ -5,7 +5,7 @@ import nightReminderIcon from '@/styles/vector/night.png';
 import styles from '../NewSale.module.css';
 import { createReminderFromDefaultDosage, totalTabsForLine } from './saleDraft';
 import { IconClose } from './SalePrimitives';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SaleReminderPanelModel } from './useSaleWorkflow';
 
 const REMINDER_TIMES = [
   { label: '8 AM', icon: morningReminderIcon },
@@ -14,31 +14,31 @@ const REMINDER_TIMES = [
   { label: '10 PM', icon: nightReminderIcon },
 ] as const;
 
-export function SaleReminderPanel({ sale }: { sale: SaleWorkflow }) {
+export function SaleReminderPanel({ model }: { model: SaleReminderPanelModel }) {
   const {
     t,
     reminderOpen,
-    setReminderOpen,
+    closeReminder,
     reminderEligibleLines,
     catalog,
     reminderRows,
     formatNumber,
     localizeUnit,
-    storeSettings,
+    showProductLocation,
     toggleReminderLine,
-    setReminderTime,
+    chooseReminderTime,
     navigateReminderTime,
     changeReminderDose,
-  } = sale;
+  } = model;
 
   if (!reminderOpen) return null;
 
   return (
-    <div className={styles.reminderBackdrop} onClick={() => setReminderOpen(false)}>
+    <div className={styles.reminderBackdrop} onClick={closeReminder}>
       <div className={styles.reminderCard} role="dialog" aria-modal="true" aria-labelledby="pill-reminder-title" onClick={(event) => event.stopPropagation()}>
         <div className={styles.drawerHeader}>
           <h2 id="pill-reminder-title" className={styles.drawerTitle}>{t('newSale.pillReminder')}</h2>
-          <button type="button" className={styles.drawerClose} onClick={() => setReminderOpen(false)} aria-label={t('newSale.closeReminder')}>
+          <button type="button" className={styles.drawerClose} onClick={closeReminder} aria-label={t('newSale.closeReminder')}>
             <IconClose />
           </button>
         </div>
@@ -75,7 +75,7 @@ export function SaleReminderPanel({ sale }: { sale: SaleWorkflow }) {
                             <span className={styles.reminderDrugName}>{line.itemName}</span>
                             <span className={styles.reminderDrugSub}>
                               {t('newSale.tabsTotal', { count: formatNumber(totalTabs) })} | {localizeUnit(catalogItem?.packLabel ?? line.packLabel)} | {localizeUnit(line.packLabel)}
-                              {storeSettings.showProductLocation ? ` | ${line.loc}` : ''}
+                              {showProductLocation ? ` | ${line.loc}` : ''}
                             </span>
                           </span>
                         </label>
@@ -87,7 +87,7 @@ export function SaleReminderPanel({ sale }: { sale: SaleWorkflow }) {
                             className={`${styles.reminderDoseButton} ${reminder.activeTime === index ? styles.reminderDoseButtonActive : ''}`}
                             data-reminder-line={line.lineId}
                             data-reminder-time={index}
-                            onClick={() => setReminderTime(line.lineId, index)}
+                            onClick={() => chooseReminderTime(line.lineId, index)}
                             onKeyDown={(event) => {
                               if (event.key === 'ArrowLeft') {
                                 event.preventDefault();

@@ -1,24 +1,18 @@
 import { DateField } from "@/features/purchase/components/DateField";
 import { DistributorField } from "@/features/purchase/components/DistributorField";
-import { selectPurchaseDiscountType, type PurchaseDiscountType } from "./purchaseDraft";
-import type { PurchaseWorkflow } from "./usePurchaseWorkflow";
+import type { PurchaseDetailsModel } from "./usePurchaseWorkflow";
 import styles from "../PurchaseEntry.module.css";
 
-export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow }) {
+export function PurchaseDetailsPanel({ model }: { model: PurchaseDetailsModel }) {
   const {
-    t, workflowStep, isEditable, isLoadingPurchase, distributor, setDistributor,
-    matches, showMatches, setShowMatches, highlightedDistributorIndex,
-    setHighlightedDistributorIndex, handleDistributorKeyDown, distributorSearchRef,
-    vatIncluded, setVatIncluded, purchaseDiscount, setPurchaseDiscount,
-    purchaseDiscountType, setPurchaseDiscountType,
-    purchaseDiscountTiming, setPurchaseDiscountTiming, billNo, setBillNo,
-  } = workflow;
-
-  const selectDiscountType = (type: PurchaseDiscountType) => {
-    const selection = selectPurchaseDiscountType(purchaseDiscount, type);
-    setPurchaseDiscount(selection.value);
-    setPurchaseDiscountType(selection.type);
-  };
+    t, workflowStep, isEditable, isLoadingPurchase, distributor, changeDistributor,
+    matches, showMatches, highlightedDistributorIndex,
+    highlightDistributor, handleDistributorKeyDown, distributorSearchRef,
+    focusDistributor, chooseDistributor,
+    vatIncluded, toggleVat, purchaseDiscount, changeDiscount,
+    purchaseDiscountType, chooseDiscountType,
+    purchaseDiscountTiming, chooseDiscountTiming, billNo, changeBillNo,
+  } = model;
   return (
     <>
           <div className={styles.workflowSteps} aria-label={t("purchaseEntry.progress")}>
@@ -40,26 +34,17 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                 matches={matches}
                 showMatches={showMatches}
                 highlightedIndex={highlightedDistributorIndex}
-                onChange={value => {
-                  setDistributor(value);
-                  setShowMatches(true);
-                }}
-                onFocus={() => {
-                  setShowMatches(true);
-                  setHighlightedDistributorIndex(0);
-                }}
+                onChange={changeDistributor}
+                onFocus={focusDistributor}
                 onKeyDown={handleDistributorKeyDown}
-                onHighlight={setHighlightedDistributorIndex}
-                onSelect={value => {
-                  setDistributor(value);
-                  setShowMatches(false);
-                }}
+                onHighlight={highlightDistributor}
+                onSelect={chooseDistributor}
               />
               <label className={styles.vatOptionBox}>
                 <input
                   type="checkbox"
                   checked={vatIncluded}
-                  onChange={event => setVatIncluded(event.target.checked)}
+                  onChange={event => toggleVat(event.target.checked)}
                 />
                 <span>
                   <strong>VAT 7%</strong>
@@ -74,7 +59,7 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                     type="text"
                     inputMode="decimal"
                     value={purchaseDiscount}
-                    onChange={event => setPurchaseDiscount(event.target.value)}
+                    onChange={event => changeDiscount(event.target.value)}
                     aria-label={t("purchaseEntry.discount")}
                   />
                   <div className={styles.discountTypeToggle} role="group" aria-label={t("purchaseEntry.discountType")}>
@@ -83,7 +68,7 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                       className={purchaseDiscountType === "percent" ? styles.segmentButtonActive : styles.segmentButton}
                       aria-pressed={purchaseDiscountType === "percent"}
                       aria-label={t("purchaseEntry.percent")}
-                      onClick={() => selectDiscountType("percent")}
+                      onClick={() => chooseDiscountType("percent")}
                     >
                       %
                     </button>
@@ -92,7 +77,7 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                       className={purchaseDiscountType === "thb" ? styles.segmentButtonActive : styles.segmentButton}
                       aria-pressed={purchaseDiscountType === "thb"}
                       aria-label={t("purchaseEntry.baht")}
-                      onClick={() => selectDiscountType("thb")}
+                      onClick={() => chooseDiscountType("thb")}
                     >
                       ฿
                     </button>
@@ -102,7 +87,7 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                       type="button"
                       className={purchaseDiscountTiming === "beforeVat" ? styles.segmentButtonActive : styles.segmentButton}
                       aria-pressed={purchaseDiscountTiming === "beforeVat"}
-                      onClick={() => setPurchaseDiscountTiming("beforeVat")}
+                      onClick={() => chooseDiscountTiming("beforeVat")}
                     >
                       {t("purchaseEntry.beforeVat")}
                     </button>
@@ -110,7 +95,7 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                       type="button"
                       className={purchaseDiscountTiming === "afterVat" ? styles.segmentButtonActive : styles.segmentButton}
                       aria-pressed={purchaseDiscountTiming === "afterVat"}
-                      onClick={() => setPurchaseDiscountTiming("afterVat")}
+                      onClick={() => chooseDiscountTiming("afterVat")}
                     >
                       {t("purchaseEntry.afterVat")}
                     </button>
@@ -125,7 +110,7 @@ export function PurchaseDetailsPanel({ workflow }: { workflow: PurchaseWorkflow 
                 className={styles.inputField}
                 placeholder={t("purchaseEntry.optional")}
                 value={billNo}
-                onChange={event => setBillNo(event.target.value)}
+                onChange={event => changeBillNo(event.target.value)}
               />
             </div>
 

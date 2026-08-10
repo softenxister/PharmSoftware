@@ -1,4 +1,5 @@
-import type { PurchaseWorkflow } from "./usePurchaseWorkflow";
+import { ProductImage } from "@/components/product/ProductImage";
+import type { PurchaseLineTableModel } from "./usePurchaseWorkflow";
 import { getPurchaseUnitDisplayValue, isPurchaseLineRowActivationKey } from "./purchaseDraft";
 import styles from "../PurchaseEntry.module.css";
 
@@ -12,10 +13,10 @@ const IconBin = () => (
   </svg>
 );
 
-export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) {
+export function PurchaseLineTable({ model }: { model: PurchaseLineTableModel }) {
   const {
-    t, purchaseLines, setPurchaseLines, isEditable, localizeUnit, editPurchaseLine,
-  } = workflow;
+    t, purchaseLines, isEditable, localizeUnit, editLine, removeLine,
+  } = model;
   const displayUnit = (value: string) => localizeUnit(getPurchaseUnitDisplayValue(value));
   if (purchaseLines.length === 0) return null;
   return (
@@ -40,7 +41,7 @@ export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) 
                       tabIndex={isEditable ? 0 : undefined}
                       aria-label={isEditable ? t("purchaseEntry.editLine", { item: line.itemName }) : undefined}
                       onClick={() => {
-                        if (isEditable) editPurchaseLine(line);
+                        if (isEditable) editLine(line);
                       }}
                       onKeyDown={(event) => {
                         if (
@@ -49,7 +50,7 @@ export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) 
                           || !isPurchaseLineRowActivationKey(event.key)
                         ) return;
                         event.preventDefault();
-                        editPurchaseLine(line);
+                        editLine(line);
                       }}
                     >
                       <td>
@@ -60,7 +61,7 @@ export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) 
                           disabled={!isEditable}
                           onClick={(event) => {
                             event.stopPropagation();
-                            setPurchaseLines(lines => lines.filter(candidate => candidate.id !== line.id));
+                            removeLine(line.id);
                           }}
                         >
                           <IconBin />
@@ -68,7 +69,12 @@ export function PurchaseLineTable({ workflow }: { workflow: PurchaseWorkflow }) 
                       </td>
                       <td>
                         <div className={styles.purchaseLineItem}>
-                          <img src={line.imageUrl} alt="" />
+                          <ProductImage
+                            src={line.imageUrl}
+                            alt=""
+                            width={38}
+                            height={38}
+                          />
                           <span>{line.itemName}</span>
                         </div>
                       </td>

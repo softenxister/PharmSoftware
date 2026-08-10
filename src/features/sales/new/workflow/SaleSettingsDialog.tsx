@@ -1,30 +1,30 @@
 import styles from '../NewSale.module.css';
 import { CustomSelect, IconClose } from './SalePrimitives';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SaleSettingsDialogModel } from './useSaleWorkflow';
 
-export function SaleSettingsDialog({ sale }: { sale: SaleWorkflow }) {
+export function SaleSettingsDialog({ model }: { model: SaleSettingsDialogModel }) {
   const {
     t,
     settingsOpen,
-    setSettingsOpen,
+    closeSettings,
     billingDevice,
-    setBillingDevice,
+    chooseBillingDevice,
     paperSize,
-    setPaperSize,
+    choosePaperSize,
     cashDrawerDevice,
-    setCashDrawerDevice,
+    chooseCashDrawer,
     autoOpenCashDrawer,
-    setAutoOpenCashDrawer,
-  } = sale;
+    toggleAutoCashDrawer,
+  } = model;
 
   if (!settingsOpen) return null;
 
   return (
-    <div className={styles.settingsBackdrop} onClick={() => setSettingsOpen(false)}>
+    <div className={styles.settingsBackdrop} onClick={closeSettings}>
       <div className={styles.settingsPanel} onClick={(event) => event.stopPropagation()}>
         <div className={styles.drawerHeader}>
           <h2 className={styles.drawerTitle}>{t('newSale.settings')}</h2>
-          <button type="button" className={styles.drawerClose} onClick={() => setSettingsOpen(false)} aria-label={t('newSale.close')}>
+          <button type="button" className={styles.drawerClose} onClick={closeSettings} aria-label={t('newSale.close')}>
             <IconClose />
           </button>
         </div>
@@ -41,7 +41,7 @@ export function SaleSettingsDialog({ sale }: { sale: SaleWorkflow }) {
               { value: 'PDF Preview Only', label: 'PDF Preview Only' },
               { value: 'USB Receipt Printer', label: 'USB Receipt Printer' },
             ]}
-            onChange={setBillingDevice}
+            onChange={chooseBillingDevice}
             className={styles.settingsCustomSelect}
           />
         </div>
@@ -55,10 +55,7 @@ export function SaleSettingsDialog({ sale }: { sale: SaleWorkflow }) {
               { value: '80', label: '80 mm thermal' },
               { value: '58', label: '58 mm thermal' },
             ]}
-            onChange={(value) => {
-              window.localStorage.setItem('pharm_receipt_paper_size', value);
-              setPaperSize(value);
-            }}
+            onChange={choosePaperSize}
             className={styles.settingsCustomSelect}
           />
         </div>
@@ -74,7 +71,7 @@ export function SaleSettingsDialog({ sale }: { sale: SaleWorkflow }) {
               { value: 'Printer-connected Drawer', label: 'Printer-connected Drawer' },
               { value: 'No Cash Drawer', label: 'No Cash Drawer' },
             ]}
-            onChange={setCashDrawerDevice}
+            onChange={chooseCashDrawer}
             className={styles.settingsCustomSelect}
           />
         </div>
@@ -87,7 +84,7 @@ export function SaleSettingsDialog({ sale }: { sale: SaleWorkflow }) {
           <input
             type="checkbox"
             checked={autoOpenCashDrawer}
-            onChange={(event) => setAutoOpenCashDrawer(event.target.checked)}
+            onChange={(event) => toggleAutoCashDrawer(event.target.checked)}
           />
         </label>
 
@@ -99,7 +96,7 @@ export function SaleSettingsDialog({ sale }: { sale: SaleWorkflow }) {
         </div>
 
         <div className={styles.drawerActions}>
-          <button type="button" className={styles.drawerPrimaryBtn} onClick={() => setSettingsOpen(false)}>
+          <button type="button" className={styles.drawerPrimaryBtn} onClick={closeSettings}>
             {t('newSale.done')}
           </button>
         </div>

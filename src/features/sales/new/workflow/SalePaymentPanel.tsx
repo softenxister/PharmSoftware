@@ -1,26 +1,24 @@
 import styles from '../NewSale.module.css';
 import { formatBaht } from './saleDraft';
 import { IconClose } from './SalePrimitives';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SalePaymentPanelModel } from './useSaleWorkflow';
 
-export function SalePaymentPanel({ sale }: { sale: SaleWorkflow }) {
+export function SalePaymentPanel({ model }: { model: SalePaymentPanelModel }) {
   const {
     t,
     discountOpen,
-    setDiscountOpen,
+    closePayment,
     subtotal,
     itemDiscountAmount,
     discountAmount,
     discountType,
-    setDiscountType,
+    chooseDiscountType,
     discountInput,
-    setDiscountInput,
+    changeDiscountInput,
     draftNetPayable,
     customerPayInputRef,
     customerPayInput,
-    setCustomerPayInput,
-    setCustomerPayEdited,
-    setSaleSubmitError,
+    changeCustomerPayment,
     handleCustomerPayEnter,
     paymentMethod,
     addCustomerCash,
@@ -32,16 +30,16 @@ export function SalePaymentPanel({ sale }: { sale: SaleWorkflow }) {
     clearDiscount,
     submitInvoicePayment,
     saleSubmitting,
-  } = sale;
+  } = model;
 
   if (!discountOpen) return null;
 
   return (
-    <div className={styles.drawerBackdrop} onClick={() => setDiscountOpen(false)}>
+    <div className={styles.drawerBackdrop} onClick={closePayment}>
       <div className={styles.drawer} onClick={(event) => event.stopPropagation()}>
         <div className={styles.drawerHeader}>
           <h2 className={styles.drawerTitle}>{t('newSale.invoiceBreakdown')}</h2>
-          <button type="button" className={styles.drawerClose} onClick={() => setDiscountOpen(false)} aria-label={t('newSale.close')}>
+          <button type="button" className={styles.drawerClose} onClick={closePayment} aria-label={t('newSale.close')}>
             <IconClose />
           </button>
         </div>
@@ -61,14 +59,14 @@ export function SalePaymentPanel({ sale }: { sale: SaleWorkflow }) {
 
         <p className={styles.drawerSectionLabel}>{t('newSale.billDiscount')}</p>
         <div className={styles.discountTypeToggle}>
-          <button type="button" className={`${styles.discountTypeBtn} ${discountType === 'percent' ? styles.discountTypeBtnActive : ''}`} onClick={() => setDiscountType('percent')}>%</button>
-          <button type="button" className={`${styles.discountTypeBtn} ${discountType === 'thb' ? styles.discountTypeBtnActive : ''}`} onClick={() => setDiscountType('thb')}>฿</button>
+          <button type="button" className={`${styles.discountTypeBtn} ${discountType === 'percent' ? styles.discountTypeBtnActive : ''}`} onClick={() => chooseDiscountType('percent')}>%</button>
+          <button type="button" className={`${styles.discountTypeBtn} ${discountType === 'thb' ? styles.discountTypeBtnActive : ''}`} onClick={() => chooseDiscountType('thb')}>฿</button>
         </div>
         <input
           type="number"
           min={0}
           value={discountInput}
-          onChange={(event) => setDiscountInput(event.target.value)}
+          onChange={(event) => changeDiscountInput(event.target.value)}
           placeholder={discountType === 'percent' ? 'e.g. 10' : 'e.g. 50'}
           className={styles.discountInput}
         />
@@ -84,11 +82,7 @@ export function SalePaymentPanel({ sale }: { sale: SaleWorkflow }) {
           type="number"
           min={0}
           value={customerPayInput}
-          onChange={(event) => {
-            setSaleSubmitError('');
-            setCustomerPayEdited(true);
-            setCustomerPayInput(event.target.value);
-          }}
+          onChange={(event) => changeCustomerPayment(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();

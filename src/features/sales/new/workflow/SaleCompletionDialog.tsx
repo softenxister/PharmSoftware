@@ -2,17 +2,17 @@ import type { StorePaymentMethod } from '@/config/preferences/storePosSettings';
 import styles from '../NewSale.module.css';
 import { formatBaht, resolvePaidSaleNextStep } from './saleDraft';
 import { IconPrint, IconTick } from './SalePrimitives';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SaleCompletionDialogModel } from './useSaleWorkflow';
 
-export function SaleCompletionDialog({ sale }: { sale: SaleWorkflow }) {
+export function SaleCompletionDialog({ model }: { model: SaleCompletionDialogModel }) {
   const {
     t,
     invoiceCreated,
     paymentMethodLabel,
     formatDate,
-    resetForNewWalkIn,
+    startNewSale,
     newSaleButtonRef,
-  } = sale;
+  } = model;
 
   if (!invoiceCreated) return null;
 
@@ -65,14 +65,14 @@ export function SaleCompletionDialog({ sale }: { sale: SaleWorkflow }) {
             const nextStep = resolvePaidSaleNextStep('print', invoiceCreated.saleId);
             if (nextStep.kind === 'receipt-route') {
               window.open(nextStep.path, '_blank', 'noopener,noreferrer');
-              if (nextStep.resetOriginalSale) resetForNewWalkIn();
+              if (nextStep.resetOriginalSale) startNewSale();
             }
           }}
         >
           <IconPrint />
           {t('newSale.printReceipt')}
         </button>
-        <button ref={newSaleButtonRef} type="button" className={styles.newSaleBtn} onClick={resetForNewWalkIn}>
+        <button ref={newSaleButtonRef} type="button" className={styles.newSaleBtn} onClick={startNewSale}>
           <span className={styles.newSaleBtnIcon} aria-hidden="true">+</span>
           <span>{t('newSale.new')}</span>
         </button>

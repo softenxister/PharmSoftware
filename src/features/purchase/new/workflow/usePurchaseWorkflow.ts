@@ -13,7 +13,7 @@ import {
   applyPurchaseLineChange, calculatePurchaseLineActualCost, calculatePurchaseTotals, canSavePurchase,
   getDistributorMatches, getPurchaseItemSearchPriority, getPurchaseLineEditorDraft,
   getPurchaseLineEnterAction,
-  mergePurchaseCatalog, purchaseUnitMultiplier,
+  mergePurchaseCatalog, purchaseUnitMultiplier, selectPurchaseDiscountType,
 } from "./purchaseDraft";
 import type {
   CurrentPharmUser, EditablePurchaseBill, PurchaseCorrection, PurchaseDiscountTiming,
@@ -133,9 +133,6 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   );
   const {
     totalQty,
-    subtotal,
-    discountAmount: purchaseDiscountAmount,
-    vatAmount,
     netTotal: netPurchaseTotal,
   } = useMemo(
     () => calculatePurchaseTotals(
@@ -557,37 +554,178 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   }, [selectedItem]);
 
   return {
-    navigate, t, localizeUnit, formatMoney,
-    activePurchaseId, distributor, setDistributor, billNo, setBillNo,
-    manualItem, setManualItem, catalog, itemSearchLoading,
-    itemDropdownOpen, setItemDropdownOpen,
-    highlightedItemIndex, setHighlightedItemIndex,
-    selectedItem, setSelectedItem, editingPurchaseLineId,
-    includeFreeQty, setIncludeFreeQty,
-    unit, setUnit, freeUnit, setFreeUnit,
-    lineQty, setLineQty, lineCost, setLineCost,
-    freeQty, setFreeQty, lotNo, setLotNo, expiryDate, setExpiryDate,
-    purchaseLines, setPurchaseLines,
-    vatIncluded, setVatIncluded,
-    purchaseDiscount, setPurchaseDiscount,
-    purchaseDiscountType, setPurchaseDiscountType,
-    purchaseDiscountTiming, setPurchaseDiscountTiming,
-    isSavingPurchase, purchaseSaveError, purchaseLoadError, isLoadingPurchase,
-    editingBillStatus, reviewConfirmed, setReviewConfirmed, currentUser,
-    correctionRequests, correctionDialogOpen, setCorrectionDialogOpen,
-    correctionReason, setCorrectionReason, correctionError, setCorrectionError,
-    isSubmittingCorrection,
-    showMatches, setShowMatches,
-    highlightedDistributorIndex, setHighlightedDistributorIndex,
-    fileRef, qtyInputRef, distributorSearchRef, purchaseItemSearchRef,
-    matches, itemMatches, showScanCarousel, selectedUnitOptions,
-    canAddPurchaseLine,
-    totalQty, subtotal, purchaseDiscountAmount, vatAmount, netPurchaseTotal, lineActualCost,
-    isEditable, hasValidBill, hasPendingCorrection, workflowStep,
-    openPurchaseLine, editPurchaseLine, closePurchaseLine, addPurchaseLine,
-    handlePurchaseFlowEnter, handleDistributorKeyDown, handleItemSearchKeyDown,
-    savePurchase, submitCorrectionRequest,
+    header: {
+      t,
+      activePurchaseId,
+      error: purchaseSaveError || purchaseLoadError,
+      isEditable,
+      editingBillStatus,
+      isSavingPurchase,
+      isLoadingPurchase,
+      canSaveDraft: hasValidBill,
+      saveDraft: () => savePurchase("draft"),
+    },
+    details: {
+      t,
+      workflowStep,
+      isEditable,
+      isLoadingPurchase,
+      distributor,
+      matches,
+      showMatches,
+      highlightedDistributorIndex,
+      distributorSearchRef,
+      vatIncluded,
+      purchaseDiscount,
+      purchaseDiscountType,
+      purchaseDiscountTiming,
+      billNo,
+      changeDistributor: (value: string) => {
+        setDistributor(value);
+        setShowMatches(true);
+      },
+      focusDistributor: () => {
+        setShowMatches(true);
+        setHighlightedDistributorIndex(0);
+      },
+      handleDistributorKeyDown,
+      highlightDistributor: setHighlightedDistributorIndex,
+      chooseDistributor: (value: string) => {
+        setDistributor(value);
+        setShowMatches(false);
+      },
+      toggleVat: setVatIncluded,
+      changeDiscount: setPurchaseDiscount,
+      chooseDiscountType: (type: PurchaseDiscountType) => {
+        const selection = selectPurchaseDiscountType(purchaseDiscount, type);
+        setPurchaseDiscount(selection.value);
+        setPurchaseDiscountType(selection.type);
+      },
+      chooseDiscountTiming: setPurchaseDiscountTiming,
+      changeBillNo: setBillNo,
+    },
+    itemSearch: {
+      t,
+      localizeUnit,
+      isEditable,
+      query: manualItem,
+      itemSearchLoading,
+      itemDropdownOpen,
+      highlightedItemIndex,
+      selectedItem,
+      itemMatches,
+      showScanCarousel,
+      fileRef,
+      purchaseItemSearchRef,
+      changeQuery: (value: string) => {
+        setManualItem(value);
+        setSelectedItem(null);
+        setItemDropdownOpen(true);
+      },
+      focusSearch: () => {
+        setItemDropdownOpen(true);
+        setHighlightedItemIndex(0);
+      },
+      handleItemSearchKeyDown,
+      highlightItem: setHighlightedItemIndex,
+      openItem: openPurchaseLine,
+      openFirstMatch: () => {
+        if (itemMatches[0]) openPurchaseLine(itemMatches[0]);
+      },
+      openFirstBarcodeItem: () => {
+        const product = catalog.find((candidate) => /^\d{13}$/.test(candidate.barcode));
+        if (product) openPurchaseLine(product);
+      },
+    },
+    lines: {
+      t,
+      purchaseLines,
+      isEditable,
+      localizeUnit,
+      editLine: editPurchaseLine,
+      removeLine: (lineId: string) => setPurchaseLines((lines) => (
+        lines.filter((line) => line.id !== lineId)
+      )),
+    },
+    lineEditor: {
+      t,
+      formatMoney,
+      isOpen: isEditable && selectedItem !== null,
+      selectedItem,
+      localizeUnit,
+      qtyInputRef,
+      lineQty,
+      lineCost,
+      unit,
+      selectedUnitOptions,
+      includeFreeQty,
+      freeQty,
+      freeUnit,
+      lotNo,
+      expiryDate,
+      vatIncluded,
+      lineActualCost,
+      canAddPurchaseLine,
+      editingPurchaseLineId,
+      closeLine: closePurchaseLine,
+      changeQuantity: setLineQty,
+      handlePurchaseFlowEnter,
+      changeCost: setLineCost,
+      chooseUnit: setUnit,
+      toggleFreeQuantity: setIncludeFreeQty,
+      changeFreeQuantity: setFreeQty,
+      chooseFreeUnit: setFreeUnit,
+      changeLotNumber: setLotNo,
+      changeExpiryDate: (value: string) => setExpiryDate(formatExpiryDateInput(value)),
+      normalizeExpiryDate: () => setExpiryDate(formatExpiryDateInput(expiryDate)),
+      saveLine: addPurchaseLine,
+    },
+    workflowBar: {
+      status: editingBillStatus,
+      itemCount: purchaseLines.length,
+      totalQty,
+      netTotal: netPurchaseTotal,
+      canContinue: hasValidBill && !isLoadingPurchase,
+      isBusy: isSavingPurchase,
+      reviewConfirmed,
+      canManageStock: currentUser.canManageStock,
+      hasPendingCorrection,
+      changeReviewConfirmation: setReviewConfirmed,
+      prepare: () => savePurchase("partial", true),
+      backToEdit: () => savePurchase("draft", true),
+      complete: () => savePurchase("received", true),
+      requestCorrection: () => {
+        setCorrectionError("");
+        setCorrectionDialogOpen(true);
+      },
+      adjustStock: () => {
+        if (!activePurchaseId) return;
+        const pendingRequest = correctionRequests.find((request) => request.status === "pending");
+        const requestQuery = pendingRequest
+          ? `&requestId=${encodeURIComponent(pendingRequest.id)}`
+          : "";
+        navigate(`/stock/adjustment?purchaseId=${encodeURIComponent(activePurchaseId)}${requestQuery}`);
+      },
+    },
+    correctionDialog: {
+      open: correctionDialogOpen,
+      reason: correctionReason,
+      error: correctionError,
+      isSubmitting: isSubmittingCorrection,
+      changeReason: setCorrectionReason,
+      close: () => {
+        if (!isSubmittingCorrection) setCorrectionDialogOpen(false);
+      },
+      submit: submitCorrectionRequest,
+    },
   };
 }
 
-export type PurchaseWorkflow = ReturnType<typeof usePurchaseWorkflow>;
+type PurchaseWorkflow = ReturnType<typeof usePurchaseWorkflow>;
+export type PurchaseHeaderModel = PurchaseWorkflow["header"];
+export type PurchaseDetailsModel = PurchaseWorkflow["details"];
+export type PurchaseItemSearchModel = PurchaseWorkflow["itemSearch"];
+export type PurchaseLineTableModel = PurchaseWorkflow["lines"];
+export type PurchaseLineEditorModel = PurchaseWorkflow["lineEditor"];
+export type PurchaseWorkflowBarModel = PurchaseWorkflow["workflowBar"];
+export type PurchaseCorrectionDialogModel = PurchaseWorkflow["correctionDialog"];

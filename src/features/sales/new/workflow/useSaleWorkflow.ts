@@ -15,7 +15,9 @@ import {
   formatBatchExpiry,
   hasPayableSale,
   lineUnitPrice,
+  normalizeThaiKeyboardNumericInput,
   resolvePaidSaleNextStep,
+  totalAvailableStockForPack,
 } from './saleDraft';
 import { matchedAllergyIngredients, mergeCatalogItems } from './saleCatalog';
 import { resolveSaleShortcut, subscribeSaleShortcuts } from '../salesShortcuts';
@@ -122,6 +124,7 @@ export function useSaleWorkflow(user: PharmUser) {
     heldItemId,
     pendingConfirmation,
     setPendingConfirmation,
+    unpricedItemName,
     setUnpricedItemName,
     openEditorForItem,
     handleItemSearchKeyDown,
@@ -492,61 +495,252 @@ export function useSaleWorkflow(user: PharmUser) {
 
 
   return {
-    ...saleCatalog,
-    ...saleCart,
-    ...salePayment,
-    t,
-    formatDate,
-    formatNumber,
-    appPreferences,
-    localizeUnit,
-    paymentMethodLabel,
-    allergyWarningForItem,
-    formatExpiry,
-    preferences,
-    storeSettings,
-    ownerId,
-    setOwnerId,
-    paymentMethod,
-    setPaymentMethod,
-    purchaseMethod,
-    setPurchaseMethod,
-    saveMenuOpen,
-    setSaveMenuOpen,
-    saveMenuRef,
-    billDate,
-    setBillDate,
-    pharmacistId,
-    setPharmacistId,
-    uniqueItemCount,
-    canSaveSale,
-    canOpenInvoiceBreakdown,
-    topItems,
-    topItemsLabel,
-    recommendedBatchId,
-    invoiceCreated,
-    saleSubmitting,
-    saleSubmitError,
-    setSaleSubmitError,
-    newSaleButtonRef,
-    settingsOpen,
-    setSettingsOpen,
-    billingDevice,
-    setBillingDevice,
-    cashDrawerDevice,
-    setCashDrawerDevice,
-    paperSize,
-    setPaperSize,
-    autoOpenCashDrawer,
-    setAutoOpenCashDrawer,
-    openDiscountDrawer,
-    handleCustomerPayEnter,
-    addCustomerCash,
-    resetForNewWalkIn,
-    submitInvoicePayment,
-    clearDiscount,
-    handleSave,
+    toolbar: {
+      t,
+      ownerId,
+      paymentMethod,
+      paymentMethods: storeSettings.paymentMethods,
+      showKeyboardHints: preferences.showKeyboardHints,
+      paymentMethodLabel,
+      purchaseMethod,
+      saveMenuOpen,
+      saveMenuRef,
+      canSaveSale,
+      leaveSale: leaveUnsavedSale,
+      chooseOwner: setOwnerId,
+      choosePaymentMethod: setPaymentMethod,
+      openReminder: openReminderCard,
+      toggleFulfilment: () => setPurchaseMethod((current) => (
+        current === 'pickup' ? 'delivery' : 'pickup'
+      )),
+      save: handleSave,
+      toggleSaveMenu: () => setSaveMenuOpen((open) => !open),
+      openSettings: () => setSettingsOpen(true),
+    },
+    customerField: {
+      t,
+      billDate,
+      customerFieldRef,
+      customer,
+      formatNumber,
+      customerQuery,
+      customerDropdownOpen,
+      customerMatches,
+      customerLoadError,
+      highlightedCustomerIndex,
+      pharmacistId,
+      changeBillDate: setBillDate,
+      clearCustomer: () => {
+        setCustomer(null);
+        setCustomerQuery('');
+      },
+      changeCustomerQuery: (value: string) => {
+        setCustomerQuery(value);
+        setCustomerDropdownOpen(true);
+      },
+      focusCustomerSearch: () => {
+        setCustomerDropdownOpen(true);
+        setHighlightedCustomerIndex(0);
+      },
+      handleCustomerSearchKeyDown,
+      highlightCustomer: setHighlightedCustomerIndex,
+      selectCustomer,
+      choosePharmacist: setPharmacistId,
+    },
+    itemEntry: {
+      t,
+      itemFieldRef,
+      itemSearchInputRef,
+      itemQuery,
+      itemDropdownOpen,
+      itemMatches,
+      itemSearchLoading,
+      highlightedItemIndex,
+      unpricedItemName,
+      editor,
+      batchPickerRef,
+      qtyInputRef,
+      recommendedBatchId,
+      showKeyboardHints: preferences.showKeyboardHints,
+      showAvailableStock: preferences.showAvailableStock,
+      showProductLocation: storeSettings.showProductLocation,
+      locale: appPreferences.locale,
+      allergyWarningForItem,
+      localizeUnit,
+      formatExpiry,
+      changeItemQuery: (value: string) => {
+        setUnpricedItemName(null);
+        setItemQuery(value);
+        setItemDropdownOpen(true);
+      },
+      focusItemSearch: () => {
+        setItemDropdownOpen(true);
+        setHighlightedItemIndex(0);
+      },
+      handleItemSearchKeyDown,
+      highlightItem: setHighlightedItemIndex,
+      openItem: openEditorForItem,
+      closeEditor: () => setEditor(null),
+      toggleBatchPicker: () => {
+        if (editor) setEditor({ ...editor, batchCardOpen: !editor.batchCardOpen });
+      },
+      chooseSellPack: handleSelectSellPack,
+      changeEditorQuantity: (value: string) => {
+        if (!editor) return;
+        const digitsOnly = normalizeThaiKeyboardNumericInput(value).replace(/\D/g, '');
+        const maxQuantity = totalAvailableStockForPack(editor.item.batches, editor.sellPack);
+        const quantity = digitsOnly
+          ? String(Math.min(maxQuantity || 1, Math.max(1, parseInt(digitsOnly, 10))))
+          : '';
+        setEditor({ ...editor, qty: quantity });
+      },
+      addEditorToCart: commitEditorToCart,
+      chooseBatch: handleSelectBatch,
+    },
+    cartTable: {
+      t,
+      cartDisplayGroups,
+      catalog,
+      cartQtyDrafts,
+      showProductLocation: storeSettings.showProductLocation,
+      allergyWarningForItem,
+      localizeUnit,
+      formatExpiry,
+      removeLine: removeCartLine,
+      updateQuantity: updateCartQty,
+      changeQuantity: (groupKey: string, value: string) => {
+        const digitsOnly = normalizeThaiKeyboardNumericInput(value).replace(/\D/g, '');
+        if (!digitsOnly) {
+          setCartQtyDrafts((drafts) => ({ ...drafts, [groupKey]: '' }));
+          return;
+        }
+        setCartQtyDrafts((drafts) => ({ ...drafts, [groupKey]: digitsOnly }));
+        updateCartQty(groupKey, parseInt(digitsOnly, 10));
+      },
+      clearEmptyQuantity: (groupKey: string) => setCartQtyDrafts((drafts) => {
+        if (drafts[groupKey] !== '') return drafts;
+        const next = { ...drafts };
+        delete next[groupKey];
+        return next;
+      }),
+    },
+    productBrowser: {
+      t,
+      topItems,
+      topItemsLabel,
+      heldItemId,
+      localizeUnit,
+      showProductLocation: storeSettings.showProductLocation,
+      showAvailableStock: preferences.showAvailableStock,
+      startHold,
+      endHold,
+      openItem: handleTopItemTap,
+    },
+    summaryBar: {
+      t,
+      totalQty,
+      uniqueItemCount,
+      appliedDiscount,
+      netPayable,
+      showKeyboardHints: preferences.showKeyboardHints,
+      canOpenInvoiceBreakdown,
+      openInvoiceBreakdown: openDiscountDrawer,
+    },
+    reminderPanel: {
+      t,
+      reminderOpen,
+      reminderEligibleLines,
+      catalog,
+      reminderRows,
+      formatNumber,
+      localizeUnit,
+      showProductLocation: storeSettings.showProductLocation,
+      closeReminder: () => setReminderOpen(false),
+      toggleReminderLine,
+      chooseReminderTime: setReminderTime,
+      navigateReminderTime,
+      changeReminderDose,
+    },
+    settingsDialog: {
+      t,
+      settingsOpen,
+      billingDevice,
+      paperSize,
+      cashDrawerDevice,
+      autoOpenCashDrawer,
+      closeSettings: () => setSettingsOpen(false),
+      chooseBillingDevice: setBillingDevice,
+      choosePaperSize: (value: string) => {
+        window.localStorage.setItem('pharm_receipt_paper_size', value);
+        setPaperSize(value);
+      },
+      chooseCashDrawer: setCashDrawerDevice,
+      toggleAutoCashDrawer: setAutoOpenCashDrawer,
+    },
+    paymentPanel: {
+      t,
+      discountOpen,
+      subtotal,
+      itemDiscountAmount,
+      discountAmount,
+      discountType,
+      discountInput,
+      draftNetPayable,
+      customerPayInputRef,
+      customerPayInput,
+      paymentMethod,
+      liveChangeDue,
+      autoOpenCashDrawer,
+      cashDrawerDevice,
+      saleSubmitError,
+      appliedDiscount,
+      saleSubmitting,
+      closePayment: () => setDiscountOpen(false),
+      chooseDiscountType: setDiscountType,
+      changeDiscountInput: setDiscountInput,
+      changeCustomerPayment: (value: string) => {
+        setSaleSubmitError('');
+        setCustomerPayEdited(true);
+        setCustomerPayInput(value);
+      },
+      handleCustomerPayEnter,
+      addCustomerCash,
+      clearDiscount,
+      submitInvoicePayment,
+    },
+    completionDialog: {
+      t,
+      invoiceCreated,
+      paymentMethodLabel,
+      formatDate,
+      newSaleButtonRef,
+      startNewSale: resetForNewWalkIn,
+    },
+    confirmationDialog: {
+      open: pendingConfirmation !== null,
+      title: pendingConfirmation?.kind === 'remove-item'
+        ? t('newSale.removeQuestion')
+        : t('newSale.cancelQuestion'),
+      description: pendingConfirmation?.kind === 'remove-item'
+        ? t('newSale.removeDescription', { name: pendingConfirmation.itemName })
+        : t('newSale.cancelDescription'),
+      confirmLabel: pendingConfirmation?.kind === 'remove-item'
+        ? t('newSale.removeItem')
+        : t('newSale.cancelSale'),
+      cancel: () => setPendingConfirmation(null),
+      confirm: confirmPendingAction,
+    },
   };
 }
 
-export type SaleWorkflow = ReturnType<typeof useSaleWorkflow>;
+type SaleWorkflow = ReturnType<typeof useSaleWorkflow>;
+export type SaleToolbarModel = SaleWorkflow['toolbar'];
+export type SaleCustomerFieldModel = SaleWorkflow['customerField'];
+export type SaleItemEntryModel = SaleWorkflow['itemEntry'];
+export type SaleCartTableModel = SaleWorkflow['cartTable'];
+export type SaleProductBrowserModel = SaleWorkflow['productBrowser'];
+export type SaleSummaryBarModel = SaleWorkflow['summaryBar'];
+export type SaleReminderPanelModel = SaleWorkflow['reminderPanel'];
+export type SaleSettingsDialogModel = SaleWorkflow['settingsDialog'];
+export type SalePaymentPanelModel = SaleWorkflow['paymentPanel'];
+export type SaleCompletionDialogModel = SaleWorkflow['completionDialog'];

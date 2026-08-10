@@ -6,46 +6,29 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import type { PurchaseWorkflowBarModel } from "./workflow/usePurchaseWorkflow";
 import styles from "./PurchaseEntry.module.css";
 
-type WorkflowStatus = "draft" | "partial" | "received" | null;
-
-type PurchaseWorkflowBarProps = {
-  status: WorkflowStatus;
-  itemCount: number;
-  totalQty: number;
-  netTotal: number;
-  canContinue: boolean;
-  isBusy: boolean;
-  reviewConfirmed: boolean;
-  canManageStock: boolean;
-  hasPendingCorrection: boolean;
-  onReviewConfirmedChange: (checked: boolean) => void;
-  onPrepare: () => void;
-  onBackToEdit: () => void;
-  onComplete: () => void;
-  onRequestCorrection: () => void;
-  onAdjustStock: () => void;
-};
-
-export function PurchaseWorkflowBar({
-  status,
-  itemCount,
-  totalQty,
-  netTotal,
-  canContinue,
-  isBusy,
-  reviewConfirmed,
-  canManageStock,
-  hasPendingCorrection,
-  onReviewConfirmedChange,
-  onPrepare,
-  onBackToEdit,
-  onComplete,
-  onRequestCorrection,
-  onAdjustStock,
-}: PurchaseWorkflowBarProps) {
+export function PurchaseWorkflowBar({ model }: { model: PurchaseWorkflowBarModel }) {
+  const {
+    status,
+    itemCount,
+    totalQty,
+    netTotal,
+    canContinue,
+    isBusy,
+    reviewConfirmed,
+    canManageStock,
+    hasPendingCorrection,
+    changeReviewConfirmation,
+    prepare,
+    backToEdit,
+    complete,
+    requestCorrection,
+    adjustStock,
+  } = model;
   const { t, formatMoney } = usePreferences();
+  if (itemCount === 0) return null;
   const summaryStateClass = status === "partial"
     ? styles.purchaseSummaryBarReview
     : status === "received"
@@ -76,7 +59,7 @@ export function PurchaseWorkflowBar({
             type="button"
             className={styles.purchaseNetButton}
             disabled={!canContinue || isBusy}
-            onClick={onPrepare}
+            onClick={prepare}
           >
             <ClipboardCheck size={17} />
             <span>
@@ -93,19 +76,19 @@ export function PurchaseWorkflowBar({
             <input
               type="checkbox"
               checked={reviewConfirmed}
-              onChange={event => onReviewConfirmedChange(event.target.checked)}
+              onChange={event => changeReviewConfirmation(event.target.checked)}
             />
             <span>{t("purchaseEntry.checked")}</span>
           </label>
           <div className={styles.workflowButtons}>
-            <button type="button" className={styles.workflowSecondaryButton} onClick={onBackToEdit} disabled={isBusy}>
+            <button type="button" className={styles.workflowSecondaryButton} onClick={backToEdit} disabled={isBusy}>
               <RotateCcw size={15} />
               {t("purchaseEntry.backEdit")}
             </button>
             <button
               type="button"
               className={styles.workflowCompleteButton}
-              onClick={onComplete}
+              onClick={complete}
               disabled={!canContinue || !reviewConfirmed || isBusy}
             >
               <CheckCircle2 size={16} />
@@ -122,7 +105,7 @@ export function PurchaseWorkflowBar({
             {t("purchaseEntry.locked")}
           </span>
           {canManageStock ? (
-            <button type="button" className={styles.workflowManagerButton} onClick={onAdjustStock}>
+            <button type="button" className={styles.workflowManagerButton} onClick={adjustStock}>
               <ShieldCheck size={16} />
               {hasPendingCorrection ? t("purchaseEntry.reviewCorrection") : t("purchaseEntry.adjustStock")}
             </button>
@@ -130,7 +113,7 @@ export function PurchaseWorkflowBar({
             <button
               type="button"
               className={styles.workflowRequestButton}
-              onClick={onRequestCorrection}
+              onClick={requestCorrection}
               disabled={hasPendingCorrection}
             >
               <Send size={15} />

@@ -11,7 +11,7 @@ import type { ComponentType, SVGProps } from 'react';
 import styles from '../NewSale.module.css';
 import { PHARMACISTS, type Customer } from './saleTypes';
 import { CustomSelect, IconClose } from './SalePrimitives';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SaleCustomerFieldModel } from './useSaleWorkflow';
 
 const rankToneClasses = {
   bronze: styles.customerRankBronze,
@@ -107,28 +107,28 @@ function CustomerDetailColumns({
   );
 }
 
-export function SaleCustomerField({ sale }: { sale: SaleWorkflow }) {
+export function SaleCustomerField({ model }: { model: SaleCustomerFieldModel }) {
   const {
     t,
     billDate,
-    setBillDate,
+    changeBillDate,
     customerFieldRef,
     customer,
     formatNumber,
-    setCustomer,
-    setCustomerQuery,
+    clearCustomer,
+    changeCustomerQuery,
     customerQuery,
-    setCustomerDropdownOpen,
-    setHighlightedCustomerIndex,
+    focusCustomerSearch,
     handleCustomerSearchKeyDown,
     customerDropdownOpen,
     customerMatches,
     customerLoadError,
     highlightedCustomerIndex,
+    highlightCustomer,
     selectCustomer,
     pharmacistId,
-    setPharmacistId,
-  } = sale;
+    choosePharmacist,
+  } = model;
 
   return (
     <div className={styles.metaRow}>
@@ -137,7 +137,7 @@ export function SaleCustomerField({ sale }: { sale: SaleWorkflow }) {
         <FormattedDateInput
           id="sale-bill-date"
           value={billDate}
-          onChange={setBillDate}
+          onChange={changeBillDate}
           calendarLabel={t('purchaseEntry.openCalendar', { label: t('newSale.billDate') })}
         />
       </div>
@@ -155,10 +155,7 @@ export function SaleCustomerField({ sale }: { sale: SaleWorkflow }) {
             <button
               type="button"
               className={styles.clearChip}
-              onClick={() => {
-                setCustomer(null);
-                setCustomerQuery('');
-              }}
+              onClick={clearCustomer}
               aria-label={t('newSale.clearCustomer')}
             >
               <IconClose />
@@ -169,14 +166,8 @@ export function SaleCustomerField({ sale }: { sale: SaleWorkflow }) {
             <input
               type="text"
               value={customerQuery}
-              onChange={(event) => {
-                setCustomerQuery(event.target.value);
-                setCustomerDropdownOpen(true);
-              }}
-              onFocus={() => {
-                setCustomerDropdownOpen(true);
-                setHighlightedCustomerIndex(0);
-              }}
+              onChange={(event) => changeCustomerQuery(event.target.value)}
+              onFocus={focusCustomerSearch}
               onKeyDown={handleCustomerSearchKeyDown}
               placeholder={t('newSale.searchCustomer')}
               className={styles.textInput}
@@ -194,8 +185,8 @@ export function SaleCustomerField({ sale }: { sale: SaleWorkflow }) {
                       type="button"
                       className={`${styles.customerOption} ${isHighlighted ? styles.customerOptionActive : ''}`}
                       aria-selected={isHighlighted}
-                      onMouseEnter={() => setHighlightedCustomerIndex(index)}
-                      onMouseMove={() => setHighlightedCustomerIndex(index)}
+                      onMouseEnter={() => highlightCustomer(index)}
+                      onMouseMove={() => highlightCustomer(index)}
                       onClick={() => selectCustomer(candidate)}
                     >
                       <MemberAvatar name={candidate.name} avatarUrl={candidate.avatarUrl} className={styles.avatar} />
@@ -219,7 +210,7 @@ export function SaleCustomerField({ sale }: { sale: SaleWorkflow }) {
           ariaLabel={t('common.pharmacist')}
           value={pharmacistId}
           options={PHARMACISTS.map((pharmacist) => ({ value: pharmacist.id, label: pharmacist.name }))}
-          onChange={setPharmacistId}
+          onChange={choosePharmacist}
         />
       </div>
     </div>

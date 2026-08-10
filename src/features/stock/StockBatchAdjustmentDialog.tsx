@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Package, X } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import { ProductImage } from "@/components/product/ProductImage";
 import { localizeUnitExpression } from "@/i18n/productUnits";
 import {
   calculateStockAdjustment,
@@ -147,7 +148,14 @@ export function StockBatchAdjustmentDialog({
         <header className={styles.adjustmentHeader}>
           <span className={styles.adjustmentImageFrame}>
             {product.imageUrl ? (
-              <img src={product.imageUrl} alt="" className={styles.adjustmentImage} />
+              <ProductImage
+                priority
+                src={product.imageUrl}
+                alt=""
+                width={60}
+                height={60}
+                className={styles.adjustmentImage}
+              />
             ) : (
               <Package size={30} aria-hidden="true" />
             )}

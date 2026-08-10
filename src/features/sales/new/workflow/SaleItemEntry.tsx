@@ -1,18 +1,17 @@
 import { localizeProductUnit } from '@/i18n/productUnits';
+import { ProductImage } from '@/components/product/ProductImage';
 import { displayBatchField, nearestAvailableExpiryBatch } from '@/lib/batchPresentation';
 import styles from '../NewSale.module.css';
 import {
   availableStockForPack,
   buildProductDescription,
   formatBaht,
-  normalizeThaiKeyboardNumericInput,
   sellPriceForPack,
   shouldUseSellPackDropdown,
-  totalAvailableStockForPack,
 } from './saleDraft';
 import { CustomSelect, IconBin, IconChevronDown, IconSearch } from './SalePrimitives';
 import type { Batch } from './saleTypes';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SaleItemEntryModel } from './useSaleWorkflow';
 
 function nearestExpiryBatch(batches: Batch[]): Batch | null {
   return nearestAvailableExpiryBatch(
@@ -22,38 +21,40 @@ function nearestExpiryBatch(batches: Batch[]): Batch | null {
   );
 }
 
-export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
+export function SaleItemEntry({ model }: { model: SaleItemEntryModel }) {
   const {
     t,
     itemFieldRef,
     itemSearchInputRef,
     itemQuery,
-    setItemQuery,
-    setItemDropdownOpen,
-    setHighlightedItemIndex,
+    changeItemQuery,
+    focusItemSearch,
     handleItemSearchKeyDown,
-    preferences,
+    showKeyboardHints,
+    showAvailableStock,
+    showProductLocation,
     itemDropdownOpen,
     itemMatches,
     itemSearchLoading,
     highlightedItemIndex,
     unpricedItemName,
-    setUnpricedItemName,
     allergyWarningForItem,
     localizeUnit,
-    storeSettings,
-    openEditorForItem,
+    highlightItem,
+    openItem,
     editor,
     batchPickerRef,
-    setEditor,
-    handleSelectSellPack,
+    closeEditor,
+    toggleBatchPicker,
+    chooseSellPack,
     qtyInputRef,
-    commitEditorToCart,
+    changeEditorQuantity,
+    addEditorToCart,
     recommendedBatchId,
-    handleSelectBatch,
+    chooseBatch,
     formatExpiry,
-    appPreferences,
-  } = sale;
+    locale,
+  } = model;
 
   return (
     <>
@@ -66,22 +67,15 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
               autoFocus
               type="text"
               value={itemQuery}
-              onChange={(event) => {
-                setUnpricedItemName(null);
-                setItemQuery(event.target.value);
-                setItemDropdownOpen(true);
-              }}
-              onFocus={() => {
-                setItemDropdownOpen(true);
-                setHighlightedItemIndex(0);
-              }}
+              onChange={(event) => changeItemQuery(event.target.value)}
+              onFocus={focusItemSearch}
               onKeyDown={handleItemSearchKeyDown}
               placeholder={t('newSale.searchItem')}
               aria-invalid={unpricedItemName ? true : undefined}
               aria-describedby={unpricedItemName ? 'item-sell-price-warning' : undefined}
-              className={`${styles.itemSearchInput} ${preferences.showKeyboardHints ? styles.itemSearchInputWithHints : ''}`}
+              className={`${styles.itemSearchInput} ${showKeyboardHints ? styles.itemSearchInputWithHints : ''}`}
             />
-            {preferences.showKeyboardHints && (
+            {showKeyboardHints && (
               <span className={styles.keyboardHint} aria-hidden="true">
                 <kbd>↑↓</kbd> {t('newSale.browse')} <kbd>Enter</kbd> {t('newSale.add')} <kbd>Esc</kbd> {t('newSale.close')}
               </span>
@@ -103,11 +97,18 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                     type="button"
                     className={`${styles.itemOption} ${isHighlighted ? styles.itemOptionActive : ''}`}
                     aria-selected={isHighlighted}
-                    onMouseEnter={() => setHighlightedItemIndex(index)}
-                    onMouseMove={() => setHighlightedItemIndex(index)}
-                    onClick={() => openEditorForItem(item)}
+                    onMouseEnter={() => highlightItem(index)}
+                    onMouseMove={() => highlightItem(index)}
+                    onClick={() => openItem(item)}
                   >
-                    <img src={item.image} alt="" className={styles.itemOptionThumb} />
+                    <ProductImage
+                      priority={index < 4}
+                      src={item.image}
+                      alt=""
+                      width={38}
+                      height={38}
+                      className={styles.itemOptionThumb}
+                    />
                     <div className={styles.itemOptionMeta}>
                       <span className={styles.itemOptionName}>
                         <span>{item.name}</span>
@@ -119,8 +120,8 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                           packLabel: localizeUnit(item.packLabel),
                           location: item.loc,
                           totalStock,
-                          showLocation: storeSettings.showProductLocation,
-                          showStock: preferences.showAvailableStock,
+                          showLocation: showProductLocation,
+                          showStock: showAvailableStock,
                         })}
                       </span>
                     </div>
@@ -150,7 +151,7 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
         <div className={styles.editorBlock} ref={batchPickerRef}>
           <div className={styles.editorRows}>
             <div className={styles.editorPrimaryRow}>
-              <button type="button" className={styles.binButton} onClick={() => setEditor(null)} aria-label={t('newSale.cancelItem')}>
+              <button type="button" className={styles.binButton} onClick={closeEditor} aria-label={t('newSale.cancelItem')}>
                 <IconBin />
               </button>
               <div className={styles.editorField}>
@@ -159,7 +160,7 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                   <span className={styles.editorItemName} title={editor.item.name}>{editor.item.name}</span>
                   {allergyWarningForItem(editor.item) && <strong className={styles.allergyWarning}>{allergyWarningForItem(editor.item)}</strong>}
                 </span>
-                {storeSettings.showProductLocation && <span className={styles.editorFieldMeta}>{editor.item.loc}</span>}
+                {showProductLocation && <span className={styles.editorFieldMeta}>{editor.item.loc}</span>}
               </div>
 
               <div className={styles.editorField}>
@@ -173,7 +174,7 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                       .map((pack) => ({ value: pack.key, label: localizeUnit(pack.label) }))}
                     onChange={(packKey) => {
                       const pack = editor.item.sellPacks.find((candidate) => candidate.key === packKey);
-                      if (pack) handleSelectSellPack(pack);
+                      if (pack) chooseSellPack(pack);
                     }}
                     className={styles.sellPackSelect}
                   />
@@ -189,7 +190,7 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                 <button
                   type="button"
                   className={styles.batchToggle}
-                  onClick={() => setEditor({ ...editor, batchCardOpen: !editor.batchCardOpen })}
+                  onClick={toggleBatchPicker}
                   aria-haspopup="listbox"
                   aria-expanded={editor.batchCardOpen}
                 >
@@ -213,24 +214,17 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                   onKeyDown={(event) => {
                     if (event.key === ' ') {
                       event.preventDefault();
-                      setEditor({ ...editor, qty: '' });
+                      changeEditorQuantity('');
                     } else if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) {
                       event.preventDefault();
-                      commitEditorToCart();
+                      addEditorToCart();
                     }
                   }}
-                  onChange={(event) => {
-                    const digitsOnly = normalizeThaiKeyboardNumericInput(event.target.value).replace(/\D/g, '');
-                    const maxQuantity = totalAvailableStockForPack(editor.item.batches, editor.sellPack);
-                    const quantity = digitsOnly
-                      ? String(Math.min(maxQuantity || 1, Math.max(1, parseInt(digitsOnly, 10))))
-                      : '';
-                    setEditor({ ...editor, qty: quantity });
-                  }}
+                  onChange={(event) => changeEditorQuantity(event.target.value)}
                   className={styles.qtyInputSmall}
                 />
               </label>
-              <button type="button" className={styles.addButton} onClick={commitEditorToCart}>
+              <button type="button" className={styles.addButton} onClick={addEditorToCart}>
                 <span className={styles.addButtonIcon} aria-hidden="true">+</span>
                 <span>{t('newSale.add')}</span>
               </button>
@@ -248,7 +242,7 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                     role="option"
                     aria-selected={batch.batchId === editor.batch.batchId}
                     className={`${styles.batchOption} ${batch.batchId === editor.batch.batchId ? styles.batchOptionActive : ''}`}
-                    onClick={() => handleSelectBatch(batch)}
+                    onClick={() => chooseBatch(batch)}
                   >
                     <span className={styles.batchOptionNo}>
                       {displayBatchField(batch.batchNo)}
@@ -256,9 +250,9 @@ export function SaleItemEntry({ sale }: { sale: SaleWorkflow }) {
                     </span>
                     <span className={styles.batchOptionRow}><span className={styles.muted}>{t('newSale.expiryShort')}</span> {formatExpiry(batch.exp)}</span>
                     <span className={styles.batchOptionRow}><span className={styles.muted}>{t('newSale.sell')}</span> ฿{formatBaht(sellPriceForPack(batch, editor.sellPack))}</span>
-                    {preferences.showAvailableStock && (
+                    {showAvailableStock && (
                       <span className={styles.batchOptionRow}>
-                        <span className={styles.muted}>{t('nav.stock')}</span> {availableStockForPack(batch, editor.sellPack)} {localizeProductUnit(appPreferences.locale, editor.sellPack.unit, availableStockForPack(batch, editor.sellPack))}
+                        <span className={styles.muted}>{t('nav.stock')}</span> {availableStockForPack(batch, editor.sellPack)} {localizeProductUnit(locale, editor.sellPack.unit, availableStockForPack(batch, editor.sellPack))}
                       </span>
                     )}
                   </button>

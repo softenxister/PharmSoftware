@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { Camera, ImagePlus, Wand2 } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import { ProductImage } from "@/components/product/ProductImage";
 import {
   PRODUCT_PHOTO_FILE_TYPES,
   validateProductPhotoFile,
@@ -55,7 +56,13 @@ export function ProductPhotoField({
   const preview = (
     <>
       {(previewUrl || draft.photoUrl.trim()) ? (
-        <img src={previewUrl || draft.photoUrl} alt={t("stockForm.preview")} />
+        <ProductImage
+          priority
+          src={previewUrl || draft.photoUrl}
+          alt={t("stockForm.preview")}
+          width={360}
+          height={360}
+        />
       ) : (
         <span><ImagePlus size={30} aria-hidden="true" /></span>
       )}

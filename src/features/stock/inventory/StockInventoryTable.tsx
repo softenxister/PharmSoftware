@@ -7,6 +7,7 @@ import {
   Search,
 } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import { ProductImage } from "@/components/product/ProductImage";
 import { localizeUnitExpression } from "@/i18n/productUnits";
 import { isStockRowActivationKey } from "@/features/stock/stockRowInteraction";
 import type {
@@ -122,7 +123,7 @@ export function StockInventoryTable({
               </tr>
             </thead>
             <tbody>
-              {controller.items.map((item) => (
+              {controller.items.map((item, index) => (
                 <tr
                   key={item.id}
                   tabIndex={0}
@@ -140,9 +141,12 @@ export function StockInventoryTable({
                   <td>
                     <span className={styles.itemCell}>
                       <span className={styles.productImageFrame}>
-                        <img
+                        <ProductImage
+                          priority={index < 8}
                           src={item.imageUrl}
                           alt={t("stock.productImage", { name: item.name })}
+                          width={52}
+                          height={52}
                           className={styles.productImage}
                         />
                       </span>

@@ -1,8 +1,9 @@
 import { nearestAvailableExpiryBatch } from '@/lib/batchPresentation';
+import { ProductImage } from '@/components/product/ProductImage';
 import styles from '../NewSale.module.css';
 import { buildProductDescription, formatBaht } from './saleDraft';
 import type { Batch } from './saleTypes';
-import type { SaleWorkflow } from './useSaleWorkflow';
+import type { SaleProductBrowserModel } from './useSaleWorkflow';
 
 function nearestExpiryBatch(batches: Batch[]): Batch | null {
   return nearestAvailableExpiryBatch(
@@ -12,34 +13,34 @@ function nearestExpiryBatch(batches: Batch[]): Batch | null {
   );
 }
 
-export function SaleProductBrowser({ sale }: { sale: SaleWorkflow }) {
+export function SaleProductBrowser({ model }: { model: SaleProductBrowserModel }) {
   const {
     topItems,
     localizeUnit,
-    storeSettings,
-    preferences,
+    showProductLocation,
+    showAvailableStock,
     startHold,
     endHold,
-    handleTopItemTap,
+    openItem,
     heldItemId,
     t,
     topItemsLabel,
-  } = sale;
+  } = model;
 
   if (topItems.length === 0) return null;
 
   return (
     <div className={styles.topItemsSection}>
       <div className={styles.topItemsRail}>
-        {topItems.map((item) => {
+        {topItems.map((item, index) => {
           const nearest = nearestExpiryBatch(item.batches);
           const productDescription = buildProductDescription({
             brand: item.brand,
             packLabel: localizeUnit(item.packLabel),
             location: item.loc,
             totalStock: item.batches.reduce((sum, batch) => sum + batch.stock, 0),
-            showLocation: storeSettings.showProductLocation,
-            showStock: preferences.showAvailableStock,
+            showLocation: showProductLocation,
+            showStock: showAvailableStock,
           });
           return (
             <button
@@ -51,9 +52,16 @@ export function SaleProductBrowser({ sale }: { sale: SaleWorkflow }) {
               onMouseLeave={endHold}
               onTouchStart={() => startHold(item.id)}
               onTouchEnd={endHold}
-              onClick={() => handleTopItemTap(item)}
+              onClick={() => openItem(item)}
             >
-              <img src={item.image} alt={item.name} className={styles.topItemImage} />
+              <ProductImage
+                priority={index < 4}
+                src={item.image}
+                alt={item.name}
+                width={86}
+                height={86}
+                className={styles.topItemImage}
+              />
               <span className={styles.topItemDetail} aria-hidden="true">
                 <span className={styles.topItemDetailName}>{item.name}</span>
                 <span className={styles.topItemDetailSub}>{productDescription}</span>

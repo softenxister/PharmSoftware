@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Package, X } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import { ProductImage } from "@/components/product/ProductImage";
 import { localizeUnitExpression } from "@/i18n/productUnits";
 import type { PharmUserRole } from "@server/auth/pharmUser";
 import type { SalesProduct } from "@server/db/types";
@@ -180,7 +181,16 @@ export function StockItemDetailDialog({ product, role, onClose, onSaved }: Stock
       >
         <header className={styles.adjustmentHeader}>
           <span className={styles.adjustmentImageFrame}>
-            {product.imageUrl ? <img src={product.imageUrl} alt="" className={styles.adjustmentImage} /> : <Package size={30} />}
+            {product.imageUrl ? (
+              <ProductImage
+                priority
+                src={product.imageUrl}
+                alt=""
+                width={60}
+                height={60}
+                className={styles.adjustmentImage}
+              />
+            ) : <Package size={30} />}
           </span>
           <span className={styles.adjustmentProductInfo}>
             <h2 id="set-item-detail-title">{t("stock.setItemDetail")}</h2>
