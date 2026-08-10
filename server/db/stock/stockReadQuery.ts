@@ -46,6 +46,7 @@ export type StockReadQuery = {
   sort: StockSort;
   sortDirection: StockSortDirection;
   productIds: string[];
+  includeInventoryMetadata: boolean;
   filters: StockReadFilters;
 };
 
@@ -113,6 +114,7 @@ export function parseStockReadQuery(url: string): StockReadQuery {
     sort,
     sortDirection,
     productIds,
+    includeInventoryMetadata: params.get("inventory") === "1",
     filters,
   };
 }

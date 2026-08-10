@@ -82,12 +82,12 @@ export function StockInventoryTable({
           <div className={styles.tableSummary}>
             <span>
               {t("stock.lowCount", {
-                count: controller.items.filter(({ state }) => state === "low").length,
+                count: controller.inventoryCounts.lowStock,
               })}
             </span>
             <span>
               {t("stock.overCount", {
-                count: controller.items.filter(({ state }) => state === "overstock").length,
+                count: controller.inventoryCounts.overstock,
               })}
             </span>
           </div>

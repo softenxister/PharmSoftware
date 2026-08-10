@@ -42,9 +42,6 @@ const THAI_STOCK_FILTER_LABELS: Readonly<Record<string, string>> = Object.freeze
   "low stock": "สต็อกต่ำ",
   "normal stock": "สต็อกปกติ",
   overstock: "สต็อกเกิน",
-  pending: "รอดำเนินการ",
-  completed: "เสร็จแล้ว",
-  blocked: "ถูกระงับ",
 });
 
 export function getStockFilterOptionLabel(locale: AppLocale, value: string): string {

@@ -1,4 +1,9 @@
-import type { SalesProduct, StockItemInput } from "@server/db/types";
+import type {
+  SalesProduct,
+  StockInventoryMetadata,
+  StockItemInput,
+  StockProductPage,
+} from "@server/db/types";
 import type { StockReadFilters, StockSort } from "@server/db/stock/stockReadQuery";
 
 const STOCK_CACHE_TTL_MS = 5_000;
@@ -13,13 +18,8 @@ export const PRODUCT_PHOTO_FILE_TYPES = [
 ] as const;
 export const MAX_PRODUCT_PHOTO_FILE_BYTES = 8 * 1024 * 1024;
 
-export type StockPage = {
-  products: SalesProduct[];
-  page: number;
-  pageSize: number;
-  total: number;
-  hasMore: boolean;
-};
+export type StockPage = StockProductPage;
+export type StockInventoryPage = StockProductPage & { inventory: StockInventoryMetadata };
 
 export type StockSortDirection = "asc" | "desc";
 export type StockPageOptions = {
@@ -30,6 +30,7 @@ export type StockPageOptions = {
   sortDirection?: StockSortDirection;
   productIds?: string[];
   filters?: StockReadFilters;
+  includeInventoryMetadata?: boolean;
 };
 
 let cachedPages = new Map<string, { result: StockPage; expiresAt: number }>();
@@ -52,6 +53,7 @@ function stockPageUrl(options: StockPageOptions): string {
     pageSize: String(pageSize),
     sort: options.sort ?? "name",
   });
+  if (options.includeInventoryMetadata) params.set("inventory", "1");
   const query = options.query?.trim();
   if (query) params.set("q", query);
   if (options.sortDirection === "desc") params.set("direction", "desc");
@@ -84,7 +86,29 @@ function isStockPage(value: unknown): value is StockPage {
     && Number(page.pageSize) > 0
     && Number.isSafeInteger(page.total)
     && Number(page.total) >= 0
-    && typeof page.hasMore === "boolean";
+    && typeof page.hasMore === "boolean"
+    && (page.inventory === undefined || isStockInventoryMetadata(page.inventory));
+}
+
+function isStockInventoryMetadata(value: unknown): value is StockInventoryMetadata {
+  if (!value || typeof value !== "object") return false;
+  const inventory = value as Partial<StockInventoryMetadata>;
+  const facets = inventory.facets;
+  const counts = inventory.counts;
+  const stringList = (list: unknown) => (
+    Array.isArray(list) && list.every((entry) => typeof entry === "string")
+  );
+  return Boolean(
+    facets
+    && stringList(facets.dosageTypes)
+    && stringList(facets.manufacturers)
+    && stringList(facets.tags)
+    && counts
+    && Number.isSafeInteger(counts.lowStock)
+    && counts.lowStock >= 0
+    && Number.isSafeInteger(counts.overstock)
+    && counts.overstock >= 0
+  );
 }
 
 function cachePage(key: string, result: StockPage): void {
@@ -100,6 +124,14 @@ export function invalidateStockCatalog(): void {
   pageRequests = new Map();
 }
 
+export function loadStockPage(
+  options: StockPageOptions & { includeInventoryMetadata: true },
+  fetcher?: typeof fetch,
+): Promise<StockInventoryPage>;
+export function loadStockPage(
+  options?: StockPageOptions,
+  fetcher?: typeof fetch,
+): Promise<StockPage>;
 export async function loadStockPage(
   options: StockPageOptions = {},
   fetcher: typeof fetch = fetch,
@@ -116,6 +148,9 @@ export async function loadStockPage(
     if (!response.ok) throw new Error("Unable to load stock.");
     const data: unknown = await response.json();
     if (!isStockPage(data)) throw new Error("Stock response is invalid.");
+    if (options.includeInventoryMetadata && !data.inventory) {
+      throw new Error("Stock response is invalid.");
+    }
     cachePage(url, data);
     return data;
   })();

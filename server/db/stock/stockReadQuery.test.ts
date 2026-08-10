@@ -10,6 +10,7 @@ test("stock reads default to the first bounded page", () => {
     sort: "name",
     sortDirection: "asc",
     productIds: [],
+    includeInventoryMetadata: false,
     filters: {
       categories: [],
       dosageTypes: [],
@@ -20,6 +21,21 @@ test("stock reads default to the first bounded page", () => {
       stockRange: null,
     },
   });
+});
+
+test("inventory reads opt into authoritative facets and counts explicitly", () => {
+  assert.equal(
+    parseStockReadQuery("http://pharm.test/api/stock").includeInventoryMetadata,
+    false,
+  );
+  assert.equal(
+    parseStockReadQuery("http://pharm.test/api/stock?inventory=1").includeInventoryMetadata,
+    true,
+  );
+  assert.equal(
+    parseStockReadQuery("http://pharm.test/api/stock?inventory=true").includeInventoryMetadata,
+    false,
+  );
 });
 
 test("stock reads accept descending item-name order", () => {
@@ -54,6 +70,7 @@ test("stock read limits are clamped and search input is normalized", () => {
     sort: "weekly",
     sortDirection: "asc",
     productIds: [],
+    includeInventoryMetadata: false,
     filters: {
       categories: [],
       dosageTypes: [],

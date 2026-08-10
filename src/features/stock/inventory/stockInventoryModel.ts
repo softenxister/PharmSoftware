@@ -1,7 +1,7 @@
 import type { SalesProduct, StockItemInput } from "@server/db/types";
 import type { StockSort } from "@server/db/stock/stockReadQuery";
 import type {
-  StockPage,
+  StockInventoryPage,
   StockSortDirection,
 } from "@/api/stockCatalogClient";
 import { getStockMeasurementLabel } from "@/lib/productMeasurement";
@@ -76,7 +76,6 @@ export const EXPIRY_WINDOWS = [
 ] as const;
 
 export const STOCK_LEVELS = ["Out of Stock", "Low Stock", "Normal Stock", "Overstock"] as const;
-export const STOCK_ADJUSTMENT_STATES = ["Pending", "Completed", "Blocked"] as const;
 
 export type ExpiryWindow = (typeof EXPIRY_WINDOWS)[number];
 export type StockLevel = (typeof STOCK_LEVELS)[number];
@@ -89,8 +88,7 @@ export type StockFilterPanel =
   | "stock"
   | "stockRange"
   | "manufacturer"
-  | "tags"
-  | "stockAdjustment";
+  | "tags";
 
 export type StockTableSort = {
   key: StockTableSortKey;
@@ -119,7 +117,6 @@ export type DraftStockFilters = {
   stockLevels: StockLevel[];
   manufacturers: string[];
   tags: string[];
-  adjustmentStatuses: string[];
   minimumStock: string;
   maximumStock: string;
 };
@@ -132,7 +129,6 @@ export type MultiSelectFilterKey = keyof Pick<
   | "stockLevels"
   | "manufacturers"
   | "tags"
-  | "adjustmentStatuses"
 >;
 
 export type StockInventoryItem = {
@@ -168,7 +164,6 @@ export function createEmptyDraftFilters(): DraftStockFilters {
     stockLevels: [],
     manufacturers: [],
     tags: [],
-    adjustmentStatuses: [],
     minimumStock: "",
     maximumStock: "",
   };
@@ -266,7 +261,7 @@ export function projectStockInventoryItem(product: SalesProduct): StockInventory
   };
 }
 
-export function projectAuthoritativeInventoryPage(page: StockPage) {
+export function projectAuthoritativeInventoryPage(page: StockInventoryPage) {
   return {
     products: page.products,
     items: page.products.map(projectStockInventoryItem),
@@ -274,6 +269,7 @@ export function projectAuthoritativeInventoryPage(page: StockPage) {
     pageSize: page.pageSize,
     total: page.total,
     hasMore: page.hasMore,
+    inventory: page.inventory,
   };
 }
 

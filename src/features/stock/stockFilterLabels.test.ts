@@ -3,7 +3,6 @@ import test from "node:test";
 import {
   COMMON_DOSAGE_TYPES,
   EXPIRY_WINDOWS,
-  STOCK_ADJUSTMENT_STATES,
   STOCK_LEVELS,
 } from "./inventory/stockInventoryModel";
 import { getStockFilterOptionLabel } from "./stockFilterLabels";
@@ -19,7 +18,6 @@ test("every standard Stock sidebar option has a Thai display label", () => {
     "g",
     ...EXPIRY_WINDOWS,
     ...STOCK_LEVELS,
-    ...STOCK_ADJUSTMENT_STATES,
   ];
 
   for (const option of standardOptions) {

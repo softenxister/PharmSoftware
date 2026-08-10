@@ -224,6 +224,50 @@ test("inventory filters request one server-filtered page instead of the complete
   ]);
 });
 
+test("inventory page loads request and require authoritative full-result metadata", async () => {
+  invalidateStockCatalog();
+  let requestedUrl = "";
+  const inventory = {
+    facets: {
+      dosageTypes: ["capsule", "tablet"],
+      manufacturers: ["GPO", "องค์การเภสัชกรรม"],
+      tags: ["Cold chain"],
+    },
+    counts: { lowStock: 17, overstock: 4 },
+  };
+  const fetcher: typeof fetch = async (input) => {
+    requestedUrl = String(input);
+    return Response.json({
+      products: [product],
+      page: 2,
+      pageSize: 50,
+      total: 76,
+      hasMore: false,
+      inventory,
+    });
+  };
+
+  const result = await loadStockPage({
+    page: 2,
+    includeInventoryMetadata: true,
+  }, fetcher);
+
+  assert.equal(requestedUrl, "/api/stock?page=2&pageSize=50&sort=name&inventory=1");
+  assert.deepEqual(result.inventory, inventory);
+
+  invalidateStockCatalog();
+  await assert.rejects(
+    () => loadStockPage({ includeInventoryMetadata: true }, async () => Response.json({
+      products: [product],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      hasMore: false,
+    })),
+    /Stock response is invalid/,
+  );
+});
+
 test("stock saves surface the API error instead of failing silently", async () => {
   const input: StockItemInput = {
     productId: "p-test",

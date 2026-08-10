@@ -49,13 +49,6 @@ test("Thai dates remain Gregorian and money remains Thai baht", () => {
   assert.match(formatMoney("th", 1234.5), /1,234\.50/);
 });
 
-test("stock adjustment helper text is translated", () => {
-  assert.equal(
-    translate("th", "stock.adjustmentFilterNote"),
-    "สถานะการปรับยังไม่ใช้กรองตารางสินค้า",
-  );
-});
-
 test("stock profit percentage is labeled as markup", () => {
   assert.equal(translate("en", "stock.markupShort"), "Markup %");
   assert.equal(translate("th", "stock.markupShort"), "กำไรต่อต้นทุน %");

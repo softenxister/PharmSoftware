@@ -4,6 +4,7 @@ import type { SalesProduct } from "@server/db/types";
 import {
   buildFilterOptions,
   clampStockSidebarWidth,
+  createEmptyDraftFilters,
   parseStockRange,
   projectAuthoritativeInventoryPage,
   projectStockInventoryItem,
@@ -36,12 +37,21 @@ const product: SalesProduct = {
 };
 
 test("inventory renders the authoritative server page without filtering it again", () => {
+  const inventory = {
+    facets: {
+      dosageTypes: ["capsule", "tablet"],
+      manufacturers: ["GPO"],
+      tags: ["Cold chain"],
+    },
+    counts: { lowStock: 38, overstock: 7 },
+  };
   const page = projectAuthoritativeInventoryPage({
     products: [product],
     page: 3,
     pageSize: 50,
     total: 121,
     hasMore: false,
+    inventory,
   });
 
   assert.equal(page.items.length, 1);
@@ -52,6 +62,7 @@ test("inventory renders the authoritative server page without filtering it again
   assert.equal(page.page, 3);
   assert.equal(page.total, 121);
   assert.equal(page.hasMore, false);
+  assert.deepEqual(page.inventory, inventory);
 });
 
 test("inventory markup display rounds fractional percentages up to whole numbers", () => {
@@ -72,6 +83,19 @@ test("inventory option lists stay stable while adding server values", () => {
     buildFilterOptions(["Tablet", "Capsule"], ["tablet", "Cream", " GPO "]),
     ["Tablet", "Capsule", "Cream", "GPO"],
   );
+});
+
+test("inventory drafts expose only filters backed by the authoritative server read", () => {
+  assert.deepEqual(createEmptyDraftFilters(), {
+    categories: [],
+    dosageTypes: [],
+    expiryWindows: [],
+    stockLevels: [],
+    manufacturers: [],
+    tags: [],
+    minimumStock: "",
+    maximumStock: "",
+  });
 });
 
 test("stock range parsing accepts optional bounds and rejects invalid ranges", () => {

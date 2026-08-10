@@ -75,6 +75,27 @@ export type SalesProduct = {
   batches: ProductBatch[];
 };
 
+export type StockInventoryMetadata = {
+  facets: {
+    dosageTypes: string[];
+    manufacturers: string[];
+    tags: string[];
+  };
+  counts: {
+    lowStock: number;
+    overstock: number;
+  };
+};
+
+export type StockProductPage = {
+  products: SalesProduct[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+  inventory?: StockInventoryMetadata;
+};
+
 export type StockPackagingInput = {
   parentUnit: string;
   childQuantity: string;

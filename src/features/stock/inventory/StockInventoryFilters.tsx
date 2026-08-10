@@ -24,7 +24,6 @@ import {
   resizeStockSidebarFromDrag,
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
-  STOCK_ADJUSTMENT_STATES,
   STOCK_LEVELS,
   type StockSidebarDragResult,
 } from "./stockInventoryModel";
@@ -224,18 +223,6 @@ export function StockInventoryFilters({
             isOpen={filters.openPanel === "tags"}
             onToggle={() => filters.togglePanel("tags")}
             onToggleOption={(option) => filters.toggleOption("tags", option)}
-          />
-          <StockFilterDropdown
-            id="stock-adjustment-options"
-            label={t("stock.adjustment")}
-            options={STOCK_ADJUSTMENT_STATES}
-            selectedOptions={filters.draft.adjustmentStatuses}
-            isOpen={filters.openPanel === "stockAdjustment"}
-            onToggle={() => filters.togglePanel("stockAdjustment")}
-            onToggleOption={(option) => filters.toggleOption("adjustmentStatuses", option)}
-            searchable={false}
-            helperText={t("stock.adjustmentFilterNote")}
-            getOptionLabel={localizeFilterOption}
           />
         </div>
         <div className={styles.sidebarActions}>

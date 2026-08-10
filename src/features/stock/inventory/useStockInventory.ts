@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import type { SalesProduct, StockItemInput } from "@server/db/types";
+import type {
+  SalesProduct,
+  StockInventoryMetadata,
+  StockItemInput,
+} from "@server/db/types";
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
   invalidateStockCatalog,
@@ -27,6 +31,11 @@ import {
   type StockTableSortKey,
 } from "./stockInventoryModel";
 
+const EMPTY_INVENTORY_METADATA: StockInventoryMetadata = {
+  facets: { dosageTypes: [], manufacturers: [], tags: [] },
+  counts: { lowStock: 0, overstock: 0 },
+};
+
 export function useStockInventory() {
   const { user } = useAuth();
   const [isSidebarClosed, setIsSidebarClosed] = useState(false);
@@ -40,6 +49,9 @@ export function useStockInventory() {
   const [sort, setSort] = useState<StockTableSort>({ key: "name", direction: "asc" });
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [inventoryMetadata, setInventoryMetadata] = useState<StockInventoryMetadata>(
+    EMPTY_INVENTORY_METADATA,
+  );
   const [hasMoreProducts, setHasMoreProducts] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [stockRefreshVersion, setStockRefreshVersion] = useState(0);
@@ -69,6 +81,7 @@ export function useStockInventory() {
           sort: sort.key,
           sortDirection: sort.direction,
           filters: appliedFilters,
+          includeInventoryMetadata: true,
         });
         if (cancelled) return;
         const authoritativePage = projectAuthoritativeInventoryPage(result);
@@ -83,6 +96,7 @@ export function useStockInventory() {
         setProducts(authoritativePage.products);
         setTotalProducts(authoritativePage.total);
         setHasMoreProducts(authoritativePage.hasMore);
+        setInventoryMetadata(authoritativePage.inventory);
       } catch (error) {
         console.error(error);
       } finally {
@@ -115,24 +129,24 @@ export function useStockInventory() {
       COMMON_DOSAGE_TYPES,
       [
         ...draftFilters.dosageTypes,
-        ...products.map((product) => product.pack.childUnit),
+        ...inventoryMetadata.facets.dosageTypes,
       ],
     ),
-    [draftFilters.dosageTypes, products],
+    [draftFilters.dosageTypes, inventoryMetadata.facets.dosageTypes],
   );
   const manufacturerOptions = useMemo(
     () => buildFilterOptions(
       draftFilters.manufacturers,
-      products.map((product) => product.manufacturerName),
+      inventoryMetadata.facets.manufacturers,
     ),
-    [draftFilters.manufacturers, products],
+    [draftFilters.manufacturers, inventoryMetadata.facets.manufacturers],
   );
   const tagOptions = useMemo(
     () => buildFilterOptions(
       draftFilters.tags,
-      products.map((product) => product.tagName ?? ""),
+      inventoryMetadata.facets.tags,
     ),
-    [draftFilters.tags, products],
+    [draftFilters.tags, inventoryMetadata.facets.tags],
   );
 
   const changeSort = (key: StockTableSortKey) => {
@@ -258,6 +272,7 @@ export function useStockInventory() {
   const saveItemDetail = (product: SalesProduct) => {
     replaceVisibleProduct(product);
     invalidateStockCatalog();
+    setStockRefreshVersion((version) => version + 1);
     setDetailProduct(null);
   };
 
@@ -279,6 +294,7 @@ export function useStockInventory() {
     setAdjustmentProduct(null);
     setAdjustmentSuccess(true);
     invalidateStockCatalog();
+    setStockRefreshVersion((version) => version + 1);
   };
 
   return {
@@ -288,6 +304,7 @@ export function useStockInventory() {
     items,
     products,
     totalProducts,
+    inventoryCounts: inventoryMetadata.counts,
     hasMoreProducts,
     isLoadingProducts,
     page,
