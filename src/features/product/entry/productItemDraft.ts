@@ -178,7 +178,6 @@ export function createProductItemDraft(
 export function getMissingProductFields(draft: ProductItemDraft): string[] {
   const price = Number(draft.sellPrice);
   const missing: string[] = [];
-  if (!draft.barcode.trim()) missing.push("barcode");
   if (!draft.itemName.trim()) missing.push("item name");
   if (!Number.isFinite(price) || price <= 0) missing.push("sell price");
   if (!draft.weightage.trim()) missing.push("weightage");

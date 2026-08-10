@@ -4,28 +4,15 @@ import {
 } from "@server/db/stock/stockCatalogRepository";
 import {
   deleteStockItem,
-  saveStockItem,
-  saveStockItems,
   updateStockItemDetail,
 } from "@server/db/stock/stockItemRepository";
 import { parseStockItemDetailPatch } from "@server/db/stock/stockItemDetail";
-import type { StockItemInput } from "@server/db/types";
+import {
+  parseProductWriteRequest,
+  persistProductWriteRequest,
+} from "@server/db/stock/productWrite";
 import { parseStockReadQuery } from "@server/db/stock/stockReadQuery";
 import { isAuthenticationError, requireAuthenticatedUser } from "@server/auth/pharmUser";
-
-function isStockItemInput(value: unknown): value is StockItemInput {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Record<string, unknown>;
-  const stringFields = [
-    "photoUrl", "barcode", "itemName", "lotNo", "expiryDate", "location",
-    "manufacturer", "sellPrice", "itemCategory", "weightage", "unit", "brandName",
-  ];
-  return stringFields.every((field) => typeof item[field] === "string")
-    && (item.productId === undefined || typeof item.productId === "string")
-    && (item.barcodes === undefined || (Array.isArray(item.barcodes) && item.barcodes.every((barcode) => typeof barcode === "string")))
-    && (item.subUnit === undefined || typeof item.subUnit === "string")
-    && Array.isArray(item.packagingRows);
-}
 
 export async function GET(request: Request) {
   try {
@@ -40,16 +27,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await requireAuthenticatedUser();
-    const body = await request.json();
-    const inputs = Array.isArray(body?.items) ? body.items : [body];
-    if (inputs.length === 0 || !inputs.every(isStockItemInput)) {
+    const input = parseProductWriteRequest(await request.json());
+    if (!input) {
       return Response.json({ error: "Stock item data is invalid." }, { status: 400 });
     }
 
-    if (Array.isArray(body?.items)) {
-      return Response.json({ savedCount: await saveStockItems(inputs) });
-    }
-    return Response.json({ product: await saveStockItem(inputs[0]) });
+    const result = await persistProductWriteRequest(input);
+    return result.mode === "bulk"
+      ? Response.json({ savedCount: result.savedCount })
+      : Response.json({ product: result.product });
   } catch (error) {
     if (isAuthenticationError(error)) return Response.json({ error: error.message }, { status: 401 });
     return Response.json({ error: "Unable to save stock item." }, { status: 400 });

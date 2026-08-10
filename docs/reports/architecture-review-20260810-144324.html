@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content="Codex architecture review" />
+    <title>Architecture review — Pharm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { border-style: dashed; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; }
+      .leak { color: #dc2626; }
+      .diagram { min-height: 280px; }
+      .flow-arrow { color: #94a3b8; font-size: 1.5rem; line-height: 1; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-12">
+      <header class="border-b border-slate-200 pb-7">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.22em] text-emerald-700">Pharm · 10 August 2026</p>
+            <h1 class="mt-2 text-4xl font-semibold tracking-tight">Architecture review</h1>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="rounded border border-slate-300 bg-white px-2 py-1">solid box = module</span>
+            <span class="rounded border border-dashed border-slate-400 bg-white px-2 py-1">dashed = seam</span>
+            <span class="rounded border border-red-300 bg-red-50 px-2 py-1 text-red-700">red = leakage</span>
+            <span class="rounded bg-slate-900 px-2 py-1 text-white">dark = deep module</span>
+          </div>
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-10">
+        <article id="product-write" class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-semibold">One validated Product write</h2>
+            <div class="flex gap-2 text-xs font-medium">
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Strong</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mt-4 font-mono text-sm text-slate-600">server/routes/stock.ts · server/db/stock/stockItemRepository.ts · server/db/stock/stockItemMapper.ts · server/db/types.ts · src/features/product/entry/productItemDraft.ts</p>
+          <div class="mt-6 grid gap-5 lg:grid-cols-2">
+            <div class="diagram rounded-xl border border-red-200 bg-red-50/40 p-5">
+              <p class="text-xs uppercase tracking-wider text-red-700">Before · shallow adapter chain</p>
+              <div class="mt-5 space-y-3 text-center text-sm">
+                <div class="rounded border bg-white p-3">HTTP Product input</div>
+                <div class="flow-arrow">↓</div>
+                <div class="seam rounded border border-red-400 bg-white p-3">shape checks only</div>
+                <div class="flow-arrow">↓</div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="rounded border border-red-300 bg-white p-3">StockItemInput</div>
+                  <div class="rounded border border-red-300 bg-white p-3">SavedStockItem</div>
+                  <div class="rounded border border-red-300 bg-white p-3">SalesProduct</div>
+                </div>
+                <p class="leak text-xs">numeric defaults and packaging loss can leak between shapes</p>
+              </div>
+            </div>
+            <div class="diagram rounded-xl border border-slate-800 bg-slate-50 p-5">
+              <p class="text-xs uppercase tracking-wider text-emerald-700">After · deep Product write module</p>
+              <div class="mt-5 flex h-56 flex-col justify-center rounded-xl border-4 border-slate-800 p-5 text-center">
+                <div class="seam mx-auto rounded border border-slate-500 bg-white px-5 py-2 text-sm">existing HTTP seam</div>
+                <div class="flow-arrow">↓</div>
+                <div class="deep rounded-lg p-7">
+                  <p class="text-xs uppercase tracking-wider text-slate-300">Product write module</p>
+                  <p class="mt-2 font-medium">parse · normalize · validate · persist</p>
+                </div>
+                <p class="mt-3 text-xs text-slate-500">Seed adapter remains only at the seed seam.</p>
+              </div>
+            </div>
+          </div>
+          <dl class="mt-6 grid gap-4 md:grid-cols-2">
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Problem</dt><dd class="mt-1">The live Product interface crosses multiple mapping shapes without one authoritative invariant check.</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Solution</dt><dd class="mt-1">Deepen one Product write module; keep the seed adapter only where a second adapter is real.</dd></div>
+          </dl>
+          <ul class="mt-5 grid gap-2 text-sm sm:grid-cols-3">
+            <li>• locality: invariants concentrate</li><li>• leverage: one validation path</li><li>• tests hit the real interface</li>
+          </ul>
+        </article>
+
+        <article id="inventory-facets" class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-semibold">Authoritative Inventory facets and counts</h2>
+            <div class="flex gap-2 text-xs font-medium">
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Strong</span>
+              <span class="rounded-full bg-indigo-100 px-3 py-1 text-indigo-800">ports &amp; adapters</span>
+            </div>
+          </div>
+          <p class="mt-4 font-mono text-sm text-slate-600">src/features/stock/inventory/useStockInventory.ts · stockInventoryModel.ts · StockInventoryFilters.tsx · src/api/stockCatalogClient.ts · server/db/stock/stockReadQuery.ts · stockCatalogRepository.ts</p>
+          <div class="mt-6 grid gap-5 lg:grid-cols-2">
+            <div class="diagram rounded-xl border border-red-200 bg-red-50/40 p-5">
+              <p class="text-xs uppercase tracking-wider text-red-700">Before · page-local meaning</p>
+              <pre class="mermaid mt-5">
+flowchart TB
+  DB[(All Products)] --> PAGE[Current page: 50]
+  PAGE --> ROWS[Rows]
+  PAGE --> FACETS[Manufacturer / tag options]
+  PAGE --> COUNTS[Low / overstock counts]
+  UI[Adjustment filter UI] -. dropped .-> PAGE
+  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class FACETS,COUNTS,UI leak
+              </pre>
+            </div>
+            <div class="diagram rounded-xl border border-slate-800 bg-slate-50 p-5">
+              <p class="text-xs uppercase tracking-wider text-emerald-700">After · one authoritative read</p>
+              <pre class="mermaid mt-5">
+flowchart TB
+  QUERY[Inventory query] --> DEEP[Inventory read module]
+  DB[(All Products)] --> DEEP
+  DEEP --> PAGE[Page rows]
+  DEEP --> FACETS[Full-scope facets]
+  DEEP --> COUNTS[Full-scope counts]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class DEEP deep
+              </pre>
+            </div>
+          </div>
+          <dl class="mt-6 grid gap-4 md:grid-cols-2">
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Problem</dt><dd class="mt-1">Filter options and summary counts are derived from the current page, while one visible filter is not applied at all.</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Solution</dt><dd class="mt-1">Deepen the Inventory read module so rows, facets, counts, paging, and filtering share one implementation.</dd></div>
+          </dl>
+          <ul class="mt-5 grid gap-2 text-sm sm:grid-cols-3">
+            <li>• locality: filter semantics align</li><li>• leverage: trustworthy paging</li><li>• interface returns complete meaning</li>
+          </ul>
+          <p class="mt-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">ADR-002: additive HTTP output needs its own tested correctness change.</p>
+        </article>
+
+        <article id="workflow-interface" class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-semibold">Shrink Sale and Purchase workflow interfaces</h2>
+            <div class="flex gap-2 text-xs font-medium">
+              <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">Strong</span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-700">in-process</span>
+            </div>
+          </div>
+          <p class="mt-4 font-mono text-sm text-slate-600">src/features/sales/new/workflow/useSaleWorkflow.ts · NewSale.tsx · src/features/purchase/new/workflow/usePurchaseWorkflow.ts · PurchaseEntry.tsx</p>
+          <div class="mt-6 grid gap-5 lg:grid-cols-2">
+            <div class="diagram rounded-xl border border-red-200 bg-red-50/40 p-5">
+              <p class="text-xs uppercase tracking-wider text-red-700">Before · interface mirrors implementation</p>
+              <div class="mt-5 flex h-56 items-center gap-4">
+                <div class="flex-1 rounded border border-red-400 bg-white p-4 text-center">
+                  <p class="text-xs uppercase tracking-wider">workflow interface</p>
+                  <div class="mt-3 grid grid-cols-5 gap-1">
+                    <span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span>
+                    <span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span>
+                    <span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span><span class="h-6 bg-red-100"></span>
+                  </div>
+                  <p class="mt-3 text-xs text-red-700">setters and internal details</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="w-32 space-y-2 text-center text-xs"><div class="rounded border bg-white p-2">10 Sale views</div><div class="rounded border bg-white p-2">3 Purchase views</div></div>
+              </div>
+            </div>
+            <div class="diagram rounded-xl border border-slate-800 bg-slate-50 p-5">
+              <p class="text-xs uppercase tracking-wider text-emerald-700">After · cohesive projections and commands</p>
+              <div class="mt-5 flex h-56 items-center gap-4">
+                <div class="deep flex-1 rounded-xl p-7 text-center">
+                  <p class="text-xs uppercase tracking-wider text-slate-300">deep workflow module</p>
+                  <p class="mt-3">lifecycle · state · persistence</p>
+                  <p class="mt-2 text-xs text-slate-300">internal seams stay private</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="seam w-36 rounded border border-slate-500 bg-white p-4 text-center text-sm">small workflow interface</div>
+              </div>
+            </div>
+          </div>
+          <dl class="mt-6 grid gap-4 md:grid-cols-2">
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Problem</dt><dd class="mt-1">The workflow modules are earned, but their flat interfaces expose most implementation state to every view.</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Solution</dt><dd class="mt-1">Keep the modules; deepen them around cohesive workflow projections and commands.</dd></div>
+          </dl>
+          <ul class="mt-5 grid gap-2 text-sm sm:grid-cols-3">
+            <li>• locality: lifecycle stays together</li><li>• leverage: one test surface</li><li>• UI learns less</li>
+          </ul>
+        </article>
+
+        <article id="stock-query" class="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-2xl font-semibold">One Stock catalog query implementation</h2>
+            <div class="flex gap-2 text-xs font-medium">
+              <span class="rounded-full bg-amber-100 px-3 py-1 text-amber-900">Worth exploring</span>
+              <span class="rounded-full bg-indigo-100 px-3 py-1 text-indigo-800">ports &amp; adapters</span>
+            </div>
+          </div>
+          <p class="mt-4 font-mono text-sm text-slate-600">server/db/stock/stockCatalogRepository.ts · server/db/stock/stockInventorySortSql.ts</p>
+          <div class="mt-6 grid gap-5 lg:grid-cols-2">
+            <div class="diagram rounded-xl border border-red-200 bg-red-50/40 p-5">
+              <p class="text-xs uppercase tracking-wider text-red-700">Before · duplicated criteria</p>
+              <pre class="mermaid mt-5">
+flowchart TB
+  I[readStockProducts] --> O[Prisma path]
+  I --> A[Aggregate SQL path]
+  O --> F1[search / categories / tags / sort]
+  A --> F2[search / categories / tags / sort]
+  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class F1,F2 leak
+              </pre>
+            </div>
+            <div class="diagram rounded-xl border border-slate-800 bg-slate-50 p-5">
+              <p class="text-xs uppercase tracking-wider text-emerald-700">After · one page-selection implementation</p>
+              <pre class="mermaid mt-5">
+flowchart TB
+  I[readStockProducts] --> Q[Stock query module]
+  Q --> P[Product projection]
+  P --> R[Page result]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a,stroke-width:3px;
+  class Q deep
+              </pre>
+            </div>
+          </div>
+          <dl class="mt-6 grid gap-4 md:grid-cols-2">
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Problem</dt><dd class="mt-1">Ordinary and aggregate reads repeat filter and ordering knowledge in separate implementations.</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider text-slate-500">Solution</dt><dd class="mt-1">Keep the small read interface and converge page selection after checking database plans.</dd></div>
+          </dl>
+          <ul class="mt-5 grid gap-2 text-sm sm:grid-cols-3">
+            <li>• locality: criteria change once</li><li>• leverage: consistent results</li><li>• preserve Product projection</li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="top-recommendation" class="rounded-2xl bg-emerald-950 p-8 text-white">
+        <p class="text-xs uppercase tracking-[0.2em] text-emerald-300">Top recommendation</p>
+        <h2 class="mt-2 text-3xl font-semibold"><a class="underline decoration-emerald-400 underline-offset-4" href="#product-write">One validated Product write</a></h2>
+        <p class="mt-3 max-w-3xl text-emerald-50">It protects Product identity, packaging, barcode, unit, and price invariants at the write seam before more workflows depend on them.</p>
+      </section>
+    </main>
+  </body>
+</html>

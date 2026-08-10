@@ -7,7 +7,6 @@ import type { PharmUser } from "@server/auth/pharmUser";
 import { getSalesLandingHref } from "@/config/preferences/posPreferences";
 import { usePosPreferences } from "@/hooks/usePosPreferences";
 import logoImage from "@/styles/vector/logo.png";
-import flosteraWordmark from "@/styles/vector/flostera-light.png";
 import { shouldCloseProfileMenu } from "./profileMenu";
 import {
   Home, ShoppingCart, Package, Archive, Users,
@@ -104,14 +103,13 @@ export function TopBar({ user }: { user: PharmUser }) {
   return (
     <div
       style={{ background: "var(--app-header)", borderBottom: "1px solid var(--app-header-border)" }}
-      className="flex items-center justify-between px-4 h-12 shrink-0"
+      className="flex items-center justify-between px-4 h-13 shrink-0"
     >
       {/* Left: Logo + Nav */}
       <div className="flex items-center h-full">
         {/* Logo */}
-        <div className="flex items-center gap-4 pr-5 mr-2" style={{ borderRight: "1px solid var(--app-header-divider)" }}>
+        <div className="flex items-center pr-5 mr-2" style={{ borderRight: "1px solid var(--app-header-divider)" }}>
           <img src={logoImage} alt="" className="h-auto w-5 object-contain" />
-          <img src={flosteraWordmark} alt="Flostera" className="h-auto w-17 object-contain" />
         </div>
 
         {/* Nav Items */}

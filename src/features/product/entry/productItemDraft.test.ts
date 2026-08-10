@@ -44,6 +44,18 @@ test("product drafts normalize imported package units at their boundary", () => 
   assert.deepEqual(getMissingProductFields(draft), []);
 });
 
+test("a product without a physical barcode can still be saved", () => {
+  const draft = {
+    ...createProductItemDraft(undefined, "medicine"),
+    barcode: "",
+    itemName: "Compounded cream",
+    sellPrice: "120",
+    weightage: "1",
+  };
+
+  assert.deepEqual(getMissingProductFields(draft), []);
+});
+
 test("packaging transitions preserve the rest of the product draft", () => {
   const initial = createProductItemDraft(undefined, "medicine");
   const withRow = addPackagingRow(initial, "row-2");
