@@ -43,6 +43,12 @@ enum ProductCompositionStatus {
   NOT_APPLICABLE
 }
 
+enum ProductDosageFormSource {
+  INFERRED
+  THAI_FDA
+  MANUAL
+}
+
 model PharmAccount {
   id                      String                  @id
   username                String                  @unique
@@ -128,6 +134,8 @@ model Product {
   childUnit            String
   childQuantity        Decimal                   @db.Decimal(14, 3)
   packLabel            String
+  dosageForm           String                    @default("Unclassified")
+  dosageFormSource     ProductDosageFormSource   @default(INFERRED)
   location             String
   minimumStock         Int                       @default(20)
   maximumStock         Int                       @default(200)
@@ -169,6 +177,7 @@ model Product {
   @@index([manufacturerId])
   @@index([itemName])
   @@index([isActive, itemName, id])
+  @@index([isActive, dosageForm, itemName, id])
   @@index([isActive, weeklySold, itemName, id])
 }
 

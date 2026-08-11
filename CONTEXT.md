@@ -78,6 +78,10 @@ _Avoid_: Purchase, purchase entry
 A retail catalog item identified by its name, barcodes, packaging, manufacturer, and Product Category.
 _Avoid_: Stock, batch
 
+**Dosage Form**:
+The single primary physical form in which a Product is presented for administration: Tablet, Capsule, Powder, Syrup, Suspension, Solution, Drops, Cream, Ointment, Gel, Lotion, Spray, Inhaler, Injection, Suppository, or Patch. It is distinct from measurement and packaging units.
+_Avoid_: Dosage Type, child unit, package unit
+
 **Stock**:
 The available quantity of a Product, tracked by batch and expiry where applicable.
 _Avoid_: Product, inventory screen
