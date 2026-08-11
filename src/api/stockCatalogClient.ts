@@ -66,6 +66,9 @@ function stockPageUrl(options: StockPageOptions): string {
     for (const manufacturer of filters.manufacturers) params.append("manufacturer", manufacturer);
     for (const tag of filters.tags) params.append("tag", tag);
     for (const stockLevel of filters.stockLevels) params.append("stockLevel", stockLevel);
+    for (const regulatoryForm of filters.regulatoryForms) {
+      params.append("regulatoryForm", regulatoryForm);
+    }
     if (filters.stockRange?.min !== null && filters.stockRange?.min !== undefined) {
       params.set("stockMin", String(filters.stockRange.min));
     }

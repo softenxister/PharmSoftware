@@ -18,6 +18,7 @@ test("stock reads default to the first bounded page", () => {
       manufacturers: [],
       tags: [],
       stockLevels: [],
+      regulatoryForms: [],
       stockRange: null,
     },
   });
@@ -78,6 +79,7 @@ test("stock read limits are clamped and search input is normalized", () => {
       manufacturers: [],
       tags: [],
       stockLevels: [],
+      regulatoryForms: [],
       stockRange: null,
     },
   });
@@ -104,6 +106,7 @@ test("stock reads parse bounded repeated inventory filters", () => {
       + "&manufacturer=GPO"
       + "&tag=Best+seller"
       + "&stockLevel=Low+Stock"
+      + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+11"
       + "&stockMin=5"
       + "&stockMax=20",
   );
@@ -115,17 +118,20 @@ test("stock reads parse bounded repeated inventory filters", () => {
     manufacturers: ["GPO"],
     tags: ["Best seller"],
     stockLevels: ["Low Stock"],
+    regulatoryForms: ["ข.ย. 11"],
     stockRange: { min: 5, max: 20 },
   });
 });
 
 test("stock reads discard invalid inventory filter values and ranges", () => {
   const parsed = parseStockReadQuery(
-    "http://pharm.test/api/stock?expiry=Tomorrow&stockLevel=Nearly+empty&stockMin=-1&stockMax=none",
+    "http://pharm.test/api/stock?expiry=Tomorrow&stockLevel=Nearly+empty"
+      + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+12&stockMin=-1&stockMax=none",
   );
 
   assert.deepEqual(parsed.filters.expiryWindows, []);
   assert.deepEqual(parsed.filters.stockLevels, []);
+  assert.deepEqual(parsed.filters.regulatoryForms, []);
   assert.equal(parsed.filters.stockRange, null);
 });
 

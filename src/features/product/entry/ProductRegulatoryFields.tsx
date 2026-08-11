@@ -1,26 +1,38 @@
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import type { ProductCompositionStatus, ProductIngredient } from "@server/db/types";
+import {
+  classifyStockRegulatoryForms,
+  STOCK_REGULATORY_FORMS,
+} from "@/lib/stockRegulatoryRecords";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
-
-const REGULATORY_FORM_OPTIONS = ["ข.ย. 9", "ข.ย. 10", "ข.ย. 11"];
 
 type ProductRegulatoryFieldsProps = {
   controller: ProductItemDraftController;
   variant?: "default" | "edit-row";
+  activeIngredients?: ProductIngredient[];
+  compositionStatus?: ProductCompositionStatus;
 };
 
 export function ProductRegulatoryFields({
   controller,
   variant = "default",
+  activeIngredients,
+  compositionStatus,
 }: ProductRegulatoryFieldsProps) {
   const { t } = usePreferences();
-  const options = REGULATORY_FORM_OPTIONS.map((form) => (
+  const regulatoryForms = classifyStockRegulatoryForms({
+    legalCategory: controller.draft.legalCategory,
+    compositionStatus,
+    activeIngredients,
+    dosageType: controller.draft.subUnit,
+  });
+  const options = STOCK_REGULATORY_FORMS.map((form) => (
     <label key={form} className={styles.checkboxRow}>
       <input
         type="checkbox"
-        checked={form === "ข.ย. 9" || controller.draft.regulatoryForms.includes(form)}
-        disabled={form === "ข.ย. 9"}
-        onChange={() => controller.changeRegulatoryForm(form)}
+        checked={regulatoryForms.includes(form)}
+        disabled
       />
       <span>{form}</span>
     </label>

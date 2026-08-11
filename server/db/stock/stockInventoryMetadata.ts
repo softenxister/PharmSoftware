@@ -2,6 +2,12 @@ import { Prisma } from "@server/generated/prisma/client";
 import type { StockInventoryMetadata } from "../types";
 import { prisma } from "../core/prisma";
 import type { StockReadQuery } from "./stockReadQuery";
+import {
+  KY11_ANY_FORM_INGREDIENTS,
+  KY11_LIQUID_ANTIHISTAMINES,
+  KY11_LIQUID_DOSAGE_TYPES,
+  type StockRegulatoryForm,
+} from "@/lib/stockRegulatoryRecords";
 
 export const totalStockSql = Prisma.sql`COALESCE(SUM(batch."availableStock"), 0)`;
 
@@ -48,6 +54,36 @@ function expiryWindowCondition(window: string): Prisma.Sql {
   return Prisma.sql`${nearestExpirySql} > CURRENT_DATE + 365`;
 }
 
+function hasRegulatedIngredient(names: readonly string[]): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    FROM "ProductIngredient" product_ingredient
+    INNER JOIN "Ingredient" ingredient ON ingredient.id = product_ingredient."ingredientId"
+    WHERE product_ingredient."productId" = product.id
+      AND (${Prisma.join(names.map((name) => (
+        Prisma.sql`ingredient."canonicalName" ILIKE ${`%${name}%`}`
+      )), " OR ")})
+  )`;
+}
+
+function regulatoryFormCondition(form: StockRegulatoryForm): Prisma.Sql {
+  if (form === "ข.ย. 9") return Prisma.sql`TRUE`;
+  if (form === "ข.ย. 10") {
+    return Prisma.sql`BTRIM(product."legalCategory") = 'ยาควบคุมพิเศษ'`;
+  }
+  return Prisma.sql`(
+    BTRIM(product."legalCategory") = 'ยาอันตราย'
+    AND product."compositionStatus" = 'VERIFIED'
+    AND (
+      ${hasRegulatedIngredient(KY11_ANY_FORM_INGREDIENTS)}
+      OR (
+        LOWER(BTRIM(product."childUnit")) IN (${Prisma.join(KY11_LIQUID_DOSAGE_TYPES)})
+        AND ${hasRegulatedIngredient(KY11_LIQUID_ANTIHISTAMINES)}
+      )
+    )
+  )`;
+}
+
 export function stockInventorySqlFilters(
   input: StockReadQuery,
 ): { where: Prisma.Sql[]; having: Prisma.Sql[] } {
@@ -91,6 +127,12 @@ export function stockInventorySqlFilters(
   }
   if (filters.tags.length > 0) {
     where.push(Prisma.sql`LOWER(product."tagName") IN (${Prisma.join(lowerValues(filters.tags))})`);
+  }
+  if (filters.regulatoryForms.length > 0) {
+    where.push(Prisma.sql`(${Prisma.join(
+      filters.regulatoryForms.map(regulatoryFormCondition),
+      " OR ",
+    )})`);
   }
   if (filters.stockLevels.length > 0) {
     having.push(Prisma.sql`(${Prisma.join(filters.stockLevels.map(stockLevelCondition), " OR ")})`);

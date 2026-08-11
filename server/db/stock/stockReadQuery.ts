@@ -1,3 +1,8 @@
+import {
+  STOCK_REGULATORY_FORMS,
+  type StockRegulatoryForm,
+} from "@/lib/stockRegulatoryRecords";
+
 const DEFAULT_STOCK_PAGE_SIZE = 50;
 const MAX_STOCK_PAGE_SIZE = 100;
 const MAX_STOCK_QUERY_LENGTH = 120;
@@ -15,6 +20,7 @@ const VALID_EXPIRY_WINDOWS = new Set([
   "No expiry date",
 ]);
 const VALID_STOCK_LEVELS = new Set(["Out of Stock", "Low Stock", "Normal Stock", "Overstock"]);
+const VALID_REGULATORY_FORMS = new Set<string>(STOCK_REGULATORY_FORMS);
 
 const STOCK_SORTS = [
   "name",
@@ -36,6 +42,7 @@ export type StockReadFilters = {
   manufacturers: string[];
   tags: string[];
   stockLevels: string[];
+  regulatoryForms: StockRegulatoryForm[];
   stockRange: { min: number | null; max: number | null } | null;
 };
 
@@ -104,6 +111,11 @@ export function parseStockReadQuery(url: string): StockReadQuery {
     manufacturers: repeatedFilterValues(params, "manufacturer"),
     tags: repeatedFilterValues(params, "tag"),
     stockLevels: repeatedFilterValues(params, "stockLevel", VALID_STOCK_LEVELS),
+    regulatoryForms: repeatedFilterValues(
+      params,
+      "regulatoryForm",
+      VALID_REGULATORY_FORMS,
+    ) as StockRegulatoryForm[],
     stockRange: parseStockRange(params),
   };
 

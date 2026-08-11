@@ -9,7 +9,6 @@ import {
   removePackagingRow,
   setProductBarcodeSlot,
   serializeProductItemDraft,
-  toggleRegulatoryForm,
   updatePackagingRow,
   type ProductItemDraft,
   type ProductPackagingRow,
@@ -84,10 +83,6 @@ export function useProductItemDraft({
     updateBarcodeSlot(packagingRowId, barcodeIndex, barcode);
   };
 
-  const changeRegulatoryForm = (form: string) => {
-    setDraft((current) => toggleRegulatoryForm(current, form));
-  };
-
   const save = async () => {
     if (!canSave || !onSave || saving) return;
     setSaveError("");
@@ -150,7 +145,6 @@ export function useProductItemDraft({
     appendPackagingRow,
     deletePackagingRow,
     appendGeneratedBarcode,
-    changeRegulatoryForm,
     save,
     openDeleteConfirmation,
     closeDeleteConfirmation,

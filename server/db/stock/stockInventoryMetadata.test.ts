@@ -21,3 +21,31 @@ test("inventory metadata aggregates the complete filtered result without page li
   assert.ok(query.values.includes("%para%"));
   assert.ok(query.values.includes("gpo"));
 });
+
+test("ข.ย. 11 filtering requires verified designated ingredients and liquid evidence when needed", () => {
+  const input = parseStockReadQuery(
+    "http://pharm.test/api/stock?inventory=1"
+      + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+11",
+  );
+
+  const query = stockInventoryMetadataSql(input);
+
+  assert.match(query.text, /product\."legalCategory"\) = 'ยาอันตราย'/);
+  assert.match(query.text, /product\."compositionStatus" = 'VERIFIED'/);
+  assert.match(query.text, /FROM "ProductIngredient" product_ingredient/);
+  assert.match(query.text, /LOWER\(BTRIM\(product\."childUnit"\)\) IN/);
+  assert.ok(query.values.includes("%dextromethorphan%"));
+  assert.ok(query.values.includes("%chlorpheniramine%"));
+  assert.ok(query.values.includes("syrup"));
+});
+
+test("ข.ย. 10 filtering follows specially controlled legal status", () => {
+  const input = parseStockReadQuery(
+    "http://pharm.test/api/stock?regulatoryForm=%E0%B8%82.%E0%B8%A2.+10",
+  );
+
+  const query = stockInventoryMetadataSql(input);
+
+  assert.match(query.text, /product\."legalCategory"\) = 'ยาควบคุมพิเศษ'/);
+  assert.doesNotMatch(query.text, /FROM "ProductIngredient" product_ingredient/);
+});

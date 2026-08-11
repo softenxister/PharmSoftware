@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from "react";
+import type { ProductCompositionStatus, ProductIngredient } from "@server/db/types";
 import {
   PRODUCT_SUBUNIT_VALUES,
   PRODUCT_UNIT_VALUES,
@@ -28,6 +29,8 @@ type ProductIdentityFieldsProps = {
   controller: ProductItemDraftController;
   categoryOptions: SearchableSelectOption[];
   section?: "all" | "general" | "pricing-stock";
+  activeIngredients?: ProductIngredient[];
+  compositionStatus?: ProductCompositionStatus;
   onFlowEnter: (event: KeyboardEvent<HTMLElement>) => void;
   onFlowCommit: (field: string) => void;
   onSelectIdentity: (input: HTMLInputElement) => void;
@@ -37,6 +40,8 @@ export function ProductIdentityFields({
   controller,
   categoryOptions,
   section = "all",
+  activeIngredients,
+  compositionStatus,
   onFlowEnter,
   onFlowCommit,
   onSelectIdentity,
@@ -139,7 +144,12 @@ export function ProductIdentityFields({
           />
         </label>}
         {section === "general" && (
-          <ProductRegulatoryFields controller={controller} variant="edit-row" />
+          <ProductRegulatoryFields
+            controller={controller}
+            variant="edit-row"
+            activeIngredients={activeIngredients}
+            compositionStatus={compositionStatus}
+          />
         )}
       </div>
     </section>

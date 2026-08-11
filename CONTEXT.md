@@ -50,6 +50,10 @@ _Avoid_: Regulatory category, drug schedule
 A legal control or sale classification such as household medicine, dangerous drug, or specially controlled drug. It is not a product category.
 _Avoid_: Product category
 
+**Regulatory Record**:
+A legally prescribed pharmacy purchase or sales ledger, including ข.ย.9, ข.ย.10, and ข.ย.11. A Product may require more than one Regulatory Record.
+_Avoid_: Regulatory Status, drug category
+
 **Fallback Category**:
 The broad “Other Medicines & Health Products” group reserved for products whose primary retail use cannot be determined from reliable catalog evidence.
 _Avoid_: Uncategorized

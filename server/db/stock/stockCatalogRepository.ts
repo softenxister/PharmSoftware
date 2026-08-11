@@ -76,6 +76,7 @@ function requiresAggregateStockRead(input: StockReadQuery): boolean {
     || input.sort === "sellPrice"
     || filters.expiryWindows.length > 0
     || filters.stockLevels.length > 0
+    || filters.regulatoryForms.length > 0
     || filters.stockRange !== null;
 }
 

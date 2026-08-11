@@ -15,6 +15,13 @@ test("inventory sidebar uses drag handles without an open or close icon", () => 
   assert.match(stockStyles, /\.sidebarEdgeHandle:hover/);
 });
 
+test("inventory Item filters expose all three regulatory records", () => {
+  assert.match(inventoryFilters, /STOCK_REGULATORY_FORMS/);
+  assert.match(inventoryFilters, /stock-regulatory-record-options/);
+  assert.match(inventoryFilters, /filters\.draft\.regulatoryForms/);
+  assert.match(inventoryFilters, /filters\.toggleOption\("regulatoryForms", option\)/);
+});
+
 test("sortable inventory headers align their labels with column values instead of sort icons", () => {
   assert.match(
     inventoryTable,
@@ -44,7 +51,7 @@ test("edit backdrop and inventory header follow the app content boundary", () =>
   );
   assert.match(
     stockStyles,
-    /\.stockEntryWindowEdit\s*{[^}]*height:\s*min\(560px, calc\(100% - 32px\)\);/s,
+    /\.stockEntryWindowEdit\s*{[^}]*height:\s*min\(573px, calc\(100% - 32px\)\);/s,
   );
   assert.match(
     stockStyles,

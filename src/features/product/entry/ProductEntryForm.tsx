@@ -217,6 +217,8 @@ export function ProductEntryForm({
                     controller={controller}
                     categoryOptions={categoryOptions}
                     section="general"
+                    activeIngredients={activeIngredients}
+                    compositionStatus={compositionStatus}
                     onFlowEnter={handleFlowEnter}
                     onFlowCommit={focusNextField}
                     onSelectIdentity={(input) => selectProductIdentityText(mode, input)}

@@ -101,6 +101,7 @@ test("inventory drafts expose only filters backed by the authoritative server re
     dosageTypes: [],
     expiryWindows: [],
     stockLevels: [],
+    regulatoryForms: [],
     manufacturers: [],
     tags: [],
     minimumStock: "",

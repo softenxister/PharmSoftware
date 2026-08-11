@@ -13,6 +13,7 @@ import {
   getStockCategoryLabel,
 } from "@/features/stock/stockCategoryFilter";
 import { getStockFilterOptionLabel } from "@/features/stock/stockFilterLabels";
+import { STOCK_REGULATORY_FORMS } from "@/lib/stockRegulatoryRecords";
 import {
   StockFilterDropdown,
   StockRangeFilter,
@@ -168,6 +169,16 @@ export function StockInventoryFilters({
             onToggle={() => filters.togglePanel("dosageType")}
             onToggleOption={(option) => filters.toggleOption("dosageTypes", option)}
             getOptionLabel={localizeFilterOption}
+          />
+          <StockFilterDropdown
+            id="stock-regulatory-record-options"
+            label={t("stock.regulatoryRecords")}
+            options={STOCK_REGULATORY_FORMS}
+            selectedOptions={filters.draft.regulatoryForms}
+            isOpen={filters.openPanel === "regulatoryForm"}
+            onToggle={() => filters.togglePanel("regulatoryForm")}
+            onToggleOption={(option) => filters.toggleOption("regulatoryForms", option)}
+            searchable={false}
           />
           <button type="button" className={styles.filterButton}>
             <span className={styles.filterText}>

@@ -183,6 +183,7 @@ export function useStockInventory() {
       dosageTypes: draftFilters.dosageTypes,
       expiryWindows: draftFilters.expiryWindows,
       stockLevels: draftFilters.stockLevels,
+      regulatoryForms: draftFilters.regulatoryForms,
       manufacturers: draftFilters.manufacturers,
       tags: draftFilters.tags,
       stockRange: stockRangeResult.range,

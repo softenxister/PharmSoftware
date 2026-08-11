@@ -6,6 +6,7 @@ import type {
 } from "@/api/stockCatalogClient";
 import { getStockMeasurementLabel } from "@/lib/productMeasurement";
 import { markupPercent } from "@/lib/stockCost";
+import type { StockRegulatoryForm } from "@/lib/stockRegulatoryRecords";
 
 export const STOCK_PAGE_SIZE = 50;
 export const SIDEBAR_MIN_WIDTH = 230;
@@ -86,6 +87,7 @@ export type StockFilterPanel =
   | "dosageType"
   | "expiry"
   | "stock"
+  | "regulatoryForm"
   | "stockRange"
   | "manufacturer"
   | "tags";
@@ -107,6 +109,7 @@ export type AppliedStockInventoryFilters = {
   manufacturers: string[];
   tags: string[];
   stockLevels: StockLevel[];
+  regulatoryForms: StockRegulatoryForm[];
   stockRange: StockRange | null;
 };
 
@@ -115,6 +118,7 @@ export type DraftStockFilters = {
   dosageTypes: string[];
   expiryWindows: ExpiryWindow[];
   stockLevels: StockLevel[];
+  regulatoryForms: StockRegulatoryForm[];
   manufacturers: string[];
   tags: string[];
   minimumStock: string;
@@ -127,6 +131,7 @@ export type MultiSelectFilterKey = keyof Pick<
   | "dosageTypes"
   | "expiryWindows"
   | "stockLevels"
+  | "regulatoryForms"
   | "manufacturers"
   | "tags"
 >;
@@ -162,6 +167,7 @@ export function createEmptyDraftFilters(): DraftStockFilters {
     dosageTypes: [],
     expiryWindows: [],
     stockLevels: [],
+    regulatoryForms: [],
     manufacturers: [],
     tags: [],
     minimumStock: "",
@@ -177,6 +183,7 @@ export function createEmptyAppliedFilters(): AppliedStockInventoryFilters {
     manufacturers: [],
     tags: [],
     stockLevels: [],
+    regulatoryForms: [],
     stockRange: null,
   };
 }

@@ -32,7 +32,6 @@ export type ProductItemDraft = {
   genericName: string;
   legalCategory: string;
   packagingRows: ProductPackagingRow[];
-  regulatoryForms: string[];
 };
 
 export type ProductPersistenceIdentity = {
@@ -175,7 +174,6 @@ export function createProductItemDraft(
     genericName: initialItem?.genericName ?? "",
     legalCategory: initialItem?.legalCategory ?? "",
     packagingRows: packagingRows.length > 0 ? packagingRows : [createPackagingRow()],
-    regulatoryForms: ["ข.ย. 9"],
   };
 }
 
@@ -209,14 +207,6 @@ export function addPackagingRow(
 export function removePackagingRow(draft: ProductItemDraft, id: string): ProductItemDraft {
   if (draft.packagingRows.length <= 1) return draft;
   return { ...draft, packagingRows: draft.packagingRows.filter((row) => row.id !== id) };
-}
-
-export function toggleRegulatoryForm(draft: ProductItemDraft, form: string): ProductItemDraft {
-  if (form === "ข.ย. 9") return draft;
-  const regulatoryForms = draft.regulatoryForms.includes(form)
-    ? draft.regulatoryForms.filter((entry) => entry !== form)
-    : [...draft.regulatoryForms, form];
-  return { ...draft, regulatoryForms };
 }
 
 export function serializeProductItemDraft(
