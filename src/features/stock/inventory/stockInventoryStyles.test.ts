@@ -15,7 +15,17 @@ test("inventory sidebar uses drag handles without an open or close icon", () => 
   assert.match(stockStyles, /\.sidebarEdgeHandle:hover/);
 });
 
-test("inventory Item filters expose all three regulatory records", () => {
+test("inventory filters remove the Items placeholder and put Legal Category after Category", () => {
+  assert.doesNotMatch(inventoryFilters, /t\("stock\.items"\)/);
+  assert.match(
+    inventoryFilters,
+    /id="stock-category-options"[\s\S]*id="stock-legal-category-options"[\s\S]*id="stock-dosage-type-options"/,
+  );
+  assert.match(inventoryFilters, /filters\.draft\.legalCategories/);
+  assert.match(inventoryFilters, /filters\.toggleOption\("legalCategories", option\)/);
+});
+
+test("inventory filters expose all three regulatory records", () => {
   assert.match(inventoryFilters, /STOCK_REGULATORY_FORMS/);
   assert.match(inventoryFilters, /stock-regulatory-record-options/);
   assert.match(inventoryFilters, /filters\.draft\.regulatoryForms/);

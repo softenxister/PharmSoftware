@@ -1,9 +1,14 @@
 import type { SalesProduct } from "@server/db/types";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import {
+  getProductCompositionRows,
+  shouldShowImportedGenericName,
+} from "./productComposition";
 import styles from "./ProductEntry.module.css";
 
 type ProductCompositionPanelProps = {
   activeIngredients?: SalesProduct["activeIngredients"];
+  importedIngredients?: SalesProduct["importedIngredients"];
   compositionStatus?: SalesProduct["compositionStatus"];
   genericName?: string;
   variant?: "default" | "edit";
@@ -11,11 +16,17 @@ type ProductCompositionPanelProps = {
 
 export function ProductCompositionPanel({
   activeIngredients,
+  importedIngredients,
   compositionStatus,
   genericName,
   variant = "default",
 }: ProductCompositionPanelProps) {
   const { t } = usePreferences();
+  const compositionRows = getProductCompositionRows(
+    activeIngredients,
+    genericName,
+    importedIngredients,
+  );
 
   return (
     <section className={`${styles.genericNamePanel} ${
@@ -28,12 +39,12 @@ export function ProductCompositionPanel({
       {genericName && (
         <div className={styles.importedGenericName}>
           <small>{t("stockForm.importedGenericName")}</small>
-          <strong>{genericName}</strong>
+          {shouldShowImportedGenericName(genericName) && <strong>{genericName}</strong>}
         </div>
       )}
-      {activeIngredients?.length ? (
+      {compositionRows.length ? (
         <div className={styles.genericIngredientList} role="list">
-          {activeIngredients.map((ingredient) => (
+          {compositionRows.map((ingredient) => (
             <div key={ingredient.id} className={styles.genericIngredient} role="listitem">
               <span className={styles.genericIngredientNames}>
                 <strong>{ingredient.canonicalName}</strong>

@@ -55,6 +55,9 @@ function stockProductWhere(input: StockReadQuery): Prisma.ProductWhereInput {
   if (input.filters.categories.length > 0) {
     and.push({ category: { is: { name: { in: input.filters.categories, mode: "insensitive" } } } });
   }
+  if (input.filters.legalCategories.length > 0) {
+    and.push({ legalCategory: { in: input.filters.legalCategories, mode: "insensitive" } });
+  }
   if (input.filters.dosageTypes.length > 0) {
     and.push({ childUnit: { in: input.filters.dosageTypes, mode: "insensitive" } });
   }
@@ -76,6 +79,7 @@ function requiresAggregateStockRead(input: StockReadQuery): boolean {
     || input.sort === "sellPrice"
     || filters.expiryWindows.length > 0
     || filters.stockLevels.length > 0
+    || filters.legalCategories.length > 0
     || filters.regulatoryForms.length > 0
     || filters.stockRange !== null;
 }

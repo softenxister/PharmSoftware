@@ -40,6 +40,7 @@ export function StockInventory() {
               key={editingProduct?.id ?? "new-item"}
               initialItem={editingProduct ? productToStockItemInput(editingProduct) : undefined}
               activeIngredients={editingProduct?.activeIngredients}
+              importedIngredients={editingProduct?.importedIngredients}
               compositionStatus={editingProduct?.compositionStatus}
               mode={editingProduct ? "edit" : "create"}
               onSave={controller.productEntry.save}

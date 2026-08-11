@@ -144,12 +144,6 @@ export function StockInventoryFilters({
         </button>
 
         <div className={styles.filterList} ref={filterListRef}>
-          <button type="button" className={styles.filterButton}>
-            <span className={styles.filterText}>
-              <span className={styles.filterLabel}>{t("stock.items")}</span>
-            </span>
-            <ChevronDown size={16} aria-hidden="true" />
-          </button>
           <StockFilterDropdown
             id="stock-category-options"
             label={t("stock.category")}
@@ -159,6 +153,16 @@ export function StockInventoryFilters({
             onToggle={() => filters.togglePanel("category")}
             onToggleOption={(option) => filters.toggleOption("categories", option)}
             getOptionLabel={localizeCategoryOption}
+          />
+          <StockFilterDropdown
+            id="stock-legal-category-options"
+            label={t("stock.legalCategory")}
+            options={filters.legalCategoryOptions}
+            selectedOptions={filters.draft.legalCategories}
+            isOpen={filters.openPanel === "legalCategory"}
+            onToggle={() => filters.togglePanel("legalCategory")}
+            onToggleOption={(option) => filters.toggleOption("legalCategories", option)}
+            searchable={false}
           />
           <StockFilterDropdown
             id="stock-dosage-type-options"

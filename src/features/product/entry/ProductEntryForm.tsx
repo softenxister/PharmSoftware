@@ -36,6 +36,7 @@ type ProductEntryFormProps = {
   onDelete?: () => void | Promise<void>;
   initialItem?: StockItemInput;
   activeIngredients?: SalesProduct["activeIngredients"];
+  importedIngredients?: SalesProduct["importedIngredients"];
   compositionStatus?: SalesProduct["compositionStatus"];
   mode?: "create" | "edit";
   onClose?: () => void;
@@ -57,6 +58,7 @@ export function ProductEntryForm({
   onDelete,
   initialItem,
   activeIngredients,
+  importedIngredients,
   compositionStatus,
   mode = "create",
   onClose,
@@ -218,6 +220,7 @@ export function ProductEntryForm({
                     categoryOptions={categoryOptions}
                     section="general"
                     activeIngredients={activeIngredients}
+                    importedIngredients={importedIngredients}
                     compositionStatus={compositionStatus}
                     onFlowEnter={handleFlowEnter}
                     onFlowCommit={focusNextField}
@@ -238,6 +241,7 @@ export function ProductEntryForm({
                   <ProductCompositionPanel
                     variant="edit"
                     activeIngredients={activeIngredients}
+                    importedIngredients={importedIngredients}
                     compositionStatus={compositionStatus}
                     genericName={controller.draft.genericName}
                   />

@@ -37,6 +37,7 @@ export type StockSortDirection = "asc" | "desc";
 
 export type StockReadFilters = {
   categories: string[];
+  legalCategories: string[];
   dosageTypes: string[];
   expiryWindows: string[];
   manufacturers: string[];
@@ -106,6 +107,7 @@ export function parseStockReadQuery(url: string): StockReadQuery {
   )].slice(0, MAX_STOCK_PRODUCT_IDS);
   const filters: StockReadFilters = {
     categories: repeatedFilterValues(params, "category"),
+    legalCategories: repeatedFilterValues(params, "legalCategory"),
     dosageTypes: repeatedFilterValues(params, "dosageType"),
     expiryWindows: repeatedFilterValues(params, "expiry", VALID_EXPIRY_WINDOWS),
     manufacturers: repeatedFilterValues(params, "manufacturer"),

@@ -20,6 +20,10 @@ export const productGraph = {
     orderBy: { ingredient: { canonicalName: "asc" as const } },
     include: { ingredient: true },
   },
+  importedIngredients: {
+    orderBy: { ingredient: { canonicalName: "asc" as const } },
+    include: { ingredient: true },
+  },
 };
 
 export type StockProductRow = Prisma.ProductGetPayload<{ include: typeof productGraph }>;
@@ -94,6 +98,13 @@ export function productRowToSalesProduct(
       ...(strength ? { strength } : {}),
       sourceName,
       sourceUrl,
+    })),
+    importedIngredients: product.importedIngredients.map(({ ingredient, sourceName, sourceValue }) => ({
+      id: ingredient.id,
+      canonicalName: ingredient.canonicalName,
+      ...(ingredient.thaiName ? { thaiName: ingredient.thaiName } : {}),
+      sourceName,
+      sourceValue,
     })),
     batches: product.batches.map((batch) => ({
       batchNo: batch.batchNo ?? "",

@@ -40,6 +40,7 @@ test("CW stock migration persists the uploaded raw generic name separately from 
   assert.match(schema, /migrationGenericName\s+String\?/);
   assert.match(repository, /"migrationGenericName"/);
   assert.match(repository, /source\.genericName/);
+  assert.match(repository, /replaceImportedProductIngredients/);
 });
 
 test("average-cost migration removes dummy purchase history first", () => {

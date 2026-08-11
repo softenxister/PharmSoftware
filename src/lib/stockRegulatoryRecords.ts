@@ -5,9 +5,6 @@ export type StockRegulatoryForm = (typeof STOCK_REGULATORY_FORMS)[number];
 export const KY11_ANY_FORM_INGREDIENTS = [
   "dextromethorphan",
   "tramadol",
-] as const;
-
-export const KY11_LIQUID_ANTIHISTAMINES = [
   "brompheniramine",
   "carbinoxamine",
   "chlorpheniramine",
@@ -21,14 +18,53 @@ export const KY11_LIQUID_ANTIHISTAMINES = [
   "triprolidine",
 ] as const;
 
-export const KY11_LIQUID_DOSAGE_TYPES = [
-  "syrup",
-  "suspension",
-  "oral solution",
-  "solution",
-  "liquid",
-  "elixir",
-  "drops",
+export const KY11_SINGLE_INGREDIENTS = [
+  "sildenafil",
+  "tadalafil",
+  "vardenafil",
+] as const;
+
+export const KY11_SINGLE_CORTICOSTEROIDS = [
+  "alclometasone",
+  "amcinonide",
+  "beclometasone",
+  "beclomethasone",
+  "betamethasone",
+  "budesonide",
+  "ciclesonide",
+  "clobetasol",
+  "clobetasone",
+  "cortisone",
+  "deflazacort",
+  "desonide",
+  "desoximetasone",
+  "desoxymethasone",
+  "dexamethasone",
+  "diflorasone",
+  "diflucortolone",
+  "fludrocortisone",
+  "flumethasone",
+  "flunisolide",
+  "fluocinolone",
+  "fluocinonide",
+  "fluocortolone",
+  "fluorometholone",
+  "fluprednidene",
+  "fluticasone",
+  "halcinonide",
+  "halobetasol",
+  "hydrocortisone",
+  "loteprednol",
+  "medrysone",
+  "methylprednisolone",
+  "mometasone",
+  "paramethasone",
+  "prednicarbate",
+  "prednisolone",
+  "prednisone",
+  "rimexolone",
+  "tixocortol",
+  "triamcinolone",
 ] as const;
 
 type RegulatoryIngredient = {
@@ -40,7 +76,7 @@ type StockRegulatoryInput = {
   legalCategory?: string;
   compositionStatus?: string;
   activeIngredients?: readonly RegulatoryIngredient[];
-  dosageType?: string;
+  importedIngredients?: readonly RegulatoryIngredient[];
 };
 
 function normalizeRegulatoryValue(value: string | undefined): string {
@@ -58,26 +94,36 @@ function containsIngredient(
   });
 }
 
+function isAtomicIngredient(ingredient: RegulatoryIngredient): boolean {
+  return !/[+,;/&|]|\s+(?:and|และ)\s+/iu.test(
+    `${ingredient.canonicalName} ${ingredient.thaiName ?? ""}`,
+  );
+}
+
 export function classifyStockRegulatoryForms({
   legalCategory,
   compositionStatus,
   activeIngredients = [],
-  dosageType,
+  importedIngredients = [],
 }: StockRegulatoryInput): StockRegulatoryForm[] {
   const forms: StockRegulatoryForm[] = ["ข.ย. 9"];
   const category = normalizeRegulatoryValue(legalCategory);
 
-  if (category === "ยาควบคุมพิเศษ") return [...forms, "ข.ย. 10"];
-  if (category !== "ยาอันตราย" || compositionStatus !== "verified") return forms;
+  if (category === "ยาควบคุมพิเศษ") forms.push("ข.ย. 10");
 
-  const hasAnyFormIngredient = containsIngredient(activeIngredients, KY11_ANY_FORM_INGREDIENTS);
-  const isLiquid = KY11_LIQUID_DOSAGE_TYPES.includes(
-    normalizeRegulatoryValue(dosageType) as typeof KY11_LIQUID_DOSAGE_TYPES[number],
+  const ingredients = compositionStatus === "verified"
+    ? activeIngredients
+    : importedIngredients;
+  if (ingredients.length === 0) return forms;
+
+  const hasAnyFormIngredient = containsIngredient(ingredients, KY11_ANY_FORM_INGREDIENTS);
+  const hasSingleFormIngredient = ingredients.length === 1
+    && isAtomicIngredient(ingredients[0]) && (
+    containsIngredient(ingredients, KY11_SINGLE_INGREDIENTS)
+    || containsIngredient(ingredients, KY11_SINGLE_CORTICOSTEROIDS)
   );
-  const hasLiquidAntihistamine = isLiquid
-    && containsIngredient(activeIngredients, KY11_LIQUID_ANTIHISTAMINES);
 
-  return hasAnyFormIngredient || hasLiquidAntihistamine
+  return hasAnyFormIngredient || hasSingleFormIngredient
     ? [...forms, "ข.ย. 11"]
     : forms;
 }

@@ -13,6 +13,7 @@ test("stock reads default to the first bounded page", () => {
     includeInventoryMetadata: false,
     filters: {
       categories: [],
+      legalCategories: [],
       dosageTypes: [],
       expiryWindows: [],
       manufacturers: [],
@@ -74,6 +75,7 @@ test("stock read limits are clamped and search input is normalized", () => {
     includeInventoryMetadata: false,
     filters: {
       categories: [],
+      legalCategories: [],
       dosageTypes: [],
       expiryWindows: [],
       manufacturers: [],
@@ -101,6 +103,7 @@ test("stock reads parse bounded repeated inventory filters", () => {
     "http://pharm.test/api/stock"
       + "?category=Pain+%26+Fever+Relief"
       + "&category=Gastrointestinal+Medicines"
+      + "&legalCategory=%E0%B8%A2%E0%B8%B2%E0%B8%AD%E0%B8%B1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%A2"
       + "&dosageType=tablet"
       + "&expiry=Within+30+days"
       + "&manufacturer=GPO"
@@ -113,6 +116,7 @@ test("stock reads parse bounded repeated inventory filters", () => {
 
   assert.deepEqual(parsed.filters, {
     categories: ["Pain & Fever Relief", "Gastrointestinal Medicines"],
+    legalCategories: ["ยาอันตราย"],
     dosageTypes: ["tablet"],
     expiryWindows: ["Within 30 days"],
     manufacturers: ["GPO"],

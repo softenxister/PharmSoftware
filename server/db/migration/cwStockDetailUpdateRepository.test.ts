@@ -45,6 +45,7 @@ test("focused product detail repository does not write stock, identity, packagin
   ]) {
     assert.doesNotMatch(repository, protectedWrite);
   }
+  assert.match(repository, /replaceImportedProductIngredients/);
 });
 
 test("focused product detail cost keeps four decimal places in Prisma and PostgreSQL", () => {

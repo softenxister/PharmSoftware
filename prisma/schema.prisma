@@ -162,6 +162,7 @@ model Product {
   importedPurchaseHistory CustomerPurchaseHistoryImport[]
   stockAdjustmentLines StockAdjustmentLine[]
   activeIngredients    ProductIngredient[]
+  importedIngredients  ProductImportedIngredient[]
   imageAsset           ProductImageAsset?
 
   @@index([categoryId])
@@ -198,6 +199,7 @@ model Ingredient {
   createdAt         DateTime                    @default(now())
   updatedAt         DateTime                    @updatedAt
   products          ProductIngredient[]
+  importedProducts  ProductImportedIngredient[]
   customerAllergies CustomerIngredientAllergy[]
 
   @@index([canonicalName])
@@ -213,6 +215,20 @@ model ProductIngredient {
   verifiedAt     DateTime   @default(now())
   product        Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   ingredient     Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@id([productId, ingredientId])
+  @@index([ingredientId])
+}
+
+model ProductImportedIngredient {
+  productId    String
+  ingredientId String
+  sourceName   String
+  sourceValue  String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
 
   @@id([productId, ingredientId])
   @@index([ingredientId])

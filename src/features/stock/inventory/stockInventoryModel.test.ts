@@ -42,6 +42,7 @@ const product: SalesProduct = {
 test("inventory renders the authoritative server page without filtering it again", () => {
   const inventory = {
     facets: {
+      legalCategories: ["ยาอันตราย"],
       dosageTypes: ["capsule", "tablet"],
       manufacturers: ["GPO"],
       tags: ["Cold chain"],
@@ -98,6 +99,7 @@ test("inventory option lists stay stable while adding server values", () => {
 test("inventory drafts expose only filters backed by the authoritative server read", () => {
   assert.deepEqual(createEmptyDraftFilters(), {
     categories: [],
+    legalCategories: [],
     dosageTypes: [],
     expiryWindows: [],
     stockLevels: [],

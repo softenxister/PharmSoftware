@@ -4,8 +4,8 @@ import { prisma } from "../core/prisma";
 import type { StockReadQuery } from "./stockReadQuery";
 import {
   KY11_ANY_FORM_INGREDIENTS,
-  KY11_LIQUID_ANTIHISTAMINES,
-  KY11_LIQUID_DOSAGE_TYPES,
+  KY11_SINGLE_CORTICOSTEROIDS,
+  KY11_SINGLE_INGREDIENTS,
   type StockRegulatoryForm,
 } from "@/lib/stockRegulatoryRecords";
 
@@ -54,15 +54,65 @@ function expiryWindowCondition(window: string): Prisma.Sql {
   return Prisma.sql`${nearestExpirySql} > CURRENT_DATE + 365`;
 }
 
-function hasRegulatedIngredient(names: readonly string[]): Prisma.Sql {
+function hasRegulatedIngredient(
+  names: readonly string[],
+  source: "verified" | "imported",
+): Prisma.Sql {
+  const productIngredientTable = source === "verified"
+    ? Prisma.sql`"ProductIngredient"`
+    : Prisma.sql`"ProductImportedIngredient"`;
   return Prisma.sql`EXISTS (
     SELECT 1
-    FROM "ProductIngredient" product_ingredient
+    FROM ${productIngredientTable} product_ingredient
     INNER JOIN "Ingredient" ingredient ON ingredient.id = product_ingredient."ingredientId"
     WHERE product_ingredient."productId" = product.id
       AND (${Prisma.join(names.map((name) => (
-        Prisma.sql`ingredient."canonicalName" ILIKE ${`%${name}%`}`
+        Prisma.sql`(
+          ingredient."normalizedName" ILIKE ${`%${name}%`}
+          OR ingredient."canonicalName" ILIKE ${`%${name}%`}
+          OR COALESCE(ingredient."thaiName", '') ILIKE ${`%${name}%`}
+        )`
       )), " OR ")})
+  )`;
+}
+
+function hasSingleRegulatedIngredient(
+  names: readonly string[],
+  source: "verified" | "imported",
+): Prisma.Sql {
+  const productIngredientTable = source === "verified"
+    ? Prisma.sql`"ProductIngredient"`
+    : Prisma.sql`"ProductImportedIngredient"`;
+  const atomicIngredient = Prisma.sql`AND NOT EXISTS (
+        SELECT 1 FROM ${productIngredientTable} atomic_link
+        INNER JOIN "Ingredient" atomic_name ON atomic_name.id = atomic_link."ingredientId"
+        WHERE atomic_link."productId" = product.id
+          AND (
+            atomic_name."canonicalName" ~ '[+,;/&|]'
+            OR atomic_name."canonicalName" ~* '[[:space:]]+(and|และ)[[:space:]]+'
+            OR COALESCE(atomic_name."thaiName", '') ~ '[+,;/&|]'
+            OR COALESCE(atomic_name."thaiName", '') ~* '[[:space:]]+(and|และ)[[:space:]]+'
+            ${source === "imported" ? Prisma.sql`
+              OR atomic_link."sourceValue" ~ '[+,;/&|]'
+              OR atomic_link."sourceValue" ~* '[[:space:]]+(and|และ)[[:space:]]+'
+            ` : Prisma.empty}
+          )
+      )`;
+  return Prisma.sql`(
+    (SELECT COUNT(*) FROM ${productIngredientTable} ingredient_count
+      WHERE ingredient_count."productId" = product.id) = 1
+    ${atomicIngredient}
+    AND ${hasRegulatedIngredient(names, source)}
+  )`;
+}
+
+function ky11IngredientCondition(source: "verified" | "imported"): Prisma.Sql {
+  return Prisma.sql`(
+    ${hasRegulatedIngredient(KY11_ANY_FORM_INGREDIENTS, source)}
+    OR ${hasSingleRegulatedIngredient([
+      ...KY11_SINGLE_INGREDIENTS,
+      ...KY11_SINGLE_CORTICOSTEROIDS,
+    ], source)}
   )`;
 }
 
@@ -72,15 +122,8 @@ function regulatoryFormCondition(form: StockRegulatoryForm): Prisma.Sql {
     return Prisma.sql`BTRIM(product."legalCategory") = 'ยาควบคุมพิเศษ'`;
   }
   return Prisma.sql`(
-    BTRIM(product."legalCategory") = 'ยาอันตราย'
-    AND product."compositionStatus" = 'VERIFIED'
-    AND (
-      ${hasRegulatedIngredient(KY11_ANY_FORM_INGREDIENTS)}
-      OR (
-        LOWER(BTRIM(product."childUnit")) IN (${Prisma.join(KY11_LIQUID_DOSAGE_TYPES)})
-        AND ${hasRegulatedIngredient(KY11_LIQUID_ANTIHISTAMINES)}
-      )
-    )
+    (product."compositionStatus" = 'VERIFIED' AND ${ky11IngredientCondition("verified")})
+    OR (product."compositionStatus" <> 'VERIFIED' AND ${ky11IngredientCondition("imported")})
   )`;
 }
 
@@ -119,6 +162,9 @@ export function stockInventorySqlFilters(
   if (filters.categories.length > 0) {
     where.push(Prisma.sql`LOWER(category.name) IN (${Prisma.join(lowerValues(filters.categories))})`);
   }
+  if (filters.legalCategories.length > 0) {
+    where.push(Prisma.sql`LOWER(BTRIM(product."legalCategory")) IN (${Prisma.join(lowerValues(filters.legalCategories))})`);
+  }
   if (filters.dosageTypes.length > 0) {
     where.push(Prisma.sql`LOWER(product."childUnit") IN (${Prisma.join(lowerValues(filters.dosageTypes))})`);
   }
@@ -155,6 +201,7 @@ export function stockInventoryMetadataSql(input: StockReadQuery): Prisma.Sql {
     WITH filtered_products AS (
       SELECT
         product.id,
+        product."legalCategory",
         product."childUnit" AS "dosageType",
         manufacturer.name AS manufacturer,
         product."tagName" AS tag,
@@ -170,6 +217,11 @@ export function stockInventoryMetadataSql(input: StockReadQuery): Prisma.Sql {
       ${having.length > 0 ? Prisma.sql`HAVING ${Prisma.join(having, " AND ")}` : Prisma.empty}
     )
     SELECT
+      COALESCE(
+        ARRAY_AGG(DISTINCT BTRIM(filtered_products."legalCategory"))
+          FILTER (WHERE BTRIM(filtered_products."legalCategory") <> ''),
+        ARRAY[]::text[]
+      ) AS "legalCategories",
       COALESCE(
         ARRAY_AGG(DISTINCT filtered_products."dosageType")
           FILTER (WHERE BTRIM(filtered_products."dosageType") <> ''),
@@ -197,6 +249,7 @@ export function stockInventoryMetadataSql(input: StockReadQuery): Prisma.Sql {
 }
 
 type StockInventoryMetadataRow = {
+  legalCategories: string[];
   dosageTypes: string[];
   manufacturers: string[];
   tags: string[];
@@ -214,6 +267,7 @@ export async function readStockInventoryMetadata(
   return {
     inventory: {
       facets: {
+        legalCategories: row?.legalCategories ?? [],
         dosageTypes: row?.dosageTypes ?? [],
         manufacturers: row?.manufacturers ?? [],
         tags: row?.tags ?? [],

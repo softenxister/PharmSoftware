@@ -1,9 +1,11 @@
 import { usePreferences } from "@/app/providers/PreferencesProvider";
-import type { ProductCompositionStatus, ProductIngredient } from "@server/db/types";
-import {
-  classifyStockRegulatoryForms,
-  STOCK_REGULATORY_FORMS,
-} from "@/lib/stockRegulatoryRecords";
+import type {
+  ImportedProductIngredient,
+  ProductCompositionStatus,
+  ProductIngredient,
+} from "@server/db/types";
+import { STOCK_REGULATORY_FORMS } from "@/lib/stockRegulatoryRecords";
+import { classifyProductRegulatoryForms } from "./productRegulatoryClassification";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
@@ -11,6 +13,7 @@ type ProductRegulatoryFieldsProps = {
   controller: ProductItemDraftController;
   variant?: "default" | "edit-row";
   activeIngredients?: ProductIngredient[];
+  importedIngredients?: ImportedProductIngredient[];
   compositionStatus?: ProductCompositionStatus;
 };
 
@@ -18,14 +21,17 @@ export function ProductRegulatoryFields({
   controller,
   variant = "default",
   activeIngredients,
+  importedIngredients,
   compositionStatus,
 }: ProductRegulatoryFieldsProps) {
   const { t } = usePreferences();
-  const regulatoryForms = classifyStockRegulatoryForms({
+  const regulatoryForms = classifyProductRegulatoryForms({
+    variant,
     legalCategory: controller.draft.legalCategory,
     compositionStatus,
     activeIngredients,
-    dosageType: controller.draft.subUnit,
+    importedIngredients,
+    genericName: controller.draft.genericName,
   });
   const options = STOCK_REGULATORY_FORMS.map((form) => (
     <label key={form} className={styles.checkboxRow}>

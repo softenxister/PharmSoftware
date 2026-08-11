@@ -32,7 +32,7 @@ import {
 } from "./stockInventoryModel";
 
 const EMPTY_INVENTORY_METADATA: StockInventoryMetadata = {
-  facets: { dosageTypes: [], manufacturers: [], tags: [] },
+  facets: { legalCategories: [], dosageTypes: [], manufacturers: [], tags: [] },
   counts: { lowStock: 0, overstock: 0 },
 };
 
@@ -134,6 +134,13 @@ export function useStockInventory() {
     ),
     [draftFilters.dosageTypes, inventoryMetadata.facets.dosageTypes],
   );
+  const legalCategoryOptions = useMemo(
+    () => buildFilterOptions(
+      draftFilters.legalCategories,
+      inventoryMetadata.facets.legalCategories,
+    ),
+    [draftFilters.legalCategories, inventoryMetadata.facets.legalCategories],
+  );
   const manufacturerOptions = useMemo(
     () => buildFilterOptions(
       draftFilters.manufacturers,
@@ -180,6 +187,7 @@ export function useStockInventory() {
     setPage(1);
     setAppliedFilters({
       categories: draftFilters.categories,
+      legalCategories: draftFilters.legalCategories,
       dosageTypes: draftFilters.dosageTypes,
       expiryWindows: draftFilters.expiryWindows,
       stockLevels: draftFilters.stockLevels,
@@ -328,6 +336,7 @@ export function useStockInventory() {
       reset: resetFilters,
       apply: applyFilters,
       range: stockRangeResult,
+      legalCategoryOptions,
       dosageTypeOptions,
       manufacturerOptions,
       tagOptions,

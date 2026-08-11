@@ -61,6 +61,9 @@ function stockPageUrl(options: StockPageOptions): string {
   const filters = options.filters;
   if (filters) {
     for (const category of filters.categories) params.append("category", category);
+    for (const legalCategory of filters.legalCategories) {
+      params.append("legalCategory", legalCategory);
+    }
     for (const dosageType of filters.dosageTypes) params.append("dosageType", dosageType);
     for (const expiry of filters.expiryWindows) params.append("expiry", expiry);
     for (const manufacturer of filters.manufacturers) params.append("manufacturer", manufacturer);
@@ -103,6 +106,7 @@ function isStockInventoryMetadata(value: unknown): value is StockInventoryMetada
   );
   return Boolean(
     facets
+    && stringList(facets.legalCategories)
     && stringList(facets.dosageTypes)
     && stringList(facets.manufacturers)
     && stringList(facets.tags)

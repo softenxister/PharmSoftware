@@ -22,6 +22,11 @@ export type ProductIngredient = IngredientSummary & {
   sourceUrl: string;
 };
 
+export type ImportedProductIngredient = IngredientSummary & {
+  sourceName: string;
+  sourceValue: string;
+};
+
 export type ProductBatch = {
   batchNo: string;
   expiryDate: string;
@@ -74,11 +79,13 @@ export type SalesProduct = {
   legalCategory?: string;
   compositionStatus?: ProductCompositionStatus;
   activeIngredients?: ProductIngredient[];
+  importedIngredients?: ImportedProductIngredient[];
   batches: ProductBatch[];
 };
 
 export type StockInventoryMetadata = {
   facets: {
+    legalCategories: string[];
     dosageTypes: string[];
     manufacturers: string[];
     tags: string[];

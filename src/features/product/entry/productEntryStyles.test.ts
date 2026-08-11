@@ -29,6 +29,12 @@ test("edit item shows imported generic name and Thai legal category as read-only
   assert.match(regulatoryFields, /stockForm\.legalCategory/);
 });
 
+test("regulatory classification receives ingredients extracted from the imported generic name", () => {
+  assert.match(regulatoryFields, /classifyProductRegulatoryForms/);
+  assert.match(regulatoryFields, /genericName:\s*controller\.draft\.genericName/);
+  assert.match(regulatoryFields, /variant,/);
+});
+
 test("edit item stays wide and two-column on desktop and tablet", () => {
   assert.match(
     stockStyles,

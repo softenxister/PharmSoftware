@@ -201,6 +201,7 @@ test("inventory filters request one server-filtered page instead of the complete
     sortDirection: "desc",
     filters: {
       categories: ["Cold, Cough, Allergy & Respiratory"],
+      legalCategories: ["ยาอันตราย"],
       dosageTypes: ["tablet"],
       expiryWindows: ["Within 30 days"],
       manufacturers: ["GPO"],
@@ -215,6 +216,7 @@ test("inventory filters request one server-filtered page instead of the complete
   assert.deepEqual(requestedUrls, [
     "/api/stock?page=1&pageSize=50&sort=name&direction=desc"
       + "&category=Cold%2C+Cough%2C+Allergy+%26+Respiratory"
+      + "&legalCategory=%E0%B8%A2%E0%B8%B2%E0%B8%AD%E0%B8%B1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%A2"
       + "&dosageType=tablet"
       + "&expiry=Within+30+days"
       + "&manufacturer=GPO"
@@ -231,6 +233,7 @@ test("inventory page loads request and require authoritative full-result metadat
   let requestedUrl = "";
   const inventory = {
     facets: {
+      legalCategories: ["ยาอันตราย", "ยาควบคุมพิเศษ"],
       dosageTypes: ["capsule", "tablet"],
       manufacturers: ["GPO", "องค์การเภสัชกรรม"],
       tags: ["Cold chain"],

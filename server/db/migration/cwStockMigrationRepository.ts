@@ -8,6 +8,7 @@ import {
   type CwStockMigrationPreview,
 } from "@server/import/cwStockMigration";
 import { resolveImportedBrandName } from "@server/import/thaiBrandExtractor";
+import { replaceImportedProductIngredients } from "@server/db/composition/importedProductIngredientRepository";
 import { prisma } from "../core/prisma";
 
 type MigrationDb = Pick<Prisma.TransactionClient, "product">;
@@ -369,6 +370,13 @@ export async function importCwStockMigration(
 
     await upsertProductsInBatches(tx, productWrites);
     const productIds = productWrites.map((product) => product.id);
+    await replaceImportedProductIngredients(
+      tx,
+      productWrites.map(({ id: productId, migrationGenericName: genericName }) => ({
+        productId,
+        genericName,
+      })),
+    );
     if (identityChangedProductIds.length > 0) {
       await tx.productIngredient.deleteMany({ where: { productId: { in: identityChangedProductIds } } });
     }

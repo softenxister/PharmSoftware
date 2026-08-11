@@ -84,6 +84,7 @@ export type StockState = "normal" | "low" | "overstock";
 export type StockTableSortKey = Exclude<StockSort, "weekly">;
 export type StockFilterPanel =
   | "category"
+  | "legalCategory"
   | "dosageType"
   | "expiry"
   | "stock"
@@ -104,6 +105,7 @@ export type StockRange = {
 
 export type AppliedStockInventoryFilters = {
   categories: string[];
+  legalCategories: string[];
   dosageTypes: string[];
   expiryWindows: ExpiryWindow[];
   manufacturers: string[];
@@ -115,6 +117,7 @@ export type AppliedStockInventoryFilters = {
 
 export type DraftStockFilters = {
   categories: string[];
+  legalCategories: string[];
   dosageTypes: string[];
   expiryWindows: ExpiryWindow[];
   stockLevels: StockLevel[];
@@ -128,6 +131,7 @@ export type DraftStockFilters = {
 export type MultiSelectFilterKey = keyof Pick<
   DraftStockFilters,
   | "categories"
+  | "legalCategories"
   | "dosageTypes"
   | "expiryWindows"
   | "stockLevels"
@@ -164,6 +168,7 @@ export function roundMarkupPercentForDisplay(value: number): number {
 export function createEmptyDraftFilters(): DraftStockFilters {
   return {
     categories: [],
+    legalCategories: [],
     dosageTypes: [],
     expiryWindows: [],
     stockLevels: [],
@@ -178,6 +183,7 @@ export function createEmptyDraftFilters(): DraftStockFilters {
 export function createEmptyAppliedFilters(): AppliedStockInventoryFilters {
   return {
     categories: [],
+    legalCategories: [],
     dosageTypes: [],
     expiryWindows: [],
     manufacturers: [],

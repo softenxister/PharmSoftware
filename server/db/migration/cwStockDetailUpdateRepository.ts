@@ -6,6 +6,7 @@ import {
   type CwStockDetailExistingProduct,
   type CwStockDetailUpdatePreview,
 } from "@server/import/cwStockDetailUpdate";
+import { replaceImportedProductIngredients } from "@server/db/composition/importedProductIngredientRepository";
 import { prisma } from "../core/prisma";
 
 type DetailUpdateReadClient = Pick<Prisma.TransactionClient, "product">;
@@ -133,6 +134,13 @@ export async function importCwStockDetailUpdate(
       });
     });
     await updateProductDetails(tx, writes);
+    await replaceImportedProductIngredients(
+      tx,
+      writes.map(({ id: productId, migrationGenericName: genericName }) => ({
+        productId,
+        genericName,
+      })),
+    );
 
     const migrationId = `cw-product-detail-update-${randomUUID()}`;
     await tx.productDataImportRun.create({
