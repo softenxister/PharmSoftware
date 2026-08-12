@@ -8,6 +8,8 @@ import { splitImportedGenericName } from "./productComposition";
 
 type ProductRegulatoryClassificationInput = {
   variant: "default" | "edit-row";
+  unit?: string;
+  subUnit?: string;
   legalCategory?: string;
   compositionStatus?: ProductCompositionStatus;
   activeIngredients?: readonly ProductIngredient[];
@@ -17,6 +19,8 @@ type ProductRegulatoryClassificationInput = {
 
 export function classifyProductRegulatoryForms({
   variant,
+  unit,
+  subUnit,
   legalCategory,
   compositionStatus,
   activeIngredients,
@@ -24,6 +28,8 @@ export function classifyProductRegulatoryForms({
   genericName,
 }: ProductRegulatoryClassificationInput) {
   return classifyStockRegulatoryForms({
+    packUnit: unit,
+    childUnit: subUnit,
     legalCategory,
     compositionStatus,
     activeIngredients,

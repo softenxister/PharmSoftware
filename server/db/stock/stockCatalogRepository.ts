@@ -19,6 +19,7 @@ import { latestProductCost } from "@/lib/stockCost";
 import {
   readStockInventoryMetadata,
   stockInventorySqlFilters,
+  stockTotalsCte,
   totalStockSql,
 } from "./stockInventoryMetadata";
 
@@ -70,7 +71,7 @@ function stockProductWhere(input: StockReadQuery): Prisma.ProductWhereInput {
   return { isActive: true, ...(and.length > 0 ? { AND: and } : {}) };
 }
 
-function requiresAggregateStockRead(input: StockReadQuery): boolean {
+export function requiresAggregateStockRead(input: StockReadQuery): boolean {
   const { filters } = input;
   return input.sort === "weekly"
     || input.sort === "stock"
@@ -79,7 +80,6 @@ function requiresAggregateStockRead(input: StockReadQuery): boolean {
     || input.sort === "sellPrice"
     || filters.expiryWindows.length > 0
     || filters.stockLevels.length > 0
-    || filters.legalCategories.length > 0
     || filters.regulatoryForms.length > 0
     || filters.stockRange !== null;
 }
@@ -126,12 +126,12 @@ function filteredStockOrderBy(input: StockReadQuery): Prisma.Sql {
 async function readFilteredStockProductIds(
   input: StockReadQuery,
 ): Promise<{ ids: string[]; total: number; weeklySoldByProductId: ReadonlyMap<string, number> }> {
-  const { where, having } = stockInventorySqlFilters(input);
+  const where = stockInventorySqlFilters(input);
 
   const orderBy = filteredStockOrderBy(input);
   const offset = (input.page - 1) * input.pageSize;
-  const weekRange = await readRecentSalesWeekRange();
-  const weeklySalesCte = input.sort === "weekly"
+  const weekRange = input.sort === "weekly" ? await readRecentSalesWeekRange() : null;
+  const weeklySalesCte = weekRange
     ? Prisma.sql`
       weekly_sales AS (
         SELECT
@@ -160,18 +160,16 @@ async function readFilteredStockProductIds(
     total: number;
     weeklySold: number;
   }>>(Prisma.sql`
-    WITH ${weeklySalesCte}, ${latestCostsCte}
+    WITH ${stockTotalsCte}, ${weeklySalesCte}, ${latestCostsCte}
     SELECT product.id, COUNT(*) OVER()::integer AS total
       , ${weeklySoldSelect}::double precision AS "weeklySold"
     FROM "Product" product
     INNER JOIN "Category" category ON category.id = product."categoryId"
     INNER JOIN "Manufacturer" manufacturer ON manufacturer.id = product."manufacturerId"
-    LEFT JOIN "ProductBatch" batch ON batch."productId" = product.id
+    LEFT JOIN stock_totals ON stock_totals."productId" = product.id
     LEFT JOIN weekly_sales ON weekly_sales."productId" = product.id
     LEFT JOIN latest_costs ON latest_costs."productId" = product.id
     WHERE ${Prisma.join(where, " AND ")}
-    GROUP BY product.id, weekly_sales."weeklySold", latest_costs."latestCost"
-    ${having.length > 0 ? Prisma.sql`HAVING ${Prisma.join(having, " AND ")}` : Prisma.empty}
     ORDER BY ${orderBy}
     LIMIT ${input.pageSize}
     OFFSET ${offset}
@@ -285,23 +283,54 @@ async function readWeeklySoldQuantities(productIds: string[]): Promise<ReadonlyM
   return new Map(rows.map((row) => [row.productId, Number(row.weeklySold)]));
 }
 
-async function rowsToSalesProducts(
-  products: StockProductRow[],
+type StockProductMetrics = {
+  batchCosts: ReadonlyMap<string, number>;
+  latestCosts: ReadonlyMap<string, number>;
+  weeklySoldByProductId: ReadonlyMap<string, number>;
+  missingWeeklySoldByProductId: ReadonlyMap<string, number>;
+};
+
+async function readStockProductMetrics(
+  productIds: string[],
   weeklySoldByProductId: ReadonlyMap<string, number> = new Map(),
-): Promise<SalesProduct[]> {
-  const productIds = products.map((product) => product.id);
+): Promise<StockProductMetrics> {
   const missingWeeklySoldProductIds = productIds.filter((id) => !weeklySoldByProductId.has(id));
   const [batchCosts, latestCosts, missingWeeklySoldByProductId] = await Promise.all([
     readBatchCosts(productIds),
     readLatestProductCosts(productIds),
     readWeeklySoldQuantities(missingWeeklySoldProductIds),
   ]);
+  return {
+    batchCosts,
+    latestCosts,
+    weeklySoldByProductId,
+    missingWeeklySoldByProductId,
+  };
+}
+
+function projectSalesProducts(
+  products: StockProductRow[],
+  metrics: StockProductMetrics,
+): SalesProduct[] {
   return products.map((product) => productRowToSalesProduct(
     product,
-    batchCosts,
-    weeklySoldByProductId.get(product.id) ?? missingWeeklySoldByProductId.get(product.id) ?? 0,
-    latestCosts.get(product.id),
+    metrics.batchCosts,
+    metrics.weeklySoldByProductId.get(product.id)
+      ?? metrics.missingWeeklySoldByProductId.get(product.id)
+      ?? 0,
+    metrics.latestCosts.get(product.id),
   ));
+}
+
+async function rowsToSalesProducts(
+  products: StockProductRow[],
+  weeklySoldByProductId: ReadonlyMap<string, number> = new Map(),
+): Promise<SalesProduct[]> {
+  const metrics = await readStockProductMetrics(
+    products.map((product) => product.id),
+    weeklySoldByProductId,
+  );
+  return projectSalesProducts(products, metrics);
 }
 
 export async function readStockProduct(productId: string): Promise<SalesProduct | null> {
@@ -330,16 +359,19 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
         ...(metadata ? { inventory: metadata.inventory } : {}),
       };
     }
-    const rows = await prisma.product.findMany({
-      where: { id: { in: filtered.ids } },
-      include: productGraph,
-    });
+    const [rows, metrics] = await Promise.all([
+      prisma.product.findMany({
+        where: { id: { in: filtered.ids } },
+        include: productGraph,
+      }),
+      readStockProductMetrics(filtered.ids, filtered.weeklySoldByProductId),
+    ]);
     const rowById = new Map(rows.map((row) => [row.id, row]));
     const orderedRows = filtered.ids
       .map((id) => rowById.get(id))
       .filter((row): row is StockProductRow => Boolean(row));
     return {
-      products: await rowsToSalesProducts(orderedRows, filtered.weeklySoldByProductId),
+      products: projectSalesProducts(orderedRows, metrics),
       page: input.page,
       pageSize: input.pageSize,
       total,
@@ -356,11 +388,11 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
       : input.sort === "maximum"
         ? [{ maximumStock: input.sortDirection }, { itemName: "asc" }, { id: "asc" }]
         : [{ itemName: input.sortDirection }, { id: input.sortDirection }];
-  const [fallbackTotal, products, metadata] = await Promise.all([
+  const [fallbackTotal, productIdRows, metadata] = await Promise.all([
     input.includeInventoryMetadata ? Promise.resolve(null) : prisma.product.count({ where }),
     prisma.product.findMany({
       where,
-      include: productGraph,
+      select: { id: true },
       orderBy,
       skip: (input.page - 1) * input.pageSize,
       take: input.pageSize,
@@ -368,9 +400,31 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
     input.includeInventoryMetadata ? readStockInventoryMetadata(input) : Promise.resolve(null),
   ]);
   const total = metadata?.total ?? fallbackTotal ?? 0;
+  const productIds = productIdRows.map((product) => product.id);
+  if (productIds.length === 0) {
+    return {
+      products: [],
+      page: input.page,
+      pageSize: input.pageSize,
+      total,
+      hasMore: false,
+      ...(metadata ? { inventory: metadata.inventory } : {}),
+    };
+  }
+  const [rows, metrics] = await Promise.all([
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: productGraph,
+    }),
+    readStockProductMetrics(productIds),
+  ]);
+  const rowById = new Map(rows.map((row) => [row.id, row]));
+  const orderedRows = productIds
+    .map((id) => rowById.get(id))
+    .filter((row): row is StockProductRow => Boolean(row));
 
   return {
-    products: await rowsToSalesProducts(products),
+    products: projectSalesProducts(orderedRows, metrics),
     page: input.page,
     pageSize: input.pageSize,
     total,

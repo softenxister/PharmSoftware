@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { classifyStockRegulatoryForms } from "./stockRegulatoryRecords";
 
+const LIQUID_UNITS = {
+  packUnit: "bottle",
+  childUnit: "ml",
+} as const;
+
 test("regulatory records always include purchase ledger ข.ย. 9", () => {
   assert.deepEqual(classifyStockRegulatoryForms({}), ["ข.ย. 9"]);
 });
@@ -14,14 +19,41 @@ test("specially controlled products require ข.ย. 10", () => {
 
 test("verified designated dangerous-drug ingredients require ข.ย. 11", () => {
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     legalCategory: "ยาอันตราย",
     compositionStatus: "verified",
     activeIngredients: [{ canonicalName: "Dextromethorphan Hydrobromide" }],
   }), ["ข.ย. 9", "ข.ย. 11"]);
 });
 
+test("ข.ย. 11 requires bottle as the base unit and ml as the subunit", () => {
+  const regulatedProduct = {
+    compositionStatus: "verified",
+    activeIngredients: [{ canonicalName: "Dextromethorphan Hydrobromide" }],
+  } as const;
+
+  assert.deepEqual(classifyStockRegulatoryForms(regulatedProduct), ["ข.ย. 9"]);
+
+  assert.deepEqual(classifyStockRegulatoryForms({
+    ...regulatedProduct,
+    packUnit: "bottle",
+    childUnit: "ml",
+  }), ["ข.ย. 9", "ข.ย. 11"]);
+  assert.deepEqual(classifyStockRegulatoryForms({
+    ...regulatedProduct,
+    packUnit: "box",
+    childUnit: "ml",
+  }), ["ข.ย. 9"]);
+  assert.deepEqual(classifyStockRegulatoryForms({
+    ...regulatedProduct,
+    packUnit: "bottle",
+    childUnit: "tablet",
+  }), ["ข.ย. 9"]);
+});
+
 test("designated antihistamines require ข.ย. 11 without dosage-form evidence", () => {
   const input = {
+    ...LIQUID_UNITS,
     compositionStatus: "verified",
     activeIngredients: [{ canonicalName: "Chlorpheniramine Maleate" }],
   } as const;
@@ -49,6 +81,7 @@ test("all eleven named antihistamines require ข.ย. 11 in combination formula
 
   for (const canonicalName of antihistamines) {
     assert.deepEqual(classifyStockRegulatoryForms({
+      ...LIQUID_UNITS,
       compositionStatus: "verified",
       activeIngredients: [
         { canonicalName },
@@ -60,6 +93,7 @@ test("all eleven named antihistamines require ข.ย. 11 in combination formula
 
 test("unverified compositions fail closed for ข.ย. 11", () => {
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     legalCategory: "ยาอันตราย",
     compositionStatus: "pending",
     activeIngredients: [{ canonicalName: "Tramadol Hydrochloride" }],
@@ -68,6 +102,7 @@ test("unverified compositions fail closed for ข.ย. 11", () => {
 
 test("extracted imported combination ingredients can require ข.ย. 11", () => {
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     legalCategory: "ยาอันตราย",
     compositionStatus: "pending",
     importedIngredients: [
@@ -79,6 +114,7 @@ test("extracted imported combination ingredients can require ข.ย. 11", () =>
 
 test("extracted imported antihistamines require ข.ย. 11 without category or dosage evidence", () => {
   const input = {
+    ...LIQUID_UNITS,
     compositionStatus: "pending",
     importedIngredients: [
       { canonicalName: "Chlorpheniramine Maleate" },
@@ -94,6 +130,7 @@ test("extracted imported antihistamines require ข.ย. 11 without category or 
 
 test("verified ingredients take priority over imported generic-name ingredients", () => {
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     legalCategory: "ยาอันตราย",
     compositionStatus: "verified",
     activeIngredients: [{ canonicalName: "Paracetamol" }],
@@ -103,6 +140,7 @@ test("verified ingredients take priority over imported generic-name ingredients"
 
 test("unlisted extracted combination ingredients do not require ข.ย. 11", () => {
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     legalCategory: "ยาอันตราย",
     compositionStatus: "pending",
     importedIngredients: [
@@ -114,6 +152,7 @@ test("unlisted extracted combination ingredients do not require ข.ย. 11", ()
 
 test("special-control status and a reportable ingredient require both ข.ย. 10 and ข.ย. 11", () => {
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     legalCategory: "ยาควบคุมพิเศษ",
     compositionStatus: "verified",
     activeIngredients: [{ canonicalName: "Tramadol Hydrochloride" }],
@@ -124,15 +163,18 @@ test("corticosteroids require ข.ย. 11 only in a single-ingredient formulatio
   const dexamethasone = { canonicalName: "Dexamethasone" };
 
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     compositionStatus: "verified",
     activeIngredients: [dexamethasone],
   }), ["ข.ย. 9", "ข.ย. 11"]);
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     compositionStatus: "verified",
     activeIngredients: [dexamethasone, { canonicalName: "Chloramphenicol" }],
   }), ["ข.ย. 9"]);
 
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     compositionStatus: "verified",
     activeIngredients: [{ canonicalName: "Desoxymethasone" }],
   }), ["ข.ย. 9", "ข.ย. 11"]);
@@ -141,10 +183,12 @@ test("corticosteroids require ข.ย. 11 only in a single-ingredient formulatio
 test("PDE5 medicines require ข.ย. 11 only in a single-ingredient formulation", () => {
   for (const canonicalName of ["Sildenafil Citrate", "Tadalafil", "Vardenafil Hydrochloride"]) {
     assert.deepEqual(classifyStockRegulatoryForms({
+      ...LIQUID_UNITS,
       compositionStatus: "verified",
       activeIngredients: [{ canonicalName }],
     }), ["ข.ย. 9", "ข.ย. 11"]);
     assert.deepEqual(classifyStockRegulatoryForms({
+      ...LIQUID_UNITS,
       compositionStatus: "verified",
       activeIngredients: [{ canonicalName }, { canonicalName: "Dapoxetine" }],
     }), ["ข.ย. 9"]);
@@ -153,6 +197,7 @@ test("PDE5 medicines require ข.ย. 11 only in a single-ingredient formulation
 
 test("an unsplit imported combination never qualifies as PDE5 monotherapy", () => {
   assert.deepEqual(classifyStockRegulatoryForms({
+    ...LIQUID_UNITS,
     compositionStatus: "pending",
     importedIngredients: [{ canonicalName: "Sildenafil / Dapoxetine" }],
   }), ["ข.ย. 9"]);

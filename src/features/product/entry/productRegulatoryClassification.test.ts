@@ -2,8 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { classifyProductRegulatoryForms } from "./productRegulatoryClassification";
 
+const LIQUID_UNITS = {
+  unit: "bottle",
+  subUnit: "ml",
+} as const;
+
 test("edit-item classification checks ข.ย. 11 from an extracted imported ingredient", () => {
   assert.deepEqual(classifyProductRegulatoryForms({
+    ...LIQUID_UNITS,
     variant: "edit-row",
     legalCategory: "ยาอันตราย",
     compositionStatus: "pending",
@@ -13,6 +19,7 @@ test("edit-item classification checks ข.ย. 11 from an extracted imported ing
 
 test("create-item classification does not use imported generic-name fallback", () => {
   assert.deepEqual(classifyProductRegulatoryForms({
+    ...LIQUID_UNITS,
     variant: "default",
     legalCategory: "ยาอันตราย",
     compositionStatus: "pending",
@@ -22,6 +29,7 @@ test("create-item classification does not use imported generic-name fallback", (
 
 test("verified ingredients override imported generic-name fallback in edit item", () => {
   assert.deepEqual(classifyProductRegulatoryForms({
+    ...LIQUID_UNITS,
     variant: "edit-row",
     legalCategory: "ยาอันตราย",
     compositionStatus: "verified",
@@ -37,6 +45,7 @@ test("verified ingredients override imported generic-name fallback in edit item"
 
 test("persisted imported ingredients drive edit-item classification before raw parsing", () => {
   assert.deepEqual(classifyProductRegulatoryForms({
+    ...LIQUID_UNITS,
     variant: "edit-row",
     legalCategory: "ยาอันตราย",
     compositionStatus: "pending",

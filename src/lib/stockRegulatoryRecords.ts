@@ -73,6 +73,8 @@ type RegulatoryIngredient = {
 };
 
 type StockRegulatoryInput = {
+  packUnit?: string;
+  childUnit?: string;
   legalCategory?: string;
   compositionStatus?: string;
   activeIngredients?: readonly RegulatoryIngredient[];
@@ -101,6 +103,8 @@ function isAtomicIngredient(ingredient: RegulatoryIngredient): boolean {
 }
 
 export function classifyStockRegulatoryForms({
+  packUnit,
+  childUnit,
   legalCategory,
   compositionStatus,
   activeIngredients = [],
@@ -110,6 +114,10 @@ export function classifyStockRegulatoryForms({
   const category = normalizeRegulatoryValue(legalCategory);
 
   if (category === "ยาควบคุมพิเศษ") forms.push("ข.ย. 10");
+
+  const hasLiquidUnits = normalizeRegulatoryValue(packUnit) === "bottle"
+    && normalizeRegulatoryValue(childUnit) === "ml";
+  if (!hasLiquidUnits) return forms;
 
   const ingredients = compositionStatus === "verified"
     ? activeIngredients

@@ -27,6 +27,8 @@ export function ProductRegulatoryFields({
   const { t } = usePreferences();
   const regulatoryForms = classifyProductRegulatoryForms({
     variant,
+    unit: controller.draft.unit,
+    subUnit: controller.draft.subUnit,
     legalCategory: controller.draft.legalCategory,
     compositionStatus,
     activeIngredients,

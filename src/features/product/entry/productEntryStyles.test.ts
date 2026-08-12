@@ -38,6 +38,8 @@ test("edit General exposes the fixed dosage-form dropdown", () => {
 
 test("regulatory classification receives ingredients extracted from the imported generic name", () => {
   assert.match(regulatoryFields, /classifyProductRegulatoryForms/);
+  assert.match(regulatoryFields, /unit:\s*controller\.draft\.unit/);
+  assert.match(regulatoryFields, /subUnit:\s*controller\.draft\.subUnit/);
   assert.match(regulatoryFields, /genericName:\s*controller\.draft\.genericName/);
   assert.match(regulatoryFields, /variant,/);
 });

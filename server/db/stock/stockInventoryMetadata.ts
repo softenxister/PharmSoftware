@@ -9,19 +9,26 @@ import {
   type StockRegulatoryForm,
 } from "@/lib/stockRegulatoryRecords";
 
-export const totalStockSql = Prisma.sql`COALESCE(SUM(batch."availableStock"), 0)`;
-
-const nearestExpirySql = Prisma.sql`
-  MIN(
-    CASE
-      WHEN batch."expiryDate" ~ '^\\d{4}-\\d{2}-\\d{2}$'
-        THEN TO_DATE(batch."expiryDate", 'YYYY-MM-DD')
-      WHEN batch."expiryDate" ~ '^\\d{2}/\\d{2}/\\d{4}$'
-        THEN TO_DATE(batch."expiryDate", 'DD/MM/YYYY')
-      ELSE NULL
-    END
+export const stockTotalsCte = Prisma.sql`
+  stock_totals AS (
+    SELECT
+      batch."productId",
+      SUM(batch."availableStock") AS "totalStock",
+      MIN(
+        CASE
+          WHEN batch."expiryDate" ~ '^\\d{4}-\\d{2}-\\d{2}$'
+            THEN TO_DATE(batch."expiryDate", 'YYYY-MM-DD')
+          WHEN batch."expiryDate" ~ '^\\d{2}/\\d{2}/\\d{4}$'
+            THEN TO_DATE(batch."expiryDate", 'DD/MM/YYYY')
+          ELSE NULL
+        END
+      ) AS "nearestExpiry"
+    FROM "ProductBatch" batch
+    GROUP BY batch."productId"
   )
 `;
+export const totalStockSql = Prisma.sql`COALESCE(stock_totals."totalStock", 0)`;
+const nearestExpirySql = Prisma.sql`stock_totals."nearestExpiry"`;
 
 function lowerValues(values: string[]): string[] {
   return values.map((value) => value.toLocaleLowerCase("en-US"));
@@ -61,18 +68,21 @@ function hasRegulatedIngredient(
   const productIngredientTable = source === "verified"
     ? Prisma.sql`"ProductIngredient"`
     : Prisma.sql`"ProductImportedIngredient"`;
+  const patterns = names.map((name) => `%${name}%`);
   return Prisma.sql`EXISTS (
     SELECT 1
     FROM ${productIngredientTable} product_ingredient
     INNER JOIN "Ingredient" ingredient ON ingredient.id = product_ingredient."ingredientId"
     WHERE product_ingredient."productId" = product.id
-      AND (${Prisma.join(names.map((name) => (
-        Prisma.sql`(
-          ingredient."normalizedName" ILIKE ${`%${name}%`}
-          OR ingredient."canonicalName" ILIKE ${`%${name}%`}
-          OR COALESCE(ingredient."thaiName", '') ILIKE ${`%${name}%`}
-        )`
-      )), " OR ")})
+      AND EXISTS (
+        SELECT 1
+        FROM (
+          VALUES (ARRAY[${Prisma.join(patterns)}]::text[])
+        ) AS regulated(patterns)
+        WHERE ingredient."normalizedName" ILIKE ANY(regulated.patterns)
+          OR ingredient."canonicalName" ILIKE ANY(regulated.patterns)
+          OR COALESCE(ingredient."thaiName", '') ILIKE ANY(regulated.patterns)
+      )
   )`;
 }
 
@@ -122,19 +132,22 @@ function regulatoryFormCondition(form: StockRegulatoryForm): Prisma.Sql {
     return Prisma.sql`BTRIM(product."legalCategory") = 'ยาควบคุมพิเศษ'`;
   }
   return Prisma.sql`(
-    (product."compositionStatus" = 'VERIFIED' AND ${ky11IngredientCondition("verified")})
-    OR (product."compositionStatus" <> 'VERIFIED' AND ${ky11IngredientCondition("imported")})
+    LOWER(BTRIM(product."packUnit")) = 'bottle'
+    AND LOWER(BTRIM(product."childUnit")) = 'ml'
+    AND (
+      (product."compositionStatus" = 'VERIFIED' AND ${ky11IngredientCondition("verified")})
+      OR (product."compositionStatus" <> 'VERIFIED' AND ${ky11IngredientCondition("imported")})
+    )
   )`;
 }
 
 export function stockInventorySqlFilters(
   input: StockReadQuery,
-): { where: Prisma.Sql[]; having: Prisma.Sql[] } {
+): Prisma.Sql[] {
   const where: Prisma.Sql[] = [Prisma.sql`product."isActive" = TRUE`];
-  const having: Prisma.Sql[] = [];
   if (input.productIds.length > 0) {
     where.push(Prisma.sql`product.id IN (${Prisma.join(input.productIds)})`);
-    return { where, having };
+    return where;
   }
 
   const { filters } = input;
@@ -181,24 +194,24 @@ export function stockInventorySqlFilters(
     )})`);
   }
   if (filters.stockLevels.length > 0) {
-    having.push(Prisma.sql`(${Prisma.join(filters.stockLevels.map(stockLevelCondition), " OR ")})`);
+    where.push(Prisma.sql`(${Prisma.join(filters.stockLevels.map(stockLevelCondition), " OR ")})`);
   }
   if (filters.expiryWindows.length > 0) {
-    having.push(Prisma.sql`(${Prisma.join(filters.expiryWindows.map(expiryWindowCondition), " OR ")})`);
+    where.push(Prisma.sql`(${Prisma.join(filters.expiryWindows.map(expiryWindowCondition), " OR ")})`);
   }
   if (filters.stockRange?.min !== null && filters.stockRange?.min !== undefined) {
-    having.push(Prisma.sql`${totalStockSql} >= ${filters.stockRange.min}`);
+    where.push(Prisma.sql`${totalStockSql} >= ${filters.stockRange.min}`);
   }
   if (filters.stockRange?.max !== null && filters.stockRange?.max !== undefined) {
-    having.push(Prisma.sql`${totalStockSql} <= ${filters.stockRange.max}`);
+    where.push(Prisma.sql`${totalStockSql} <= ${filters.stockRange.max}`);
   }
-  return { where, having };
+  return where;
 }
 
 export function stockInventoryMetadataSql(input: StockReadQuery): Prisma.Sql {
-  const { where, having } = stockInventorySqlFilters(input);
+  const where = stockInventorySqlFilters(input);
   return Prisma.sql`
-    WITH filtered_products AS (
+    WITH ${stockTotalsCte}, filtered_products AS (
       SELECT
         product.id,
         product."legalCategory",
@@ -211,17 +224,20 @@ export function stockInventoryMetadataSql(input: StockReadQuery): Prisma.Sql {
       FROM "Product" product
       INNER JOIN "Category" category ON category.id = product."categoryId"
       INNER JOIN "Manufacturer" manufacturer ON manufacturer.id = product."manufacturerId"
-      LEFT JOIN "ProductBatch" batch ON batch."productId" = product.id
+      LEFT JOIN stock_totals ON stock_totals."productId" = product.id
       WHERE ${Prisma.join(where, " AND ")}
-      GROUP BY product.id, manufacturer.name
-      ${having.length > 0 ? Prisma.sql`HAVING ${Prisma.join(having, " AND ")}` : Prisma.empty}
+    ),
+    legal_category_facets AS (
+      SELECT COALESCE(
+        ARRAY_AGG(DISTINCT BTRIM(product."legalCategory"))
+          FILTER (WHERE BTRIM(product."legalCategory") <> ''),
+        ARRAY[]::text[]
+      ) AS "legalCategories"
+      FROM "Product" product
+      WHERE product."isActive" = TRUE
     )
     SELECT
-      COALESCE(
-        ARRAY_AGG(DISTINCT BTRIM(filtered_products."legalCategory"))
-          FILTER (WHERE BTRIM(filtered_products."legalCategory") <> ''),
-        ARRAY[]::text[]
-      ) AS "legalCategories",
+      (SELECT "legalCategories" FROM legal_category_facets) AS "legalCategories",
       COALESCE(
         ARRAY_AGG(DISTINCT filtered_products."dosageType")
           FILTER (WHERE BTRIM(filtered_products."dosageType") <> ''
