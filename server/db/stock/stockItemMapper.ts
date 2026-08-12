@@ -2,6 +2,7 @@ import type { SavedStockItem, SalesProduct, StockItemInput } from "../types";
 import { canonicalizeProductUnit } from "@/i18n/productUnits";
 import { productImageUrl } from "@server/product-images/placeholder";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
+import { inferProductDosageForm } from "@/lib/productDosageForm";
 
 type RelatedLineProduct = Pick<SalesProduct, "id" | "itemName" | "barcode" | "location">;
 
@@ -101,6 +102,13 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
     barcode: primaryBarcode,
     barcodes: baseBarcodes.slice(1),
     category,
+    dosageForm: item.dosageForm ?? inferProductDosageForm({
+      itemName: item.itemName,
+      genericName: item.genericName,
+      category,
+      childUnit: subUnit,
+      childQuantity: cleanWeightage,
+    }).dosageForm,
     imageUrl,
     weeklySold: 0,
     batches: [{
@@ -132,6 +140,9 @@ export function createSavedStockItem(input: StockItemInput, currentItem?: SavedS
     subUnit: canonicalizeProductUnit(input.subUnit?.trim() || input.unit.trim()),
     unit: canonicalizeProductUnit(input.unit),
     brandName: input.brandName.trim(),
+    ...(input.genericName === undefined ? {} : { genericName: input.genericName.trim() }),
+    ...(input.legalCategory === undefined ? {} : { legalCategory: input.legalCategory.trim() }),
+    ...(input.dosageForm === undefined ? {} : { dosageForm: input.dosageForm }),
     packagingRows: input.packagingRows
       .map((row) => {
         const barcodes = normalizeBarcodeValues(row.barcode, row.barcodes);

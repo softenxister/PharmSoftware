@@ -12,6 +12,7 @@ export type ThaiFdaCompositionLookupResult = {
   sourceName: "Thai FDA National Drug Information";
   sourceRecordId?: string;
   sourceUrl: string;
+  dosageForm?: string;
   ingredients: Array<{ name: string; strength?: string }>;
 };
 
@@ -106,7 +107,7 @@ function dosageFormScore(itemName: string, dosageForm: string): number {
   return 0;
 }
 
-function unambiguousResult(
+export function selectUnambiguousThaiFdaResult(
   lookup: ProductLookupInput,
   candidates: ThaiFdaCandidate[],
   searchUrl: string,
@@ -142,6 +143,7 @@ function unambiguousResult(
     sourceName: "Thai FDA National Drug Information",
     sourceRecordId: selected.candidate.registrationNumber || undefined,
     sourceUrl: selected.candidate.detailUrl || searchUrl,
+    ...(selected.candidate.dosageForm ? { dosageForm: selected.candidate.dosageForm } : {}),
     ingredients: selected.ingredients,
   };
 }
@@ -185,7 +187,7 @@ export async function lookupThaiFdaComposition(
 ): Promise<ThaiFdaCompositionLookupResult | null> {
   for (const query of queryCandidates(lookup)) {
     const fetched = await fetchCandidates(query);
-    const result = unambiguousResult(lookup, fetched.candidates, fetched.sourceUrl);
+    const result = selectUnambiguousThaiFdaResult(lookup, fetched.candidates, fetched.sourceUrl);
     if (result) return result;
   }
   return null;

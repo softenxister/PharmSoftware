@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseThaiFdaCandidates } from "./thaiFdaCompositionProvider";
+import {
+  parseThaiFdaCandidates,
+  selectUnambiguousThaiFdaResult,
+} from "./thaiFdaCompositionProvider";
 
 test("Thai FDA product cards are parsed into authoritative composition candidates", () => {
   const html = `
@@ -26,4 +29,27 @@ test("Thai FDA product cards are parsed into authoritative composition candidate
     registrationNumber: "2A 3/52",
     detailUrl: "https://ndi.fda.moph.go.th/drug_detail/index/?rctype=2A&rcno=5200003",
   }]);
+});
+
+
+test("Thai FDA selection retains the authoritative dosage form", () => {
+  const candidates = parseThaiFdaCandidates(`
+    <div class="col-md-4 col-sm-6">
+      <strong>ชื่อสารสำคัญ : </strong><span>paracetamol</span>
+      <strong>ชื่อทางการค้า : </strong><span>SARA</span>
+      <strong>รูปแบบ : </strong><span>film-coated tablet</span>
+      <strong>ความแรง : </strong><span>500 MG</span>
+      <strong>ผู้รับอนุญาต : </strong><span>Thai Nakorn Patana</span>
+      <strong>เลขทะเบียน : </strong><span>1A 1/60</span>
+    </div>
+  `);
+
+  const result = selectUnambiguousThaiFdaResult({
+    itemName: "SARA TABLET 500MG",
+    brandName: "SARA",
+    manufacturerName: "Thai Nakorn Patana",
+  }, candidates, "https://ndi.fda.moph.go.th/drug_info/index?brand=SARA");
+
+  assert.equal(result?.dosageForm, "film-coated tablet");
+  assert.equal(result?.ingredients[0]?.name, "paracetamol");
 });

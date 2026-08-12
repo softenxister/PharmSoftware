@@ -19,6 +19,13 @@ import { prisma } from "../core/prisma";
 import { readStockProduct } from "./stockCatalogRepository";
 import { shouldDiscardStoredProductImage } from "./stockImageUpdate";
 import { normalizeBarcodeValues, relatedLineUpdates } from "./stockItemMapper";
+import {
+  inferProductDosageForm,
+  isStoredDosageForm,
+  resolveDosageFormSelection,
+  type DosageFormSource,
+  type StoredDosageForm,
+} from "@/lib/productDosageForm";
 
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 const MAX_PRODUCT_WRITE_ITEMS = 100;
@@ -42,6 +49,7 @@ export type ProductWriteCommand = {
   childUnit: string;
   packUnit: string;
   brandName: string;
+  dosageForm?: StoredDosageForm;
   packaging: Array<{
     packUnit: string;
     childQuantity: number;
@@ -183,12 +191,14 @@ function parseProductWrite(value: unknown): ProductWriteCommand | null {
   const childUnit = cleanUnit(input.subUnit ?? input.unit, PRODUCT_SUBUNIT_VALUES);
   const packUnit = cleanUnit(input.unit, PRODUCT_UNIT_VALUES);
   const brandName = cleanText(input.brandName, 200);
+  const dosageForm = input.dosageForm;
   const packaging = parsePackaging(input.packagingRows);
   if (
     productId === null || photoUrl === null || barcodes === null || !itemName
     || lotNo === null || expiryText === null || location === null || manufacturer === null
     || sellPriceText === null || category === null || weightageText === null
     || !childUnit || !packUnit || brandName === null || packaging === null
+    || (dosageForm !== undefined && !isStoredDosageForm(dosageForm))
   ) return null;
 
   const sellPriceThb = positiveDecimal(sellPriceText, MAX_SELL_PRICE_THB, 2);
@@ -222,6 +232,7 @@ function parseProductWrite(value: unknown): ProductWriteCommand | null {
     childUnit,
     packUnit,
     brandName,
+    ...(isStoredDosageForm(dosageForm) ? { dosageForm } : {}),
     packaging,
   };
 }
@@ -247,6 +258,49 @@ export function resolveProductWriteIdentity(
     id: current?.id ?? `p-${uuid}`,
     barcode: requestedBarcode || current?.barcode || `PHARM-${uuid.toUpperCase()}`,
     aliases: requestedBarcode ? command.barcodes.slice(1) : [],
+  };
+}
+
+type CurrentProductDosage = {
+  dosageForm: string;
+  dosageFormSource: string;
+  migrationGenericName: string | null;
+};
+
+export function resolveProductWriteDosage(
+  command: Pick<ProductWriteCommand, "itemName" | "childUnit" | "childQuantity" | "dosageForm">,
+  current: CurrentProductDosage | null,
+  category: string,
+  hasIngredientEvidence: boolean,
+): { dosageForm: StoredDosageForm; dosageFormSource: DosageFormSource; childUnit: string } {
+  const currentDosageForm = current && isStoredDosageForm(current.dosageForm)
+    ? current.dosageForm
+    : "Unclassified";
+  const currentSource = current
+    && (current.dosageFormSource === "INFERRED"
+      || current.dosageFormSource === "THAI_FDA"
+      || current.dosageFormSource === "MANUAL")
+    ? current.dosageFormSource
+    : "INFERRED";
+  const inferred = inferProductDosageForm({
+    itemName: command.itemName,
+    genericName: current?.migrationGenericName ?? undefined,
+    category,
+    childUnit: command.childUnit,
+    childQuantity: command.childQuantity,
+    hasIngredientEvidence,
+  });
+  const selection = resolveDosageFormSelection({
+    requestedDosageForm: command.dosageForm ?? currentDosageForm,
+    current: current ? { dosageForm: currentDosageForm, source: currentSource } : null,
+    inferred,
+  });
+  return {
+    dosageForm: selection.dosageForm,
+    dosageFormSource: selection.source,
+    childUnit: selection.dosageForm === inferred.dosageForm
+      ? (inferred.correctedChildUnit ?? command.childUnit)
+      : command.childUnit,
   };
 }
 
@@ -323,6 +377,21 @@ async function upsertProductWrite(
     || current.brandName !== brandName
     || current.manufacturerId !== manufacturer.id
   );
+  const hasIngredientEvidence = current && !compositionIdentityChanged
+    ? Boolean(await tx.productIngredient.findFirst({
+        where: { productId: current.id },
+        select: { productId: true },
+      }) ?? await tx.productImportedIngredient.findFirst({
+        where: { productId: current.id },
+        select: { productId: true },
+      }))
+    : false;
+  const dosage = resolveProductWriteDosage(
+    command,
+    current,
+    categoryName,
+    hasIngredientEvidence,
+  );
   if (shouldDiscardStoredProductImage({ productIdentityChanged: compositionIdentityChanged })) {
     await tx.productImageAsset.deleteMany({ where: { productId: identity.id } });
   }
@@ -339,9 +408,11 @@ async function upsertProductWrite(
       manufacturerId: manufacturer.id,
       categoryId: category.id,
       packUnit: command.packUnit,
-      childUnit: command.childUnit,
+      childUnit: dosage.childUnit,
       childQuantity: command.childQuantity,
-      packLabel: `${command.childQuantity} ${command.childUnit}`,
+      packLabel: `${command.childQuantity} ${dosage.childUnit}`,
+      dosageForm: dosage.dosageForm,
+      dosageFormSource: dosage.dosageFormSource,
       location,
       imageUrl,
       ...(compositionIdentityChanged ? {
@@ -359,9 +430,11 @@ async function upsertProductWrite(
       manufacturerId: manufacturer.id,
       categoryId: category.id,
       packUnit: command.packUnit,
-      childUnit: command.childUnit,
+      childUnit: dosage.childUnit,
       childQuantity: command.childQuantity,
-      packLabel: `${command.childQuantity} ${command.childUnit}`,
+      packLabel: `${command.childQuantity} ${dosage.childUnit}`,
+      dosageForm: dosage.dosageForm,
+      dosageFormSource: dosage.dosageFormSource,
       location,
       imageUrl,
       weeklySold: 0,

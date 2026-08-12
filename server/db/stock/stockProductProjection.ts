@@ -2,6 +2,7 @@ import { Prisma } from "@server/generated/prisma/client";
 import type { SalesProduct } from "../types";
 import { normalizeOptionalBatchNo } from "@/lib/batchPresentation";
 import { normalizeExpiryDate } from "@/lib/expiryDate";
+import type { StoredDosageForm } from "@/lib/productDosageForm";
 
 export const productGraph = {
   category: true,
@@ -90,6 +91,7 @@ export function productRowToSalesProduct(
     ...(latestCostThb === undefined ? {} : { averageCostThb: latestCostThb }),
     ...(product.migrationGenericName ? { genericName: product.migrationGenericName } : {}),
     ...(product.legalCategory ? { legalCategory: product.legalCategory } : {}),
+    dosageForm: product.dosageForm as StoredDosageForm,
     compositionStatus: product.compositionStatus.toLowerCase() as SalesProduct["compositionStatus"],
     activeIngredients: product.activeIngredients.map(({ ingredient, strength, sourceName, sourceUrl }) => ({
       id: ingredient.id,

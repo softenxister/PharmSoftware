@@ -1,8 +1,12 @@
-import { ProductCompositionStatus } from "@server/generated/prisma/client";
+import {
+  ProductCompositionStatus,
+  ProductDosageFormSource,
+} from "@server/generated/prisma/client";
 import { prisma } from "@server/db/core/prisma";
 import { canonicalIngredient } from "./ingredientNormalization";
 import { lookupOpenFdaComposition } from "./openFdaCompositionProvider";
 import { lookupThaiFdaComposition } from "./thaiFdaCompositionProvider";
+import { inferProductDosageForm } from "@/lib/productDosageForm";
 
 const RETRY_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_BATCH_SIZE = 10;
@@ -12,6 +16,8 @@ async function enrichProduct(product: {
   barcode: string;
   itemName: string;
   brandName: string;
+  childUnit: string;
+  dosageFormSource: ProductDosageFormSource;
   manufacturer: { name: string };
 }) {
   try {
@@ -65,6 +71,14 @@ async function enrichProduct(product: {
           },
         });
       }
+      const officialDosageForm = result.dosageForm
+        ? inferProductDosageForm({
+            itemName: product.itemName,
+            category: "",
+            childUnit: product.childUnit,
+            thaiFdaDosageForm: result.dosageForm,
+          }).dosageForm
+        : null;
       await tx.product.update({
         where: { id: product.id },
         data: {
@@ -72,6 +86,15 @@ async function enrichProduct(product: {
           compositionCheckedAt: new Date(),
           compositionRetryAt: null,
           compositionError: null,
+          ...(product.dosageFormSource !== ProductDosageFormSource.MANUAL
+            && officialDosageForm
+            && officialDosageForm !== "Unclassified"
+            && officialDosageForm !== "Not Applicable"
+            ? {
+                dosageForm: officialDosageForm,
+                dosageFormSource: ProductDosageFormSource.THAI_FDA,
+              }
+            : {}),
         },
       });
     });

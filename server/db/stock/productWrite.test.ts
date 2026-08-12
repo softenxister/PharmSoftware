@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   parseProductWriteRequest,
+  resolveProductWriteDosage,
   resolveProductWriteIdentity,
 } from "./productWrite";
 
@@ -19,6 +20,7 @@ const validProduct = () => ({
   subUnit: "caplet",
   unit: "VIAL",
   brandName: " Test brand ",
+  dosageForm: "Capsule",
   packagingRows: [
     {
       parentUnit: "container",
@@ -50,6 +52,7 @@ test("Product write normalizes one valid request before persistence", () => {
       childUnit: "tablet",
       packUnit: "bottle",
       brandName: "Test brand",
+      dosageForm: "Capsule",
       packaging: [{
         packUnit: "jar",
         childQuantity: 20,
@@ -174,6 +177,7 @@ test("Product write rejects invalid base Product invariants", () => {
     { weightage: "100000000000" },
     { unit: "unknown-unit" },
     { subUnit: "unknown-unit" },
+    { dosageForm: "ml" },
   ];
 
   for (const patch of invalidPatches) {
@@ -228,5 +232,64 @@ test("Product write generates or preserves an internal Product identity when bar
     id: "existing-product",
     barcode: "8850000000999",
     aliases: [],
+  });
+});
+
+
+test("Product write infers dosage form and repairs only tablet-capsule unit conflicts", () => {
+  const parsed = parseProductWriteRequest({
+    ...validProduct(),
+    itemName: "CLINDAMYCIN CAPSULE 300MG",
+    dosageForm: "Unclassified",
+    subUnit: "tablet",
+  });
+  assert.ok(parsed);
+
+  assert.deepEqual(resolveProductWriteDosage(
+    parsed.items[0],
+    null,
+    "Anti-infective Medicines",
+    false,
+  ), {
+    dosageForm: "Capsule",
+    dosageFormSource: "INFERRED",
+    childUnit: "capsule",
+  });
+
+  const boxed = parseProductWriteRequest({
+    ...validProduct(),
+    itemName: "BOCYTIN CAPSULE 375MG",
+    dosageForm: "Unclassified",
+    subUnit: "box",
+  });
+  assert.ok(boxed);
+  assert.equal(
+    resolveProductWriteDosage(boxed.items[0], null, "Other Medicines & Health Products", false).childUnit,
+    "box",
+  );
+});
+
+test("Product write preserves an existing manual dosage form", () => {
+  const parsed = parseProductWriteRequest({
+    ...validProduct(),
+    itemName: "EXAMPLE OINTMENT 5G",
+    dosageForm: "Cream",
+    subUnit: "g",
+  });
+  assert.ok(parsed);
+
+  assert.deepEqual(resolveProductWriteDosage(
+    parsed.items[0],
+    {
+      dosageForm: "Cream",
+      dosageFormSource: "MANUAL",
+      migrationGenericName: null,
+    },
+    "Dermatological Medicines",
+    true,
+  ), {
+    dosageForm: "Cream",
+    dosageFormSource: "MANUAL",
+    childUnit: "g",
   });
 });

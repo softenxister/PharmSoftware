@@ -12,6 +12,7 @@ export type CompositionLookupResult = {
   sourceName: "openFDA NDC Directory";
   sourceRecordId?: string;
   sourceUrl: string;
+  dosageForm?: string;
   ingredients: Array<{ name: string; strength?: string }>;
 };
 

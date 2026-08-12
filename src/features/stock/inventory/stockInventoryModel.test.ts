@@ -31,6 +31,7 @@ const product: SalesProduct = {
   averageCostThb: 30,
   genericName: "Paracetamol",
   legalCategory: "ยาอันตราย",
+  dosageForm: "Tablet",
   batches: [{
     batchNo: "LOT-1",
     expiryDate: "2027-08-01",

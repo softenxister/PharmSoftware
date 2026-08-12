@@ -24,6 +24,7 @@ const product: SalesProduct = {
   location: "A1",
   barcode: "1234567890123",
   category: "Test",
+  dosageForm: "Tablet",
   imageUrl: "",
   weeklySold: 1,
   batches: [],

@@ -13,6 +13,7 @@ const seedProduct: SalesProduct = {
   location: "A1",
   barcode: "111",
   category: "Pain Relief",
+  dosageForm: "Tablet",
   imageUrl: "https://example.com/seed.png",
   weeklySold: 1,
   batches: [{ batchNo: "A", expiryDate: "2027-01-31", sellPriceThb: 10, availableStock: 4 }],

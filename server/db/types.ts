@@ -1,3 +1,5 @@
+import type { StoredDosageForm } from "@/lib/productDosageForm";
+
 export type Customer = {
   id: string;
   name: string;
@@ -77,6 +79,7 @@ export type SalesProduct = {
   averageCostThb?: number;
   genericName?: string;
   legalCategory?: string;
+  dosageForm: StoredDosageForm;
   compositionStatus?: ProductCompositionStatus;
   activeIngredients?: ProductIngredient[];
   importedIngredients?: ImportedProductIngredient[];
@@ -132,6 +135,7 @@ export type StockItemInput = {
   brandName: string;
   genericName?: string;
   legalCategory?: string;
+  dosageForm?: StoredDosageForm;
   packagingRows: StockPackagingInput[];
 };
 
