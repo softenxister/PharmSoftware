@@ -75,6 +75,17 @@ test("stock edit input carries imported generic and legal-category values", () =
 
   assert.equal(input.genericName, "Paracetamol");
   assert.equal(input.legalCategory, "ยาอันตราย");
+  assert.equal(input.dosageForm, "Tablet");
+});
+
+test("inventory projects dosage form independently from packaging unit", () => {
+  const item = projectStockInventoryItem({
+    ...product,
+    dosageForm: "Capsule",
+    pack: { ...product.pack, childUnit: "box" },
+  });
+
+  assert.equal(item.dosageType, "Capsule");
 });
 
 test("inventory markup display rounds fractional percentages up to whole numbers", () => {

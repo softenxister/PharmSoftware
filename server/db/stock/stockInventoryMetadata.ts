@@ -166,7 +166,7 @@ export function stockInventorySqlFilters(
     where.push(Prisma.sql`LOWER(BTRIM(product."legalCategory")) IN (${Prisma.join(lowerValues(filters.legalCategories))})`);
   }
   if (filters.dosageTypes.length > 0) {
-    where.push(Prisma.sql`LOWER(product."childUnit") IN (${Prisma.join(lowerValues(filters.dosageTypes))})`);
+    where.push(Prisma.sql`LOWER(product."dosageForm") IN (${Prisma.join(lowerValues(filters.dosageTypes))})`);
   }
   if (filters.manufacturers.length > 0) {
     where.push(Prisma.sql`LOWER(manufacturer.name) IN (${Prisma.join(lowerValues(filters.manufacturers))})`);
@@ -202,7 +202,7 @@ export function stockInventoryMetadataSql(input: StockReadQuery): Prisma.Sql {
       SELECT
         product.id,
         product."legalCategory",
-        product."childUnit" AS "dosageType",
+        product."dosageForm" AS "dosageType",
         manufacturer.name AS manufacturer,
         product."tagName" AS tag,
         product."minimumStock",
@@ -224,7 +224,8 @@ export function stockInventoryMetadataSql(input: StockReadQuery): Prisma.Sql {
       ) AS "legalCategories",
       COALESCE(
         ARRAY_AGG(DISTINCT filtered_products."dosageType")
-          FILTER (WHERE BTRIM(filtered_products."dosageType") <> ''),
+          FILTER (WHERE BTRIM(filtered_products."dosageType") <> ''
+            AND BTRIM(filtered_products."dosageType") NOT IN ('Not Applicable', 'Unclassified')),
         ARRAY[]::text[]
       ) AS "dosageTypes",
       COALESCE(

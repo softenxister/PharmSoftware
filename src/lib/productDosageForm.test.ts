@@ -169,4 +169,9 @@ test("manual selections stay authoritative and changed selections become manual"
     current: null,
     inferred: { dosageForm: "Capsule" },
   }), { dosageForm: "Capsule", source: "INFERRED" });
+  assert.deepEqual(resolveDosageFormSelection({
+    requestedDosageForm: "Unclassified",
+    current: { dosageForm: "Tablet", source: "INFERRED" },
+    inferred: { dosageForm: "Tablet" },
+  }), { dosageForm: "Unclassified", source: "MANUAL" });
 });

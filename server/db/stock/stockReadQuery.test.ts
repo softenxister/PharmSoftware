@@ -104,7 +104,7 @@ test("stock reads parse bounded repeated inventory filters", () => {
       + "?category=Pain+%26+Fever+Relief"
       + "&category=Gastrointestinal+Medicines"
       + "&legalCategory=%E0%B8%A2%E0%B8%B2%E0%B8%AD%E0%B8%B1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%A2"
-      + "&dosageType=tablet"
+      + "&dosageType=Tablet"
       + "&expiry=Within+30+days"
       + "&manufacturer=GPO"
       + "&tag=Best+seller"
@@ -117,7 +117,7 @@ test("stock reads parse bounded repeated inventory filters", () => {
   assert.deepEqual(parsed.filters, {
     categories: ["Pain & Fever Relief", "Gastrointestinal Medicines"],
     legalCategories: ["ยาอันตราย"],
-    dosageTypes: ["tablet"],
+    dosageTypes: ["Tablet"],
     expiryWindows: ["Within 30 days"],
     manufacturers: ["GPO"],
     tags: ["Best seller"],
@@ -129,13 +129,14 @@ test("stock reads parse bounded repeated inventory filters", () => {
 
 test("stock reads discard invalid inventory filter values and ranges", () => {
   const parsed = parseStockReadQuery(
-    "http://pharm.test/api/stock?expiry=Tomorrow&stockLevel=Nearly+empty"
+    "http://pharm.test/api/stock?expiry=Tomorrow&stockLevel=Nearly+empty&dosageType=ml"
       + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+12&stockMin=-1&stockMax=none",
   );
 
   assert.deepEqual(parsed.filters.expiryWindows, []);
   assert.deepEqual(parsed.filters.stockLevels, []);
   assert.deepEqual(parsed.filters.regulatoryForms, []);
+  assert.deepEqual(parsed.filters.dosageTypes, []);
   assert.equal(parsed.filters.stockRange, null);
 });
 

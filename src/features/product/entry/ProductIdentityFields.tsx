@@ -17,8 +17,17 @@ import {
 } from "@/components/forms/SearchableSelect";
 import { decimalText } from "./productItemDraft";
 import { ProductRegulatoryFields } from "./ProductRegulatoryFields";
+import { DOSAGE_FORMS, DOSAGE_FORM_STATUSES } from "@/lib/productDosageForm";
+import { getStockFilterOptionLabel } from "@/features/stock/stockFilterLabels";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
+
+function dosageFormOptions(locale: AppLocale): SearchableSelectOption[] {
+  return [...DOSAGE_FORMS, ...DOSAGE_FORM_STATUSES].map((value) => ({
+    value,
+    label: getStockFilterOptionLabel(locale, value),
+  }));
+}
 
 function unitOptions(
   values: readonly string[],
@@ -112,6 +121,19 @@ export function ProductIdentityFields({
             onCommit={() => onFlowCommit("itemCategory")}
           />
         </label>}
+        {showGeneral && controller.isEditing && (
+          <label className={fieldClassName} data-stock-flow="dosageForm">
+            <span>{t("stockForm.dosageForm")}</span>
+            <SearchableSelect
+              compact
+              ariaLabel={t("stockForm.dosageForm")}
+              value={draft.dosageForm}
+              options={dosageFormOptions(preferences.locale)}
+              onChange={(value) => controller.updateField("dosageForm", value as typeof draft.dosageForm)}
+              onCommit={() => onFlowCommit("dosageForm")}
+            />
+          </label>
+        )}
         {showPricingStock && <label className={fieldClassName} data-stock-flow="weightage" onKeyDown={onFlowEnter}>
           <span>{t("stockForm.amount")}</span>
           <input

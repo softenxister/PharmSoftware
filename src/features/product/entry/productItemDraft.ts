@@ -1,4 +1,5 @@
 import type { StockItemInput } from "@server/db/types";
+import type { StoredDosageForm } from "@/lib/productDosageForm";
 import {
   PRODUCT_PACKAGE_VALUES,
   PRODUCT_SUBUNIT_VALUES,
@@ -31,6 +32,7 @@ export type ProductItemDraft = {
   brandName: string;
   genericName: string;
   legalCategory: string;
+  dosageForm: StoredDosageForm;
   packagingRows: ProductPackagingRow[];
 };
 
@@ -173,6 +175,7 @@ export function createProductItemDraft(
     brandName: initialItem?.brandName ?? "",
     genericName: initialItem?.genericName ?? "",
     legalCategory: initialItem?.legalCategory ?? "",
+    dosageForm: initialItem?.dosageForm ?? "Unclassified",
     packagingRows: packagingRows.length > 0 ? packagingRows : [createPackagingRow()],
   };
 }
@@ -229,6 +232,7 @@ export function serializeProductItemDraft(
     subUnit: draft.subUnit,
     unit: draft.unit,
     brandName: draft.brandName,
+    dosageForm: draft.dosageForm,
     packagingRows: draft.packagingRows.map((row) => ({
       ...row,
       childUnit: options.packagingChildUnit ?? row.childUnit,

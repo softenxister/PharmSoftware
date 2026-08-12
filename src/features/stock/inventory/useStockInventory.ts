@@ -15,7 +15,7 @@ import {
 import { isStockPhotoUrlOnlyChange } from "@/lib/stockPhotoUrlChange";
 import {
   buildFilterOptions,
-  COMMON_DOSAGE_TYPES,
+  DOSAGE_FORMS,
   createEmptyAppliedFilters,
   createEmptyDraftFilters,
   parseStockRange,
@@ -125,14 +125,8 @@ export function useStockInventory() {
     [draftFilters.maximumStock, draftFilters.minimumStock],
   );
   const dosageTypeOptions = useMemo(
-    () => buildFilterOptions(
-      COMMON_DOSAGE_TYPES,
-      [
-        ...draftFilters.dosageTypes,
-        ...inventoryMetadata.facets.dosageTypes,
-      ],
-    ),
-    [draftFilters.dosageTypes, inventoryMetadata.facets.dosageTypes],
+    () => [...DOSAGE_FORMS],
+    [],
   );
   const legalCategoryOptions = useMemo(
     () => buildFilterOptions(

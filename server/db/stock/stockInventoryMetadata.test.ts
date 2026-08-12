@@ -7,13 +7,17 @@ test("inventory metadata aggregates the complete filtered result without page li
   const input = parseStockReadQuery(
     "http://pharm.test/api/stock?inventory=1&q=para&manufacturer=GPO"
       + "&legalCategory=%E0%B8%A2%E0%B8%B2%E0%B8%AD%E0%B8%B1%E0%B8%99%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%A2"
-      + "&stockLevel=Low+Stock&stockMin=2&page=4&pageSize=10",
+      + "&dosageType=Capsule&stockLevel=Low+Stock&stockMin=2&page=4&pageSize=10",
   );
 
   const query = stockInventoryMetadataSql(input);
 
   assert.match(query.text, /WITH filtered_products AS/i);
+  assert.match(query.text, /product\."dosageForm" AS "dosageType"/i);
+  assert.match(query.text, /LOWER\(product\."dosageForm"\) IN/i);
+  assert.doesNotMatch(query.text, /product\."childUnit" AS "dosageType"/i);
   assert.match(query.text, /ARRAY_AGG\(DISTINCT filtered_products\."dosageType"/i);
+  assert.match(query.text, /NOT IN \('Not Applicable', 'Unclassified'\)/i);
   assert.match(query.text, /ARRAY_AGG\(DISTINCT BTRIM\(filtered_products\."legalCategory"\)\)/i);
   assert.match(query.text, /COUNT\(\*\) FILTER \(\s*WHERE filtered_products\."totalStock"/i);
   assert.match(query.text, /"totalStock"\s*<\s*filtered_products\."minimumStock"/i);
@@ -23,6 +27,7 @@ test("inventory metadata aggregates the complete filtered result without page li
   assert.ok(query.values.includes("%para%"));
   assert.ok(query.values.includes("gpo"));
   assert.ok(query.values.includes("ยาอันตราย"));
+  assert.ok(query.values.includes("capsule"));
 });
 
 test("ข.ย. 11 filtering is ingredient-driven and can use extracted imported ingredients", () => {

@@ -7,6 +7,9 @@ import type {
 import { getStockMeasurementLabel } from "@/lib/productMeasurement";
 import { markupPercent } from "@/lib/stockCost";
 import type { StockRegulatoryForm } from "@/lib/stockRegulatoryRecords";
+import { DOSAGE_FORMS } from "@/lib/productDosageForm";
+
+export { DOSAGE_FORMS };
 
 export const STOCK_PAGE_SIZE = 50;
 export const SIDEBAR_MIN_WIDTH = 230;
@@ -47,24 +50,6 @@ export function reopenStockSidebarFromEdgeDrag(pointerDelta: number): StockSideb
   };
 }
 
-export const COMMON_DOSAGE_TYPES = [
-  "Tablet",
-  "Capsule",
-  "Syrup",
-  "Suspension",
-  "Oral Solution",
-  "Drops",
-  "Cream",
-  "Ointment",
-  "Gel",
-  "Lotion",
-  "Powder",
-  "Spray",
-  "Inhaler",
-  "Injection",
-  "Suppository",
-  "Patch",
-] as const;
 
 export const EXPIRY_WINDOWS = [
   "Expired",
@@ -257,7 +242,7 @@ export function projectStockInventoryItem(product: SalesProduct): StockInventory
     manufacturer: product.manufacturerName,
     tagName: product.tagName ?? "",
     category: product.category,
-    dosageType: product.pack.childUnit,
+    dosageType: product.dosageForm,
     expiryDates: product.batches.map((batch) => batch.expiryDate),
     pack: getStockMeasurementLabel(product),
     min,
@@ -305,6 +290,7 @@ export function productToStockItemInput(product: SalesProduct): StockItemInput {
     brandName: product.brandName,
     ...(product.genericName ? { genericName: product.genericName } : {}),
     ...(product.legalCategory ? { legalCategory: product.legalCategory } : {}),
+    dosageForm: product.dosageForm,
     packagingRows: product.parentPacks.map((pack) => ({
       parentUnit: pack.packUnit,
       childQuantity: String(pack.childPackQuantity),

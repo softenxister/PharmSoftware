@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  COMMON_DOSAGE_TYPES,
+  DOSAGE_FORMS,
   EXPIRY_WINDOWS,
   STOCK_LEVELS,
 } from "./inventory/stockInventoryModel";
@@ -9,13 +9,7 @@ import { getStockFilterOptionLabel } from "./stockFilterLabels";
 
 test("every standard Stock sidebar option has a Thai display label", () => {
   const standardOptions = [
-    ...COMMON_DOSAGE_TYPES,
-    "tab",
-    "caplet",
-    "ml",
-    "sachet",
-    "piece",
-    "g",
+    ...DOSAGE_FORMS,
     ...EXPIRY_WINDOWS,
     ...STOCK_LEVELS,
   ];

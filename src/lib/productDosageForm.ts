@@ -199,7 +199,10 @@ export function resolveDosageFormSelection({
   if (current?.source === "MANUAL" && requestedDosageForm === current.dosageForm) {
     return current;
   }
-  if (requestedDosageForm !== "Unclassified" && requestedDosageForm !== current?.dosageForm) {
+  if (
+    (current && requestedDosageForm !== current.dosageForm)
+    || (!current && requestedDosageForm !== "Unclassified")
+  ) {
     return { dosageForm: requestedDosageForm, source: "MANUAL" };
   }
   if (current?.source === "THAI_FDA" && requestedDosageForm === current.dosageForm) {

@@ -2,6 +2,7 @@ import {
   STOCK_REGULATORY_FORMS,
   type StockRegulatoryForm,
 } from "@/lib/stockRegulatoryRecords";
+import { DOSAGE_FORMS } from "@/lib/productDosageForm";
 
 const DEFAULT_STOCK_PAGE_SIZE = 50;
 const MAX_STOCK_PAGE_SIZE = 100;
@@ -21,6 +22,7 @@ const VALID_EXPIRY_WINDOWS = new Set([
 ]);
 const VALID_STOCK_LEVELS = new Set(["Out of Stock", "Low Stock", "Normal Stock", "Overstock"]);
 const VALID_REGULATORY_FORMS = new Set<string>(STOCK_REGULATORY_FORMS);
+const VALID_DOSAGE_FORMS = new Set<string>(DOSAGE_FORMS);
 
 const STOCK_SORTS = [
   "name",
@@ -108,7 +110,7 @@ export function parseStockReadQuery(url: string): StockReadQuery {
   const filters: StockReadFilters = {
     categories: repeatedFilterValues(params, "category"),
     legalCategories: repeatedFilterValues(params, "legalCategory"),
-    dosageTypes: repeatedFilterValues(params, "dosageType"),
+    dosageTypes: repeatedFilterValues(params, "dosageType", VALID_DOSAGE_FORMS),
     expiryWindows: repeatedFilterValues(params, "expiry", VALID_EXPIRY_WINDOWS),
     manufacturers: repeatedFilterValues(params, "manufacturer"),
     tags: repeatedFilterValues(params, "tag"),

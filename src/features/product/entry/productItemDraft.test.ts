@@ -39,9 +39,20 @@ test("product drafts normalize imported package units at their boundary", () => 
 
   assert.equal(draft.subUnit, "ml");
   assert.equal(draft.unit, "pack");
+  assert.equal(draft.dosageForm, "Unclassified");
   assert.equal(draft.packagingRows[0].parentUnit, "bottle");
   assert.equal(draft.packagingRows[0].childUnit, "g");
   assert.deepEqual(getMissingProductFields(draft), []);
+});
+
+test("product drafts preserve a manually selected dosage form", () => {
+  const draft = createProductItemDraft({ dosageForm: "Capsule" }, "medicine");
+
+  assert.equal(draft.dosageForm, "Capsule");
+  assert.equal(
+    serializeProductItemDraft(draft, { lotNo: "", expiryDate: "" }).dosageForm,
+    "Capsule",
+  );
 });
 
 test("a product without a physical barcode can still be saved", () => {
@@ -98,6 +109,7 @@ test("product serialization preserves the existing stock API contract", () => {
     subUnit: "tablet",
     unit: "tablet",
     brandName: "",
+    dosageForm: "Unclassified",
     packagingRows: draft.packagingRows,
   });
 });

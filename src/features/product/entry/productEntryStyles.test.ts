@@ -29,6 +29,13 @@ test("edit item shows imported generic name and Thai legal category as read-only
   assert.match(regulatoryFields, /stockForm\.legalCategory/);
 });
 
+test("edit General exposes the fixed dosage-form dropdown", () => {
+  assert.match(identityFields, /DOSAGE_FORMS/);
+  assert.match(identityFields, /DOSAGE_FORM_STATUSES/);
+  assert.match(identityFields, /controller\.isEditing/);
+  assert.match(identityFields, /controller\.updateField\("dosageForm"/);
+});
+
 test("regulatory classification receives ingredients extracted from the imported generic name", () => {
   assert.match(regulatoryFields, /classifyProductRegulatoryForms/);
   assert.match(regulatoryFields, /genericName:\s*controller\.draft\.genericName/);

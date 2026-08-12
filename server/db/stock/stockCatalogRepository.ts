@@ -59,7 +59,7 @@ function stockProductWhere(input: StockReadQuery): Prisma.ProductWhereInput {
     and.push({ legalCategory: { in: input.filters.legalCategories, mode: "insensitive" } });
   }
   if (input.filters.dosageTypes.length > 0) {
-    and.push({ childUnit: { in: input.filters.dosageTypes, mode: "insensitive" } });
+    and.push({ dosageForm: { in: input.filters.dosageTypes, mode: "insensitive" } });
   }
   if (input.filters.manufacturers.length > 0) {
     and.push({ manufacturer: { is: { name: { in: input.filters.manufacturers, mode: "insensitive" } } } });
