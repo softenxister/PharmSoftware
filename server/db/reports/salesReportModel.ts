@@ -74,6 +74,15 @@ export type BillProfitReportRow = {
   lines: SalesReportSourceLine[];
 };
 
+export type ProductSalesReportContribution = Omit<SalesReportSourceLine, "unitCost" | "costSource"> & {
+  saleId: string;
+  billNo: string;
+  soldAt: string;
+};
+export type ProductProfitReportContribution =
+  ProductSalesReportContribution
+  & Pick<SalesReportSourceLine, "unitCost" | "costSource">;
+
 export type ProductSalesReportRow = {
   type: "product-sales";
   productId: string;
@@ -84,6 +93,7 @@ export type ProductSalesReportRow = {
   paidBills: number;
   averageSellPrice: number;
   productSales: number;
+  contributions: ProductSalesReportContribution[];
 };
 
 export type ProductProfitReportRow = {
@@ -99,6 +109,7 @@ export type ProductProfitReportRow = {
   grossDifference: number | null;
   marginPercent: number | null;
   hasCompleteCost: boolean;
+  contributions: ProductProfitReportContribution[];
 };
 
 export type SalesReportRow =
@@ -303,6 +314,7 @@ type ProductAggregate = {
   saleIds: Set<string>;
   cost: number;
   hasCompleteCost: boolean;
+  contributions: ProductProfitReportContribution[];
 };
 
 function productAggregates(sales: SalesReportSourceSale[]): ProductAggregate[] {
@@ -320,10 +332,12 @@ function productAggregates(sales: SalesReportSourceSale[]): ProductAggregate[] {
         saleIds: new Set<string>(),
         cost: 0,
         hasCompleteCost: true,
+        contributions: [],
       };
       aggregate.quantitySold += line.quantity;
       aggregate.productSales += line.productSales;
       aggregate.saleIds.add(sale.id);
+      aggregate.contributions.push({ ...line, saleId: sale.id, billNo: sale.billNo, soldAt: sale.soldAt });
       const cost = lineCost(line);
       if (cost === null) aggregate.hasCompleteCost = false;
       else aggregate.cost += cost;
@@ -333,6 +347,20 @@ function productAggregates(sales: SalesReportSourceSale[]): ProductAggregate[] {
   return [...grouped.values()].sort((first, second) => (
     second.productSales - first.productSales || first.productName.localeCompare(second.productName)
   ));
+}
+
+function productSalesContribution(contribution: ProductProfitReportContribution): ProductSalesReportContribution {
+  return {
+    productId: contribution.productId,
+    productCode: contribution.productCode,
+    itemName: contribution.itemName,
+    packLabel: contribution.packLabel,
+    quantity: contribution.quantity,
+    productSales: contribution.productSales,
+    saleId: contribution.saleId,
+    billNo: contribution.billNo,
+    soldAt: contribution.soldAt,
+  };
 }
 
 function productSalesRows(sales: SalesReportSourceSale[]): ProductSalesReportRow[] {
@@ -348,6 +376,9 @@ function productSalesRows(sales: SalesReportSourceSale[]): ProductSalesReportRow
       ? roundCurrency(product.productSales / product.quantitySold)
       : 0,
     productSales: roundCurrency(product.productSales),
+    contributions: [...product.contributions]
+      .sort((first, second) => second.soldAt.localeCompare(first.soldAt))
+      .map(productSalesContribution),
   }));
 }
 
@@ -368,6 +399,7 @@ function productProfitRows(sales: SalesReportSourceSale[]): ProductProfitReportR
       cost,
       ...differenceAndMargin(product.productSales, cost),
       hasCompleteCost: product.hasCompleteCost,
+      contributions: [...product.contributions].sort((first, second) => second.soldAt.localeCompare(first.soldAt)),
     };
   });
 }

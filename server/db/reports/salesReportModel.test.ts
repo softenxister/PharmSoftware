@@ -166,6 +166,14 @@ test("product reports aggregate the same product and preserve missing cost", () 
     { product: "Product B", quantity: 1, value: 15 },
   ]);
 
+  const productA = salesReport.rows.find((row) => row.type === "product-sales" && row.productId === "product-a");
+  assert.ok(productA && productA.type === "product-sales");
+  assert.deepEqual(
+    productA.contributions.map((line) => ({ billNo: line.billNo, quantity: line.quantity })),
+    [{ billNo: "INV-002", quantity: 1 }, { billNo: "INV-001", quantity: 2 }],
+  );
+  assert.equal(productA.contributions.some((line) => "unitCost" in line), false);
+
   const profitReport = buildSalesReport(sales, {
     view: "product-profit",
     from: "2026-08-13",
@@ -181,6 +189,12 @@ test("product reports aggregate the same product and preserve missing cost", () 
     { product: "Product A", cost: 75, difference: 85 },
     { product: "Product B", cost: null, difference: null },
   ]);
+  const productAProfit = profitReport.rows.find((row) => (
+    row.type === "product-profit" && row.productId === "product-a"
+  ));
+  assert.ok(productAProfit && productAProfit.type === "product-profit");
+  assert.deepEqual(productAProfit.contributions.map((line) => line.unitCost), [25, 25]);
+
 });
 
 test("profit report rejects users without financial access", () => {
