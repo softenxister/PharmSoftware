@@ -192,5 +192,5 @@ server/db/reports/salesReportRepository.ts
 - Item discounts reduce product sales value.
 - Bill discounts remain unallocated in product reports.
 - Pharmacists see sales-only reports; cost/profit views and contribution cost fields are owner-only.
-- Legacy sales without immutable cost snapshots remain visibly incomplete.
+- Legacy sales without immutable snapshots use the latest received purchase cost as of the sale date, then migration cost; they remain incomplete only when neither exists.
 

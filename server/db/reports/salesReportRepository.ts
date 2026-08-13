@@ -1,4 +1,4 @@
-import { DiscountType, SaleStatus } from "@server/generated/prisma/client";
+import { DiscountType, Prisma, SaleStatus } from "@server/generated/prisma/client";
 import { calculateInclusiveVat, parseReceiptSnapshot } from "@/lib/receipt";
 import { prisma } from "../core/prisma";
 import {
@@ -14,6 +14,10 @@ const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 1
 
 type ReportSaleRecord = Awaited<ReturnType<typeof readPaidSales>>[number];
 
+type DatabaseCostSnapshot = {
+  unitCost: number;
+};
+
 function legacyBillDiscount(record: ReportSaleRecord): number {
   if (!record.discountType) return 0;
   const value = Number(record.discountValue ?? 0);
@@ -23,7 +27,11 @@ function legacyBillDiscount(record: ReportSaleRecord): number {
   return roundCurrency((Number(record.netTotal) * value) / (100 - value));
 }
 
-function fallbackLines(record: ReportSaleRecord, itemSubtotal: number): SalesReportSourceLine[] {
+function fallbackLines(
+  record: ReportSaleRecord,
+  itemSubtotal: number,
+  databaseCosts: ReadonlyMap<string, DatabaseCostSnapshot>,
+): SalesReportSourceLine[] {
   const grouped = new Map<string, {
     productId: string;
     productCode: string;
@@ -31,15 +39,21 @@ function fallbackLines(record: ReportSaleRecord, itemSubtotal: number): SalesRep
     packLabel: string;
     quantity: number;
     grossValue: number;
+    unitCost: number | null;
   }>();
   for (const line of record.lines) {
     const key = `${line.productId}\u0000${line.packLabel}\u0000${Number(line.unitPriceThb ?? 0)}`;
     const quantity = Number(line.quantity);
     const unitPrice = Number(line.unitPriceThb ?? Number(line.sellPriceThb) * Number(line.packMultiplier));
+    const databaseCost = databaseCosts.get(line.id)?.unitCost ?? null;
     const existing = grouped.get(key);
     if (existing) {
       existing.quantity += quantity;
       existing.grossValue += quantity * unitPrice;
+      if (existing.unitCost === null || databaseCost === null
+        || existing.unitCost !== databaseCost) {
+        existing.unitCost = null;
+      }
     } else {
       grouped.set(key, {
         productId: line.productId,
@@ -48,6 +62,7 @@ function fallbackLines(record: ReportSaleRecord, itemSubtotal: number): SalesRep
         packLabel: line.packLabel,
         quantity,
         grossValue: quantity * unitPrice,
+        unitCost: databaseCost,
       });
     }
   }
@@ -66,18 +81,24 @@ function fallbackLines(record: ReportSaleRecord, itemSubtotal: number): SalesRep
       packLabel: line.packLabel,
       quantity: line.quantity,
       productSales,
-      unitCost: null,
-      costSource: "unavailable",
+      unitCost: line.unitCost,
+      costSource: line.unitCost === null ? "unavailable" : "historical-database",
     };
   });
 }
 
-function snapshotLines(record: ReportSaleRecord, snapshot: NonNullable<ReturnType<typeof parseReceiptSnapshot>>): SalesReportSourceLine[] {
+function snapshotLines(
+  record: ReportSaleRecord,
+  snapshot: NonNullable<ReturnType<typeof parseReceiptSnapshot>>,
+  databaseCosts: ReadonlyMap<string, DatabaseCostSnapshot>,
+): SalesReportSourceLine[] {
   return snapshot.lines.map((line, index) => {
     const persistedLine = line.productId
       ? record.lines.find((candidate) => candidate.productId === line.productId
         && (!line.packLabel || candidate.packLabel === line.packLabel))
       : record.lines[index];
+    const databaseCost = persistedLine ? databaseCosts.get(persistedLine.id) : undefined;
+    const unitCost = line.unitCost ?? databaseCost?.unitCost ?? null;
     return {
       productId: line.productId ?? persistedLine?.productId ?? `legacy-${record.id}-${index}`,
       productCode: persistedLine?.product.externalProductCode ?? line.productId ?? "—",
@@ -85,13 +106,18 @@ function snapshotLines(record: ReportSaleRecord, snapshot: NonNullable<ReturnTyp
       packLabel: line.packLabel ?? persistedLine?.packLabel ?? "—",
       quantity: line.quantity,
       productSales: line.lineTotal,
-      unitCost: line.unitCost ?? null,
-      costSource: line.unitCost === undefined ? "unavailable" : "snapshot",
+      unitCost,
+      costSource: line.unitCost !== undefined
+        ? "snapshot"
+        : databaseCost ? "historical-database" : "unavailable",
     };
   });
 }
 
-function toSourceSale(record: ReportSaleRecord): SalesReportSourceSale {
+export function mapSaleToReportSource(
+  record: ReportSaleRecord,
+  databaseCosts: ReadonlyMap<string, DatabaseCostSnapshot> = new Map(),
+): SalesReportSourceSale {
   const snapshot = parseReceiptSnapshot(record.receiptSnapshot);
   if (snapshot) {
     return {
@@ -105,7 +131,7 @@ function toSourceSale(record: ReportSaleRecord): SalesReportSourceSale {
       billDiscountAmount: snapshot.billDiscountAmount,
       netCollected: snapshot.netTotal,
       vatAmount: snapshot.vat.vatAmount,
-      lines: snapshotLines(record, snapshot),
+      lines: snapshotLines(record, snapshot, databaseCosts),
     };
   }
 
@@ -123,7 +149,7 @@ function toSourceSale(record: ReportSaleRecord): SalesReportSourceSale {
     billDiscountAmount,
     netCollected,
     vatAmount: calculateInclusiveVat(netCollected).vatAmount,
-    lines: fallbackLines(record, itemSubtotal),
+    lines: fallbackLines(record, itemSubtotal, databaseCosts),
   };
 }
 
@@ -164,10 +190,58 @@ async function readPaidSales(query: SalesReportQuery) {
   });
 }
 
+async function readDatabaseCostSnapshots(
+  records: ReportSaleRecord[],
+): Promise<ReadonlyMap<string, DatabaseCostSnapshot>> {
+  const saleLineIds = records.flatMap((record) => record.lines.map((line) => line.id));
+  if (saleLineIds.length === 0) return new Map();
+  const rows = await prisma.$queryRaw<Array<{
+    saleLineId: string;
+    baseUnitCost: unknown;
+    packMultiplier: unknown;
+  }>>(Prisma.sql`
+    SELECT
+      sale_line.id AS "saleLineId",
+      COALESCE(latest."unitCost", product."migrationCostThb") AS "baseUnitCost",
+      sale_line."packMultiplier"
+    FROM "SaleLine" sale_line
+    INNER JOIN "Sale" sale ON sale.id = sale_line."saleId"
+    INNER JOIN "Product" product ON product.id = sale_line."productId"
+    LEFT JOIN LATERAL (
+      SELECT purchase_line.cost / NULLIF(purchase_line."unitMultiplier", 0) AS "unitCost"
+      FROM "PurchaseLine" purchase_line
+      INNER JOIN "PurchaseBill" purchase_bill ON purchase_bill.id = purchase_line."purchaseBillId"
+      WHERE purchase_line."productId" = sale_line."productId"
+        AND purchase_bill.status = 'RECEIVED'
+        AND purchase_bill."purchasedAt" <= sale."soldAt"
+        AND purchase_line.cost > 0
+        AND purchase_line."unitMultiplier" > 0
+      ORDER BY purchase_bill."purchasedAt" DESC, purchase_bill."createdAt" DESC, purchase_line.id DESC
+      LIMIT 1
+    ) latest ON true
+    WHERE sale_line.id IN (${Prisma.join(saleLineIds)})
+      AND COALESCE(latest."unitCost", product."migrationCostThb") > 0
+  `);
+  const costs = new Map<string, DatabaseCostSnapshot>();
+  for (const row of rows) {
+    const unitCost = Number(row.baseUnitCost) * Number(row.packMultiplier);
+    if (!Number.isFinite(unitCost) || unitCost <= 0) continue;
+    costs.set(row.saleLineId, { unitCost: roundCurrency(unitCost) });
+  }
+  return costs;
+}
+
 export async function readSalesReport(
   query: SalesReportQuery,
   canViewProfit: boolean,
 ): Promise<SalesReportResponse> {
   const records = await readPaidSales(query);
-  return buildSalesReport(records.map(toSourceSale), query, canViewProfit);
+  const databaseCosts = canViewProfit
+    ? await readDatabaseCostSnapshots(records)
+    : new Map<string, DatabaseCostSnapshot>();
+  return buildSalesReport(
+    records.map((record) => mapSaleToReportSource(record, databaseCosts)),
+    query,
+    canViewProfit,
+  );
 }

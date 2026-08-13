@@ -23,7 +23,7 @@ export type SalesReportSourceLine = {
   quantity: number;
   productSales: number;
   unitCost: number | null;
-  costSource: "snapshot" | "unavailable";
+  costSource: "snapshot" | "historical-database" | "unavailable";
 };
 
 export type SalesReportSourceSale = {
