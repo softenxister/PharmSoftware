@@ -1,5 +1,5 @@
-import { BlankFeaturePage } from "@/components/layout/BlankFeaturePage";
+import { SalesReports } from "@/features/reports/sales/SalesReports";
 
 export default function AnalysisPage() {
-  return <BlankFeaturePage />;
+  return <SalesReports />;
 }
