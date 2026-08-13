@@ -78,6 +78,60 @@ test("receipt snapshot preserves item order and prints final item prices without
   assert.deepEqual(snapshot.vat, { beforeVat: 191.59, vatAmount: 13.41 });
 });
 
+test("receipt snapshot preserves immutable product identity, discount, and sale-time cost", () => {
+  const snapshot = createReceiptSnapshot({
+    saleId: "sale-report",
+    billNo: "INV-REPORT",
+    soldAt: "2026-08-13T10:30:00.000Z",
+    customerName: "Customer",
+    salespersonName: "Owner",
+    paymentMethod: "Cash",
+    customerPaid: 90,
+    changeDue: 0,
+    billDiscountAmount: 0,
+    store: completeStore,
+    lines: [{
+      position: 0,
+      productId: "product-a",
+      packLabel: "10 tablets",
+      itemName: "Drug A",
+      quantity: 2,
+      originalUnitPrice: 50,
+      discountPercent: 10,
+      unitCost: 25,
+      costSource: "latest-purchase",
+    }],
+  });
+
+  assert.deepEqual(snapshot.lines[0], {
+    position: 0,
+    productId: "product-a",
+    packLabel: "10 tablets",
+    itemName: "Drug A",
+    quantity: 2,
+    grossUnitPrice: 50,
+    discountPercent: 10,
+    unitPrice: 45,
+    lineTotal: 90,
+    unitCost: 25,
+    costSource: "latest-purchase",
+  });
+  assert.deepEqual(parseReceiptSnapshot(snapshot), snapshot);
+  assert.throws(() => createReceiptSnapshot({
+    ...snapshot,
+    expectedNetTotal: snapshot.netTotal,
+    lines: [{
+      position: 0,
+      itemName: "Drug A",
+      quantity: 2,
+      originalUnitPrice: 50,
+      discountPercent: 10,
+      unitCost: -1,
+      costSource: "latest-purchase",
+    }],
+  }), /cost/i);
+});
+
 test("receipt snapshot stays equal to the canonical paid total across rounding boundaries", () => {
   const snapshot = createReceiptSnapshot({
     saleId: "sale-rounding", billNo: "INV-ROUND", soldAt: "2026-07-17T10:30:00.000Z",

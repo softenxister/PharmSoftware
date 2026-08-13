@@ -12,12 +12,20 @@ export type ReceiptStoreSnapshot = {
   closingTime: string;
 };
 
+export type ReceiptCostSource = "latest-purchase" | "migration";
+
 export type ReceiptLineSnapshot = {
   position: number;
+  productId?: string;
+  packLabel?: string;
   itemName: string;
   quantity: number;
+  grossUnitPrice?: number;
+  discountPercent?: number;
   unitPrice: number;
   lineTotal: number;
+  unitCost?: number;
+  costSource?: ReceiptCostSource;
 };
 
 export type ReceiptSnapshot = {
@@ -43,10 +51,14 @@ export type ReceiptSnapshotInput = Omit<ReceiptSnapshot, "version" | "customerNa
   expectedNetTotal?: number;
   lines: Array<{
     position: number;
+    productId?: string;
+    packLabel?: string;
     itemName: string;
     quantity: number;
     originalUnitPrice: number;
     discountPercent: number;
+    unitCost?: number | null;
+    costSource?: ReceiptCostSource;
   }>;
 };
 
@@ -123,8 +135,18 @@ export function createReceiptSnapshot(input: ReceiptSnapshotInput): ReceiptSnaps
       throw new Error("Receipt items require positive whole-number quantities.");
     }
     if (!line.itemName.trim() || line.itemName.trim().length > 500
+      || (line.productId !== undefined && (!line.productId.trim() || line.productId.trim().length > 200))
+      || (line.packLabel !== undefined && line.packLabel.trim().length > 200)
       || !Number.isFinite(line.originalUnitPrice) || line.originalUnitPrice < 0) {
       throw new Error("Receipt item details are invalid.");
+    }
+    if (line.unitCost !== undefined && line.unitCost !== null
+      && (!Number.isFinite(line.unitCost) || line.unitCost < 0)) {
+      throw new Error("Receipt item cost is invalid.");
+    }
+    if (line.costSource !== undefined
+      && line.costSource !== "latest-purchase" && line.costSource !== "migration") {
+      throw new Error("Receipt item cost source is invalid.");
     }
     const discountPercent = Number.isInteger(line.discountPercent)
       ? Math.min(Math.max(line.discountPercent, 0), 100)
@@ -132,10 +154,18 @@ export function createReceiptSnapshot(input: ReceiptSnapshotInput): ReceiptSnaps
     const unitPrice = roundCurrency(line.originalUnitPrice * (1 - discountPercent / 100));
     return {
       position: Number.isInteger(line.position) && line.position >= 0 ? line.position : index,
+      ...(line.productId === undefined ? {} : { productId: line.productId.trim() }),
+      ...(line.packLabel === undefined ? {} : { packLabel: line.packLabel.trim() }),
       itemName: line.itemName.trim(),
       quantity: line.quantity,
+      ...(line.productId === undefined ? {} : {
+        grossUnitPrice: roundCurrency(line.originalUnitPrice),
+        discountPercent,
+      }),
       unitPrice,
       lineTotal: roundCurrency(unitPrice * line.quantity),
+      ...(line.unitCost === undefined || line.unitCost === null ? {} : { unitCost: roundCurrency(line.unitCost) }),
+      ...(line.unitCost === undefined || line.unitCost === null || !line.costSource ? {} : { costSource: line.costSource }),
     };
   }).sort((first, second) => first.position - second.position);
 
@@ -255,10 +285,21 @@ export function parseReceiptSnapshot(value: unknown): ReceiptSnapshot | null {
   const validLines = candidate.lines.every((line) => (
     Boolean(line) && typeof line === "object"
     && Number.isInteger(line.position) && line.position >= 0
+    && (line.productId === undefined || (
+      typeof line.productId === "string" && Boolean(line.productId.trim()) && line.productId.length <= 200
+    ))
+    && (line.packLabel === undefined || (typeof line.packLabel === "string" && line.packLabel.length <= 200))
     && typeof line.itemName === "string" && Boolean(line.itemName.trim()) && line.itemName.length <= 500
     && Number.isInteger(line.quantity) && line.quantity > 0
+    && (line.grossUnitPrice === undefined || (Number.isFinite(line.grossUnitPrice) && line.grossUnitPrice >= 0))
+    && (line.discountPercent === undefined || (
+      Number.isInteger(line.discountPercent) && line.discountPercent >= 0 && line.discountPercent <= 100
+    ))
     && Number.isFinite(line.unitPrice) && line.unitPrice >= 0
     && Number.isFinite(line.lineTotal) && line.lineTotal >= 0
+    && (line.unitCost === undefined || (Number.isFinite(line.unitCost) && line.unitCost >= 0))
+    && (line.costSource === undefined
+      || line.costSource === "latest-purchase" || line.costSource === "migration")
   ));
   if (!validLines) return null;
   const lineSubtotal = roundCurrency(candidate.lines.reduce((sum, line) => sum + line.lineTotal, 0));

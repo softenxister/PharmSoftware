@@ -6,7 +6,11 @@ import {
   LOWEST_MEMBERSHIP_RANK,
   nextMembershipLoyalty,
 } from "@/lib/membershipRank";
-import { createReceiptSnapshot, type ReceiptStoreSnapshot } from "@/lib/receipt";
+import {
+  createReceiptSnapshot,
+  type ReceiptCostSource,
+  type ReceiptStoreSnapshot,
+} from "@/lib/receipt";
 import { prisma } from "../core/prisma";
 import { readStoreProfile } from "../settings/storeProfileRepository";
 import {
@@ -83,6 +87,64 @@ export type SavedSale = {
 
 const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+type ProductCostSnapshot = {
+  unitCost: number;
+  source: ReceiptCostSource;
+};
+
+export function receiptLineCostSnapshot(
+  cost: ProductCostSnapshot | undefined,
+  packMultiplier: number,
+): { unitCost?: number; costSource?: ReceiptCostSource } {
+  if (!cost || !Number.isFinite(packMultiplier) || packMultiplier <= 0) return {};
+  return {
+    unitCost: roundCurrency(cost.unitCost * packMultiplier),
+    costSource: cost.source,
+  };
+}
+
+async function readProductCostSnapshots(
+  tx: Prisma.TransactionClient,
+  productIds: string[],
+  observedAt: Date,
+): Promise<ReadonlyMap<string, ProductCostSnapshot>> {
+  if (productIds.length === 0) return new Map();
+  const rows = await tx.$queryRaw<Array<{
+    productId: string;
+    unitCost: unknown;
+    source: unknown;
+  }>>(Prisma.sql`
+    WITH latest_purchase_costs AS (
+      SELECT DISTINCT ON (line."productId")
+        line."productId",
+        line."cost" / NULLIF(line."unitMultiplier", 0) AS "unitCost"
+      FROM "PurchaseLine" line
+      INNER JOIN "PurchaseBill" bill ON bill.id = line."purchaseBillId"
+      WHERE line."productId" IN (${Prisma.join(productIds)})
+        AND bill.status = 'RECEIVED'
+        AND bill."purchasedAt" <= ${observedAt}
+        AND line."cost" > 0
+        AND line."unitMultiplier" > 0
+      ORDER BY line."productId", bill."purchasedAt" DESC, bill."createdAt" DESC, line.id DESC
+    )
+    SELECT
+      product.id AS "productId",
+      COALESCE(latest."unitCost", product."migrationCostThb") AS "unitCost",
+      CASE WHEN latest."unitCost" IS NOT NULL THEN 'latest-purchase' ELSE 'migration' END AS source
+    FROM "Product" product
+    LEFT JOIN latest_purchase_costs latest ON latest."productId" = product.id
+    WHERE product.id IN (${Prisma.join(productIds)})
+      AND COALESCE(latest."unitCost", product."migrationCostThb") > 0
+  `);
+  const costs = new Map<string, ProductCostSnapshot>();
+  for (const row of rows) {
+    const unitCost = Number(row.unitCost);
+    const source = row.source === "latest-purchase" ? "latest-purchase" : "migration";
+    if (Number.isFinite(unitCost) && unitCost > 0) costs.set(row.productId, { unitCost, source });
+  }
+  return costs;
+}
+
 export function loyaltyPointsForSale(
   status: SaleInput["status"],
   isMember: boolean,
@@ -103,6 +165,8 @@ export function summarizeSaleLines(lines: SaleLineInput[]) {
   const receiptLines = new Map<string, {
     itemId: string;
     itemName: string;
+    packLabel: string;
+    packMultiplier: number;
     quantity: number;
     unitPrice: number;
   }>();
@@ -121,6 +185,8 @@ export function summarizeSaleLines(lines: SaleLineInput[]) {
       receiptLines.set(receiptKey, {
         itemId,
         itemName: line.itemName,
+        packLabel: line.packLabel,
+        packMultiplier: Number(line.packMultiplier),
         quantity: Number(line.qty),
         unitPrice,
       });
@@ -273,6 +339,9 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
     });
     if (pricedProducts.length !== productIds.length) throw new Error("Sale item was not found in stock.");
     const discountByProduct = new Map(pricedProducts.map((product) => [product.id, product.discountPercent]));
+    const productCosts = nextStatus === SaleStatus.PAID
+      ? await readProductCostSnapshots(tx, productIds, now)
+      : new Map<string, ProductCostSnapshot>();
     const lineSummary = summarizeSaleLines(input.lines);
     const pricing = calculateSalePricing(input.lines.map((line) => ({
       quantity: Number(line.qty),
@@ -314,6 +383,10 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
       } satisfies ReceiptStoreSnapshot,
       lines: lineSummary.receiptLines.map((line, position) => ({
         position,
+        productId: line.itemId,
+        packLabel: line.packLabel,
+        ...receiptLineCostSnapshot(productCosts.get(line.itemId), line.packMultiplier),
+
         itemName: line.itemName,
         quantity: line.quantity,
         originalUnitPrice: line.unitPrice,

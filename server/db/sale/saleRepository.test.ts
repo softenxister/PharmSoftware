@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   loyaltyPointsForSale,
+  receiptLineCostSnapshot,
   summarizeSaleLines,
   validateSale,
   type SaleInput,
@@ -86,6 +87,8 @@ test("batch-split sale lines count and print as one logical item", () => {
     receiptLines: [{
       itemId: "p-sara",
       itemName: "Sara Paracetamol",
+      packLabel: "10 tabs",
+      packMultiplier: 1,
       quantity: 13,
       unitPrice: 40,
     }],
@@ -103,4 +106,16 @@ test("sales reject an invalid independent parent-unit price", () => {
   const input = saleInput();
   input.lines[0].unitPrice = -1;
   assert.throws(() => validateSale(input), /sale items are invalid/);
+});
+
+test("receipt cost snapshot scales normalized cost to the sold pack", () => {
+  assert.deepEqual(
+    receiptLineCostSnapshot({ unitCost: 2.5, source: "latest-purchase" }, 20),
+    { unitCost: 50, costSource: "latest-purchase" },
+  );
+  assert.deepEqual(
+    receiptLineCostSnapshot({ unitCost: 2.3333, source: "migration" }, 3),
+    { unitCost: 7, costSource: "migration" },
+  );
+  assert.deepEqual(receiptLineCostSnapshot(undefined, 10), {});
 });
