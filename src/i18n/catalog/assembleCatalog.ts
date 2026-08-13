@@ -6,6 +6,7 @@ import { salesEnglish, salesThai } from "./salesCatalog";
 import { purchaseEnglish, purchaseThai } from "./purchaseCatalog";
 import { stockEnglish, stockThai } from "./stockCatalog";
 import { settingsEnglish, settingsThai } from "./settingsCatalog";
+import { reportsEnglish, reportsThai } from "./reportsCatalog";
 
 export const english = {
   ...sharedEnglish,
@@ -16,6 +17,7 @@ export const english = {
   ...purchaseEnglish,
   ...stockEnglish,
   ...settingsEnglish,
+  ...reportsEnglish,
 } as const;
 
 export type TranslationKey = keyof typeof english;
@@ -29,6 +31,7 @@ export const thai: Partial<Record<TranslationKey, string>> = {
   ...purchaseThai,
   ...stockThai,
   ...settingsThai,
+  ...reportsThai,
 };
 
 function placeholderNames(template: string): string[] {
