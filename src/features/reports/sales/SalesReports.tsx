@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Download, Printer, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertCircle, Download, FileDown, RefreshCw, ShieldCheck } from "lucide-react";
 import { useSearchParams } from "react-router";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
@@ -28,7 +28,7 @@ export function SalesReports() {
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
   const [selectedRow, setSelectedRow] = useState<SalesReportRow | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<"csv" | "pdf" | null>(null);
   const canViewProfit = user?.role === "owner";
   const location = useMemo(() => resolveSalesReportLocation(
     searchParams,
@@ -86,16 +86,16 @@ export function SalesReports() {
     }
     setSelectedRow(row);
   };
-  const exportReport = () => {
-    if (isExporting) return;
-    setIsExporting(true);
+  const exportReport = (format: "csv" | "pdf") => {
+    if (exportingFormat) return;
+    setExportingFormat(format);
     const link = document.createElement("a");
-    link.href = reportExportUrl(location);
+    link.href = reportExportUrl(location, format);
     link.download = "";
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.setTimeout(() => setIsExporting(false), 700);
+    window.setTimeout(() => setExportingFormat(null), 700);
   };
 
   const hasMissingCost = Boolean(report
@@ -117,13 +117,13 @@ export function SalesReports() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <button type="button" className={styles.secondaryButton} disabled={!report || isLoading || isExporting} onClick={exportReport}>
+            <button type="button" className={styles.secondaryButton} disabled={!report || isLoading || Boolean(exportingFormat)} onClick={() => exportReport("csv")}>
               <Download size={15} aria-hidden="true" />
-              {t(isExporting ? "reports.exporting" : "reports.export")}
+              {t(exportingFormat === "csv" ? "reports.exportingCsv" : "reports.export")}
             </button>
-            <button type="button" className={styles.secondaryButton} disabled={!report || isLoading} onClick={() => window.print()}>
-              <Printer size={15} aria-hidden="true" />
-              {t("reports.print")}
+            <button type="button" className={styles.secondaryButton} disabled={!report || isLoading || Boolean(exportingFormat)} onClick={() => exportReport("pdf")}>
+              <FileDown size={15} aria-hidden="true" />
+              {t(exportingFormat === "pdf" ? "reports.exportingPdf" : "reports.exportPdf")}
             </button>
           </div>
         </header>
@@ -207,7 +207,9 @@ export function SalesReports() {
         )}
       </div>
 
-      <span className={styles.visuallyHidden} aria-live="polite">{isExporting ? t("reports.exporting") : ""}</span>
+      <span className={styles.visuallyHidden} aria-live="polite">
+        {exportingFormat === "csv" ? t("reports.exportingCsv") : exportingFormat === "pdf" ? t("reports.exportingPdf") : ""}
+      </span>
       <SalesReportDetailDrawer
         row={selectedRow}
         onClose={() => setSelectedRow(null)}

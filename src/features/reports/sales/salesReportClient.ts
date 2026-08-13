@@ -14,6 +14,6 @@ export async function loadSalesReport(
   return body;
 }
 
-export function reportExportUrl(location: SalesReportLocation): string {
-  return `${buildSalesReportRequestUrl({ ...location, page: 1 })}&format=csv`;
+export function reportExportUrl(location: SalesReportLocation, format: "csv" | "pdf"): string {
+  return `${buildSalesReportRequestUrl({ ...location, page: 1 })}&format=${format}`;
 }

@@ -5,6 +5,7 @@ import {
   resolveSalesReportLocation,
   reportSearchParams,
 } from "./salesReportModel";
+import { reportExportUrl } from "./salesReportClient";
 
 const now = new Date("2026-08-13T05:00:00.000Z");
 
@@ -50,4 +51,22 @@ test("report request URL carries only the server contract fields", () => {
     to: "2026-08-13",
     page: 2,
   }), "/api/reports/sales?view=product-profit&from=2026-07-15&to=2026-08-13&page=2&pageSize=50");
+});
+
+test("report export URL preserves the selected filters and requests the chosen file format", () => {
+  const location = {
+    view: "daily" as const,
+    range: "custom" as const,
+    from: "2026-08-01",
+    to: "2026-08-13",
+    page: 3,
+  };
+  assert.equal(
+    reportExportUrl(location, "pdf"),
+    "/api/reports/sales?view=daily&from=2026-08-01&to=2026-08-13&page=1&pageSize=50&format=pdf",
+  );
+  assert.equal(
+    reportExportUrl(location, "csv"),
+    "/api/reports/sales?view=daily&from=2026-08-01&to=2026-08-13&page=1&pageSize=50&format=csv",
+  );
 });

@@ -35,3 +35,16 @@ test("sales report route returns an attachment for CSV export", async () => {
   assert.deepEqual(Array.from(bytes.slice(0, 3)), [0xef, 0xbb, 0xbf]);
   assert.match(new TextDecoder().decode(bytes.slice(3)), /^Date,/);
 });
+
+test("sales report route returns a PDF attachment with the selected report filename", async () => {
+  const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+  const response = createSalesReportResponse(report, "pdf", pdf);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "application/pdf");
+  assert.equal(
+    response.headers.get("content-disposition"),
+    'attachment; filename="sales-daily-2026-08-01-2026-08-13.pdf"',
+  );
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), pdf);
+});
