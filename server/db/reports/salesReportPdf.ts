@@ -11,7 +11,10 @@ const CONTENT_WIDTH = A4_LANDSCAPE[0] - MARGIN * 2;
 const BLACK = rgb(0, 0, 0);
 const GRAY = rgb(0.45, 0.45, 0.45);
 const LIGHT_GRAY = rgb(0.94, 0.94, 0.94);
-const ROWS_PER_PAGE = 22;
+const TABLE_ROW_HEIGHT = 18;
+const FIRST_PAGE_TABLE_TOP = 315;
+const CONTINUATION_TABLE_TOP = 530;
+const TABLE_BOTTOM_MARGIN = 42;
 
 type Fonts = { regular: PDFFont; bold: PDFFont };
 type Alignment = "left" | "center" | "right";
@@ -22,6 +25,25 @@ type Column = {
   value: (row: SalesReportRow) => string;
   bold?: boolean;
 };
+
+function tableRowCapacity(top: number): number {
+  // One row is reserved for the repeated table header. A data row is added only
+  // when its full height remains above the printable bottom margin.
+  return Math.floor((top - TABLE_BOTTOM_MARGIN) / TABLE_ROW_HEIGHT) - 1;
+}
+
+export function paginateSalesReportRows(rows: SalesReportRow[]): SalesReportRow[][] {
+  if (rows.length === 0) return [[]];
+  const pages: SalesReportRow[][] = [];
+  let offset = 0;
+  let capacity = tableRowCapacity(FIRST_PAGE_TABLE_TOP);
+  while (offset < rows.length) {
+    pages.push(rows.slice(offset, offset + capacity));
+    offset += capacity;
+    capacity = tableRowCapacity(CONTINUATION_TABLE_TOP);
+  }
+  return pages;
+}
 
 function fontPath(filename: string): string {
   const base = process.env.NODE_ENV === "production" ? "dist" : "public";
@@ -216,8 +238,8 @@ function drawTable(page: PDFPage, report: SalesReportResponse, rows: SalesReport
   const columns = columnsFor(report);
   const totalWeight = columns.reduce((sum, column) => sum + column.weight, 0);
   const widths = columns.map((column) => CONTENT_WIDTH * column.weight / totalWeight);
-  const top = pageNumber === 1 ? 315 : 530;
-  const rowHeight = 18;
+  const top = pageNumber === 1 ? FIRST_PAGE_TABLE_TOP : CONTINUATION_TABLE_TOP;
+  const rowHeight = TABLE_ROW_HEIGHT;
   const sectionTitle = report.view === "daily" ? "รายละเอียดรายวัน"
     : report.view === "bill-profit" ? "รายละเอียดบิล"
     : report.view === "product-sales" ? "รายละเอียดสินค้า"
@@ -251,11 +273,7 @@ export async function generateSalesReportPdf(
 ): Promise<Uint8Array> {
   const document = await PDFDocument.create();
   const fonts = await loadFonts(document);
-  const chunks = report.rows.length === 0
-    ? [[]]
-    : Array.from({ length: Math.ceil(report.rows.length / ROWS_PER_PAGE) }, (_, index) => (
-      report.rows.slice(index * ROWS_PER_PAGE, (index + 1) * ROWS_PER_PAGE)
-    ));
+  const chunks = paginateSalesReportRows(report.rows);
   chunks.forEach((rows, index) => {
     const page = document.addPage(A4_LANDSCAPE);
     if (index === 0) drawHeader(page, report, profile, fonts, generatedAt);

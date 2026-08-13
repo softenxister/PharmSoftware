@@ -3,7 +3,7 @@ import test from "node:test";
 import { PDFDocument } from "pdf-lib";
 import type { StoreProfile } from "@/config/preferences/storeProfile";
 import type { DailySalesReportRow, SalesReportResponse } from "@server/db/reports/salesReportModel";
-import { generateSalesReportPdf } from "./salesReportPdf";
+import { generateSalesReportPdf, paginateSalesReportRows } from "./salesReportPdf";
 
 const profile: StoreProfile = {
   storeName: "Phetsamut Pharma",
@@ -67,4 +67,14 @@ test("sales report PDF paginates long report tables", async () => {
   };
   const document = await PDFDocument.load(await generateSalesReportPdf(longReport, profile));
   assert.ok(document.getPageCount() > 1);
+});
+
+test("report rows fill the printable area without crossing the bottom document margin", () => {
+  const rows = Array.from({ length: 40 }, () => dailyRow);
+  assert.deepEqual(paginateSalesReportRows(rows).map((pageRows) => pageRows.length), [14, 26]);
+});
+
+test("a row that cannot fit completely moves intact to the next page", () => {
+  const rows = Array.from({ length: 41 }, () => dailyRow);
+  assert.deepEqual(paginateSalesReportRows(rows).map((pageRows) => pageRows.length), [14, 26, 1]);
 });
