@@ -15,6 +15,7 @@ import * as purchaseCorrections from "./routes/purchaseCorrections";
 import * as sales from "./routes/sales";
 import * as salesReceipt from "./routes/salesReceipt";
 import * as salesReceiptPdf from "./routes/salesReceiptPdf";
+import * as salesReports from "./routes/reports/sales";
 import * as staff from "./routes/staff";
 import * as stock from "./routes/stock";
 import * as stockAdjustments from "./routes/stockAdjustments";
@@ -73,6 +74,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "POST", path: "/api/sales", handler: handler(sales.POST) },
   { method: "GET", path: "/api/sales/receipt", handler: handler(salesReceipt.GET) },
   { method: "GET", path: "/api/sales/receipt/pdf", handler: handler(salesReceiptPdf.GET) },
+  { method: "GET", path: "/api/reports/sales", handler: handler(salesReports.GET) },
   { method: "GET", path: "/api/staff", handler: handler(staff.GET) },
   { method: "POST", path: "/api/staff", handler: handler(staff.POST) },
   { method: "PATCH", path: "/api/staff", handler: handler(staff.PATCH) },
