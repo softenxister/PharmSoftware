@@ -53,7 +53,7 @@ export function savedStockToSalesProduct(item: SavedStockItem): SalesProduct {
   const cleanSellPrice = Number.isFinite(sellPrice) && sellPrice > 0 ? sellPrice : 0;
   const brandName = item.brandName.trim() || item.manufacturer.trim() || item.itemName.trim();
   const manufacturerName = item.manufacturer.trim() || brandName;
-  const category = item.itemCategory.trim();
+  const category = item.itemCategory?.trim() || "";
   const location = item.location?.trim() || "-";
   const subUnit = canonicalizeProductUnit(item.subUnit?.trim() || item.unit.trim());
   const unit = canonicalizeProductUnit(item.unit);
@@ -135,7 +135,7 @@ export function createSavedStockItem(input: StockItemInput, currentItem?: SavedS
     location: input.location.trim(),
     manufacturer: input.manufacturer.trim(),
     sellPrice: input.sellPrice.trim(),
-    itemCategory: input.itemCategory.trim(),
+    itemCategory: input.itemCategory?.trim() || null,
     weightage: input.weightage.trim(),
     subUnit: canonicalizeProductUnit(input.subUnit?.trim() || input.unit.trim()),
     unit: canonicalizeProductUnit(input.unit),

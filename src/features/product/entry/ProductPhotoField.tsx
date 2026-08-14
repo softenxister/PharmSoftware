@@ -108,6 +108,7 @@ export function ProductPhotoField({
       </span>
       <span className={styles.inlineField}>
         <input
+          required={!controller.isEditing && barcodeIndex === 0}
           type="text"
           value={getProductBarcodeSlot(draft.barcode, barcodeIndex)}
           onClick={(event) => onSelectIdentity(event.currentTarget)}

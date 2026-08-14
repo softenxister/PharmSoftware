@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const form = readFileSync(new URL("./ProductEntryForm.tsx", import.meta.url), "utf8");
+const searchableSelect = readFileSync(new URL("../../../components/forms/SearchableSelect.tsx", import.meta.url), "utf8");
+const inventory = readFileSync(new URL("../../stock/inventory/StockInventory.tsx", import.meta.url), "utf8");
 const identityFields = readFileSync(new URL("./ProductIdentityFields.tsx", import.meta.url), "utf8");
 const barcodeNavigator = readFileSync(new URL("./BarcodeSlotNavigator.tsx", import.meta.url), "utf8");
 const photoField = readFileSync(new URL("./ProductPhotoField.tsx", import.meta.url), "utf8");
@@ -22,6 +24,24 @@ test("edit item uses an accessible four-tab workspace", () => {
   assert.match(form, /activeEditTab === "packaging"/);
 });
 
+test("create item reuses the edit workspace and keeps Delete edit-only", () => {
+  assert.match(form, /className=\{styles\.editWorkspace\}/);
+  assert.doesNotMatch(form, /styles\.stockFormCreate/);
+  assert.doesNotMatch(form, /controller\.isEditing && onClose/);
+  assert.match(inventory, /onClose=\{controller\.productEntry\.close\}/);
+  assert.match(form, /controller\.isEditing && \([\s\S]*styles\.deleteItemButton/);
+});
+
+test("create and edit item show unclassified only as a placeholder", () => {
+  assert.doesNotMatch(identityFields, /unclassifiedOption/);
+  assert.doesNotMatch(identityFields, /DOSAGE_FORM_STATUSES/);
+  assert.match(identityFields, /placeholder=\{getStockFilterOptionLabel\(preferences\.locale, "Unclassified"\)\}/);
+  assert.match(identityFields, /required=\{!controller\.isEditing\}/);
+  assert.match(photoField, /required=\{!controller\.isEditing && barcodeIndex === 0\}/);
+  assert.match(searchableSelect, /aria-required=\{required\}/);
+  assert.match(packagingEditor, /placeholder=\{getStockFilterOptionLabel\(preferences\.locale, "Unclassified"\)\}/);
+});
+
 test("edit item shows imported generic name and Thai legal category as read-only data", () => {
   assert.match(form, /genericName=\{controller\.draft\.genericName\}/);
   assert.match(compositionPanel, /stockForm\.importedGenericName/);
@@ -29,10 +49,10 @@ test("edit item shows imported generic name and Thai legal category as read-only
   assert.match(regulatoryFields, /stockForm\.legalCategory/);
 });
 
-test("edit General exposes the fixed dosage-form dropdown", () => {
+test("General exposes the fixed dosage-form dropdown", () => {
   assert.match(identityFields, /DOSAGE_FORMS/);
-  assert.match(identityFields, /DOSAGE_FORM_STATUSES/);
-  assert.match(identityFields, /controller\.isEditing/);
+  assert.match(identityFields, /"Not Applicable"/);
+  assert.match(identityFields, /section !== "all"/);
   assert.match(identityFields, /controller\.updateField\("dosageForm"/);
 });
 

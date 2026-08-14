@@ -44,12 +44,12 @@ export type ProductWriteCommand = {
   location: string;
   manufacturer: string;
   sellPriceThb: number;
-  category: string;
+  category: string | null;
   childQuantity: number;
   childUnit: string;
   packUnit: string;
   brandName: string;
-  dosageForm?: StoredDosageForm;
+  dosageForm?: StoredDosageForm | null;
   packaging: Array<{
     packUnit: string;
     childQuantity: number;
@@ -186,7 +186,10 @@ function parseProductWrite(value: unknown): ProductWriteCommand | null {
   const location = cleanText(input.location, 120);
   const manufacturer = cleanText(input.manufacturer, 200);
   const sellPriceText = cleanText(input.sellPrice, 40);
-  const category = cleanText(input.itemCategory, 200);
+  const categoryText = cleanText(input.itemCategory, 200);
+  const category = categoryText === "" || categoryText?.toLocaleLowerCase("en-US") === "unclassified"
+    ? null
+    : categoryText;
   const weightageText = cleanText(input.weightage, 40);
   const childUnit = cleanUnit(input.subUnit ?? input.unit, PRODUCT_SUBUNIT_VALUES);
   const packUnit = cleanUnit(input.unit, PRODUCT_UNIT_VALUES);
@@ -196,9 +199,10 @@ function parseProductWrite(value: unknown): ProductWriteCommand | null {
   if (
     productId === null || photoUrl === null || barcodes === null || !itemName
     || lotNo === null || expiryText === null || location === null || manufacturer === null
-    || sellPriceText === null || category === null || weightageText === null
+    || sellPriceText === null || categoryText === null || weightageText === null
     || !childUnit || !packUnit || brandName === null || packaging === null
-    || (dosageForm !== undefined && !isStoredDosageForm(dosageForm))
+    || (!productId && (barcodes.length === 0 || !brandName))
+    || (dosageForm !== undefined && dosageForm !== null && !isStoredDosageForm(dosageForm))
   ) return null;
 
   const sellPriceThb = positiveDecimal(sellPriceText, MAX_SELL_PRICE_THB, 2);
@@ -216,6 +220,9 @@ function parseProductWrite(value: unknown): ProductWriteCommand | null {
     ...packaging.flatMap((pack) => pack.barcodes),
   ];
   if (new Set(everyBarcode).size !== everyBarcode.length) return null;
+  const cleanDosageForm = isStoredDosageForm(dosageForm) && dosageForm !== "Unclassified"
+    ? dosageForm
+    : null;
 
   return {
     productId: productId || undefined,
@@ -232,7 +239,7 @@ function parseProductWrite(value: unknown): ProductWriteCommand | null {
     childUnit,
     packUnit,
     brandName,
-    ...(isStoredDosageForm(dosageForm) ? { dosageForm } : {}),
+    dosageForm: cleanDosageForm,
     packaging,
   };
 }
@@ -262,7 +269,7 @@ export function resolveProductWriteIdentity(
 }
 
 type CurrentProductDosage = {
-  dosageForm: string;
+  dosageForm: string | null;
   dosageFormSource: string;
   migrationGenericName: string | null;
 };
@@ -270,9 +277,9 @@ type CurrentProductDosage = {
 export function resolveProductWriteDosage(
   command: Pick<ProductWriteCommand, "itemName" | "childUnit" | "childQuantity" | "dosageForm">,
   current: CurrentProductDosage | null,
-  category: string,
+  category: string | null,
   hasIngredientEvidence: boolean,
-): { dosageForm: StoredDosageForm; dosageFormSource: DosageFormSource; childUnit: string } {
+): { dosageForm: StoredDosageForm | null; dosageFormSource: DosageFormSource; childUnit: string } {
   const currentDosageForm = current && isStoredDosageForm(current.dosageForm)
     ? current.dosageForm
     : "Unclassified";
@@ -285,7 +292,7 @@ export function resolveProductWriteDosage(
   const inferred = inferProductDosageForm({
     itemName: command.itemName,
     genericName: current?.migrationGenericName ?? undefined,
-    category,
+    category: category ?? "",
     childUnit: command.childUnit,
     childQuantity: command.childQuantity,
     hasIngredientEvidence,
@@ -296,7 +303,7 @@ export function resolveProductWriteDosage(
     inferred,
   });
   return {
-    dosageForm: selection.dosageForm,
+    dosageForm: selection.dosageForm === "Unclassified" ? null : selection.dosageForm,
     dosageFormSource: selection.source,
     childUnit: selection.dosageForm === inferred.dosageForm
       ? (inferred.correctedChildUnit ?? command.childUnit)
@@ -354,17 +361,19 @@ async function upsertProductWrite(
 
   const brandName = command.brandName || command.manufacturer || command.itemName;
   const manufacturerName = command.manufacturer || brandName;
-  const categoryName = normalizeProductCategory({
-    itemName: command.itemName,
-    brandName,
-    sourceCategory: command.category,
-  });
+  const categoryName = command.category
+    ? normalizeProductCategory({
+      itemName: command.itemName,
+      brandName,
+      sourceCategory: command.category,
+    })
+    : null;
   const [category, manufacturer] = await Promise.all([
-    tx.category.upsert({
+    categoryName ? tx.category.upsert({
       where: { name: categoryName },
       update: {},
       create: { name: categoryName },
-    }),
+    }) : Promise.resolve(null),
     tx.manufacturer.upsert({
       where: { name: manufacturerName },
       update: {},
@@ -406,7 +415,7 @@ async function upsertProductWrite(
       itemName: command.itemName,
       brandName,
       manufacturerId: manufacturer.id,
-      categoryId: category.id,
+      categoryId: category?.id ?? null,
       packUnit: command.packUnit,
       childUnit: dosage.childUnit,
       childQuantity: command.childQuantity,
@@ -428,7 +437,7 @@ async function upsertProductWrite(
       itemName: command.itemName,
       brandName,
       manufacturerId: manufacturer.id,
-      categoryId: category.id,
+      categoryId: category?.id ?? null,
       packUnit: command.packUnit,
       childUnit: dosage.childUnit,
       childQuantity: command.childQuantity,

@@ -5,6 +5,7 @@ import {
   PRODUCT_SUBUNIT_VALUES,
   localizeProductUnit,
 } from "@/i18n/productUnits";
+import { getStockFilterOptionLabel } from "@/features/stock/stockFilterLabels";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import {
   SearchableSelect,
@@ -27,7 +28,7 @@ export function ProductPackagingEditor({
   const [barcodeIndexes, setBarcodeIndexes] = useState<Record<string, number>>({});
 
   const options = (values: readonly string[], currentValue: string): SearchableSelectOption[] => (
-    [...new Set([...values, currentValue])]
+    [...new Set([...values, ...(currentValue ? [currentValue] : [])])]
       .map((value) => ({
         value,
         label: localizeProductUnit(preferences.locale, value),
@@ -89,6 +90,7 @@ export function ProductPackagingEditor({
                 ariaLabel={t("stockForm.package")}
                 value={row.parentUnit}
                 options={options(PRODUCT_PACKAGE_VALUES, row.parentUnit)}
+                placeholder={getStockFilterOptionLabel(preferences.locale, "Unclassified")}
                 onChange={(value) => controller.patchPackagingRow(row.id, { parentUnit: value })}
               />
             </label>
@@ -111,6 +113,7 @@ export function ProductPackagingEditor({
                   ariaLabel={t("stockForm.subUnit")}
                   value={row.childUnit}
                   options={options(PRODUCT_SUBUNIT_VALUES, row.childUnit)}
+                  placeholder={getStockFilterOptionLabel(preferences.locale, "Unclassified")}
                   onChange={(value) => controller.patchPackagingRow(row.id, { childUnit: value })}
                 />
               </label>

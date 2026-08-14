@@ -129,12 +129,12 @@ model Product {
   itemName             String
   brandName            String
   manufacturerId       String
-  categoryId           String
+  categoryId           String?
   packUnit             String
   childUnit            String
   childQuantity        Decimal                   @db.Decimal(14, 3)
   packLabel            String
-  dosageForm           String                    @default("Unclassified")
+  dosageForm           String?
   dosageFormSource     ProductDosageFormSource   @default(INFERRED)
   location             String
   minimumStock         Int                       @default(20)
@@ -160,7 +160,7 @@ model Product {
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   manufacturer         Manufacturer              @relation(fields: [manufacturerId], references: [id])
-  category             Category                  @relation(fields: [categoryId], references: [id])
+  category             Category?                 @relation(fields: [categoryId], references: [id])
   parentPacks          ProductParentPack[]
   barcodeAliases       ProductBarcodeAlias[]
   batches              ProductBatch[]

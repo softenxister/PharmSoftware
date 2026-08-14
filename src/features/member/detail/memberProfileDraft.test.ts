@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createMemberProfileDraft,
   isMemberProfileDraftUnchanged,
+  serializeNewMemberProfileDraft,
   serializeMemberProfileDraft,
 } from "./memberProfileDraft";
 
@@ -49,4 +50,27 @@ test("profile serialization sends avatar changes only when explicitly edited", (
       allergyIngredientIds: ["ingredient-1", "ingredient-2"],
     },
   );
+});
+
+test("new member serialization includes the selected photo and ingredient allergies", () => {
+  const draft = createMemberProfileDraft({
+    name: "",
+    mobile: "",
+    avatarUrl: null,
+    allergies: [],
+  });
+
+  assert.deepEqual(serializeNewMemberProfileDraft({
+    ...draft,
+    name: "  Anong Srisuk  ",
+    mobile: "081-234-5678",
+    avatarUrl: "data:image/png;base64,iVBORw0KGgo=",
+    avatarChanged: true,
+    selectedAllergies: memberProfile.allergies,
+  }), {
+    name: "  Anong Srisuk  ",
+    mobile: "081-234-5678",
+    avatarUrl: "data:image/png;base64,iVBORw0KGgo=",
+    allergyIngredientIds: ["ingredient-1", "ingredient-2"],
+  });
 });

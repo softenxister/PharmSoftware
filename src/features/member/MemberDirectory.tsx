@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Plus, Search, X } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Search } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import {
   filterMembers,
@@ -11,11 +11,10 @@ import {
 } from "./memberData";
 import {
   formatThaiPhoneNumberList,
-  formatThaiPhoneNumberListInput,
-  isValidThaiPhoneNumberList,
-  shouldShowThaiPhoneNumberListValidationError,
 } from "@/lib/thaiPhoneNumber";
 import { MemberAvatar } from "@/components/member/MemberAvatar";
+import { MemberProfileDialog } from "./detail/MemberProfileDialog";
+import { useMemberCreate } from "./useMemberCreate";
 import styles from "./MemberDirectory.module.css";
 
 const initialSort: MemberSort = { key: "lastOrderAt", direction: "desc" };
@@ -29,26 +28,24 @@ function SortIcon({ active, direction }: { active: boolean; direction: MemberSor
 
 export function MemberDirectory() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t, formatDate, formatMoney } = usePreferences();
   const [members, setMembers] = useState<MemberRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<MemberSort>(initialSort);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [createError, setCreateError] = useState("");
-  const [creating, setCreating] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
+  const creator = useMemberCreate((member) => {
+    setMembers((current) => [...current, member]);
+    navigate(`/member/${encodeURIComponent(member.id)}`);
+  });
   const visibleMembers = useMemo(
     () => sortMembers(filterMembers(members, query), sort),
     [members, query, sort],
   );
   const totalMemberPurchase = members.reduce((sum, member) => sum + member.totalPurchase, 0);
   const membersWithoutPurchases = members.filter((member) => !member.lastOrderAt).length;
-  const mobileValid = isValidThaiPhoneNumberList(mobile);
-  const showMobileError = shouldShowThaiPhoneNumberListValidationError(mobile);
+  const createRequested = searchParams.get("create") === "1";
 
   useEffect(() => {
     let cancelled = false;
@@ -71,40 +68,14 @@ export function MemberDirectory() {
   }, [t]);
 
   useEffect(() => {
-    if (createOpen) window.setTimeout(() => nameInputRef.current?.focus(), 0);
-  }, [createOpen]);
+    if (createRequested) creator.beginCreate();
+  }, [createRequested, creator.beginCreate]);
 
   const closeCreate = () => {
-    if (creating) return;
-    setCreateOpen(false);
-    setName("");
-    setMobile("");
-    setCreateError("");
-  };
-
-  const submitCreate = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!name.trim() || !mobileValid || creating) return;
-    setCreating(true);
-    setCreateError("");
-    try {
-      const response = await fetch("/api/members", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, mobile }),
-      });
-      const data = await response.json() as { member?: MemberRecord; error?: string };
-      if (!response.ok || !data.member) throw new Error(data.error || t("member.createError"));
-      setMembers((current) => [...current, data.member as MemberRecord]);
-      setCreateOpen(false);
-      setName("");
-      setMobile("");
-      navigate(`/member/${encodeURIComponent(data.member.id)}`);
-    } catch (error) {
-      setCreateError(error instanceof Error ? error.message : t("member.createError"));
-    } finally {
-      setCreating(false);
-    }
+    creator.cancel();
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    setSearchParams(next, { replace: true });
   };
 
   const openMember = (memberId: string) => navigate(`/member/${encodeURIComponent(memberId)}`);
@@ -136,10 +107,6 @@ export function MemberDirectory() {
               <p className={styles.eyebrow}>{t("member.directory")}</p>
               <h1 id="member-page-title" className={styles.title}>{t("member.members")}</h1>
             </div>
-            <button type="button" className={styles.createButton} onClick={() => setCreateOpen(true)}>
-              <Plus size={17} aria-hidden="true" />
-              {t("member.create")}
-            </button>
           </header>
 
           <div className={styles.summaryGrid} aria-label={t("member.memberSummary")}>
@@ -255,58 +222,12 @@ export function MemberDirectory() {
         </section>
       </div>
 
-      {createOpen && (
-        <div
-          className={styles.dialogBackdrop}
-          role="presentation"
-          onKeyDown={(event) => { if (event.key === "Escape") closeCreate(); }}
-          onMouseDown={(event) => { if (event.target === event.currentTarget) closeCreate(); }}
-        >
-          <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="create-member-title">
-            <div className={styles.dialogHeader}>
-              <div>
-                <p className={styles.dialogEyebrow}>{t("member.directory")}</p>
-                <h2 id="create-member-title">{t("member.create")}</h2>
-              </div>
-              <button type="button" className={styles.iconButton} onClick={closeCreate} aria-label={t("member.closeCreate")}>
-                <X size={18} aria-hidden="true" />
-              </button>
-            </div>
-            <form onSubmit={submitCreate} className={styles.memberForm}>
-              <label>
-                <span>{t("member.customerName")}</span>
-                <input ref={nameInputRef} value={name} onChange={(event) => setName(event.target.value)} maxLength={100} required />
-              </label>
-              <label>
-                <span>{t("member.mobile")}</span>
-                <input
-                  value={mobile}
-                  onChange={(event) => setMobile(formatThaiPhoneNumberListInput(event.target.value))}
-                  inputMode="tel"
-                  autoComplete="tel"
-                  maxLength={200}
-                  placeholder="081-234-5678,089-123-4567"
-                  aria-describedby={showMobileError ? "create-member-mobile-error" : undefined}
-                  aria-invalid={showMobileError}
-                  required
-                />
-              </label>
-              {showMobileError && (
-                <p id="create-member-mobile-error" className={styles.formError} role="alert">
-                  {t("member.mobileInvalid")}
-                </p>
-              )}
-              <p className={styles.formHint}>{t("member.createHint")}</p>
-              {createError && <p className={styles.formError} role="alert">{createError}</p>}
-              <div className={styles.dialogActions}>
-                <button type="button" className={styles.cancelButton} onClick={closeCreate}>{t("member.cancel")}</button>
-                <button type="submit" className={`${styles.saveButton} ${styles.createActionButton}`} disabled={!name.trim() || !mobileValid || creating}>
-                  {creating ? t("common.saving") : t("member.create")}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+      {creator.editor && (
+        <MemberProfileDialog
+          memberName=""
+          editor={{ ...creator.editor, cancel: closeCreate }}
+          mode="create"
+        />
       )}
     </div>
   );

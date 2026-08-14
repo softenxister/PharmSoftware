@@ -10,7 +10,7 @@ const migration = readFileSync(
 
 test("Product stores a canonical dosage form and its precedence source", () => {
   assert.match(schema, /enum ProductDosageFormSource \{[\s\S]*INFERRED[\s\S]*THAI_FDA[\s\S]*MANUAL[\s\S]*\}/);
-  assert.match(schema, /dosageForm\s+String\s+@default\("Unclassified"\)/);
+  assert.match(schema, /dosageForm\s+String\?/);
   assert.match(schema, /dosageFormSource\s+ProductDosageFormSource\s+@default\(INFERRED\)/);
 });
 

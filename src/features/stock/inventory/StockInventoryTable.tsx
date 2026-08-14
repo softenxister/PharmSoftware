@@ -4,6 +4,7 @@ import {
   ChevronsUpDown,
   Edit3,
   PackagePlus,
+  Plus,
   Search,
 } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
@@ -72,6 +73,15 @@ export function StockInventoryTable({
             placeholder={t("stock.search")}
           />
         </label>
+        <span className={styles.toolbarSpacer} aria-hidden="true" />
+        <button
+          type="button"
+          className={`${styles.toolbarAddButton} ${styles.createActionButton}`}
+          onClick={controller.productEntry.openCreate}
+        >
+          <Plus size={17} aria-hidden="true" />
+          <span>{t("stock.createItem")}</span>
+        </button>
       </div>
 
       <div className={styles.tablePanel}>

@@ -30,7 +30,9 @@ export function useProductItemDraft({
   onDelete,
 }: UseProductItemDraftInput) {
   const { t } = usePreferences();
-  const [draft, setDraft] = useState(() => createProductItemDraft(initialItem, defaultCategory));
+  const [draft, setDraft] = useState(() => (
+    createProductItemDraft(initialItem, defaultCategory, mode)
+  ));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
@@ -39,7 +41,7 @@ export function useProductItemDraft({
   const [focusPackagingRowId, setFocusPackagingRowId] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const isEditing = mode === "edit";
-  const canSave = getMissingProductFields(draft).length === 0;
+  const canSave = getMissingProductFields(draft, mode).length === 0;
 
   const updateField = <Key extends keyof ProductItemDraft>(
     key: Key,

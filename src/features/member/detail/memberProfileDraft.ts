@@ -24,6 +24,8 @@ export type MemberProfileUpdate = {
   allergyIngredientIds: string[];
 };
 
+export type NewMemberProfile = Omit<MemberProfileUpdate, "memberId">;
+
 export function createMemberProfileDraft(source: MemberProfileSource): MemberProfileDraft {
   return {
     name: source.name,
@@ -54,6 +56,17 @@ export function serializeMemberProfileDraft(
 ): MemberProfileUpdate {
   return {
     memberId,
+    name: draft.name,
+    mobile: draft.mobile,
+    ...(draft.avatarChanged ? { avatarUrl: draft.avatarUrl } : {}),
+    allergyIngredientIds: draft.selectedAllergies.map(({ id }) => id),
+  };
+}
+
+export function serializeNewMemberProfileDraft(
+  draft: MemberProfileDraft,
+): NewMemberProfile {
+  return {
     name: draft.name,
     mobile: draft.mobile,
     ...(draft.avatarChanged ? { avatarUrl: draft.avatarUrl } : {}),

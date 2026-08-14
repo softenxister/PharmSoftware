@@ -1,4 +1,11 @@
 import { Prisma } from "@server/generated/prisma/client";
+import {
+  MARKUP_ZERO_COST_MAX_THB,
+  MARKUP_ZERO_SELL_PRICE_MIN_THB,
+} from "@/lib/stockCost";
+
+const markupZeroSellPriceMinSql = Prisma.raw(String(MARKUP_ZERO_SELL_PRICE_MIN_THB));
+const markupZeroCostMaxSql = Prisma.raw(String(MARKUP_ZERO_COST_MAX_THB));
 
 export const firstStockSellPriceSql = Prisma.sql`
   COALESCE(
@@ -15,6 +22,9 @@ export const firstStockSellPriceSql = Prisma.sql`
 
 export const stockMarkupPercentSql = Prisma.sql`
   CASE
+    WHEN ${firstStockSellPriceSql} >= ${markupZeroSellPriceMinSql}
+      AND latest_costs."latestCost" <= ${markupZeroCostMaxSql}
+      THEN 0
     WHEN ${firstStockSellPriceSql} > 0 AND latest_costs."latestCost" > 0
       THEN ROUND(
         (

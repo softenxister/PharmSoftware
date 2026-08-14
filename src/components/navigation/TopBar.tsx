@@ -9,9 +9,13 @@ import { usePosPreferences } from "@/hooks/usePosPreferences";
 import logoImage from "@/styles/vector/logo.png";
 import { shouldCloseProfileMenu } from "./profileMenu";
 import {
+  topBarActionMenus,
+  type TopBarActionMenuIcon,
+} from "./topBarActionMenus";
+import {
   Home, ShoppingCart, Package, Archive, Users,
   BarChart2, MoreHorizontal, Settings, Globe, ChevronDown, Bell,
-  RefreshCw, Tag, SlidersHorizontal, Gauge,
+  RefreshCw, Tag, SlidersHorizontal, Gauge, Plus,
   LogOut,
 } from "lucide-react";
 
@@ -25,12 +29,13 @@ const navItems = [
   { labelKey: "nav.more", href: "/more", icon: MoreHorizontal },
 ] satisfies Array<{ labelKey: TranslationKey; href: string; icon: typeof Home }>;
 
-const stockMenuItems = [
-  { labelKey: "stock.migration", href: "/stock/migration", icon: RefreshCw },
-  { labelKey: "stock.discounts", href: "/stock/discounts", icon: Tag },
-  { labelKey: "stock.adjustment", href: "/stock/adjustment", icon: SlidersHorizontal },
-  { labelKey: "stock.minMax", href: "/stock/min-max", icon: Gauge },
-] satisfies Array<{ labelKey: TranslationKey; href: string; icon: typeof Home }>;
+const actionMenuIcons = {
+  plus: Plus,
+  migration: RefreshCw,
+  discount: Tag,
+  adjustment: SlidersHorizontal,
+  "min-max": Gauge,
+} satisfies Record<TopBarActionMenuIcon, typeof Home>;
 
 const getTopLevelPath = (href: string) => (href === "/" ? "/" : `/${href.split("/")[1]}`);
 
@@ -46,7 +51,7 @@ export function TopBar({ user }: { user: PharmUser }) {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [langOpen, setLangOpen] = useState(false);
-  const [stockMenuOpen, setStockMenuOpen] = useState(false);
+  const [openActionMenu, setOpenActionMenu] = useState<TranslationKey | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -118,12 +123,24 @@ export function TopBar({ user }: { user: PharmUser }) {
           const topLevelPath = getTopLevelPath(href);
           const isActive = topLevelPath === "/" ? pathname === "/" : pathname.startsWith(topLevelPath);
           const isHome = labelKey === "nav.home";
-          const isStock = labelKey === "nav.stock";
+          const actionMenuItems = topBarActionMenus[labelKey as keyof typeof topBarActionMenus];
+          const hasHoverMenu = labelKey === "nav.stock";
+          const actionMenuOpen = hasHoverMenu && openActionMenu === labelKey;
+          const primaryAction = actionMenuItems?.length === 1
+            && actionMenuItems[0].icon === "plus"
+            ? actionMenuItems[0]
+            : null;
           const navLink = (
             <Link
               key={labelKey}
               to={resolvedHref}
-              className={`flex h-full items-center transition-colors ${isHome ? "w-11 justify-center" : "gap-2 px-4"}`}
+              aria-haspopup={hasHoverMenu ? "menu" : undefined}
+              aria-expanded={hasHoverMenu ? actionMenuOpen : undefined}
+              className={`flex h-full items-center transition-colors ${
+                isHome
+                  ? "w-11 justify-center"
+                  : "gap-2 px-4"
+              }`}
               style={{
                 background: isActive ? "var(--app-header-active)" : "transparent",
                 color: isActive ? "var(--app-header-text-strong)" : "var(--app-header-text)",
@@ -153,48 +170,84 @@ export function TopBar({ user }: { user: PharmUser }) {
             </Link>
           );
 
-          if (!isStock) return navLink;
+          if (!actionMenuItems) return navLink;
 
           return (
             <div
               key={labelKey}
-              className="relative h-full"
-              onMouseEnter={() => setStockMenuOpen(true)}
-              onMouseLeave={() => setStockMenuOpen(false)}
-              onFocus={() => setStockMenuOpen(true)}
+              className="relative flex h-full items-stretch"
+              onMouseEnter={() => {
+                if (hasHoverMenu) setOpenActionMenu(labelKey);
+              }}
+              onMouseLeave={() => setOpenActionMenu(null)}
+              onFocus={() => {
+                if (hasHoverMenu) setOpenActionMenu(labelKey);
+              }}
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                  setStockMenuOpen(false);
+                  setOpenActionMenu(null);
                 }
               }}
             >
               {navLink}
-              {stockMenuOpen && (
+              {primaryAction && (
+                <Link
+                  to={primaryAction.href}
+                  className="my-auto mr-1 flex h-8 w-8 items-center justify-center transition-colors"
+                  style={{
+                    color: "var(--app-header-text)",
+                    background: "transparent",
+                  }}
+                  aria-label={t(primaryAction.labelKey)}
+                  title={t(primaryAction.labelKey)}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.background = "var(--app-header-hover)";
+                    event.currentTarget.style.color = "var(--app-header-text-strong)";
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.background = "transparent";
+                    event.currentTarget.style.color = "var(--app-header-text)";
+                  }}
+                  onClick={() => setOpenActionMenu(null)}
+                >
+                  <span
+                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full"
+                    style={{ background: "var(--app-action)", color: "#fff" }}
+                    aria-hidden="true"
+                  >
+                    <Plus size={10} strokeWidth={3} />
+                  </span>
+                </Link>
+              )}
+              {hasHoverMenu && actionMenuOpen && (
                 <div
                   className="absolute left-0 top-full z-50 w-56 border py-1 shadow-lg"
                   style={{ background: "var(--app-surface)", borderColor: "var(--app-border)" }}
                   role="menu"
-                  aria-label={t("nav.stockActions")}
+                  aria-label={t("nav.actionsFor", { label })}
                 >
-                  {stockMenuItems.map(({ labelKey: menuLabelKey, href: menuHref, icon: MenuIcon }, index) => (
-                    <Link
-                      key={menuHref}
-                      to={menuHref}
-                      className="flex items-center gap-2.5 px-4 py-2.5 transition-colors"
-                      style={{
-                        color: "var(--app-ink)",
-                        fontSize: "14px",
-                        borderTop: index > 0 ? "1px solid var(--app-border-soft)" : undefined,
-                      }}
-                      role="menuitem"
-                      onMouseEnter={(event) => { event.currentTarget.style.background = "var(--app-accent-soft)"; }}
-                      onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
-                      onClick={() => setStockMenuOpen(false)}
-                    >
-                      <MenuIcon size={16} strokeWidth={1.9} aria-hidden="true" />
-                      <span>{t(menuLabelKey)}</span>
-                    </Link>
-                  ))}
+                  {actionMenuItems.map((item, index) => {
+                    const MenuIcon = actionMenuIcons[item.icon];
+                    return (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        className="flex items-center gap-2.5 px-4 py-2.5 transition-colors"
+                        style={{
+                          color: "var(--app-ink)",
+                          fontSize: "14px",
+                          borderTop: index > 0 ? "1px solid var(--app-border-soft)" : undefined,
+                        }}
+                        role="menuitem"
+                        onMouseEnter={(event) => { event.currentTarget.style.background = "var(--app-accent-soft)"; }}
+                        onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
+                        onClick={() => setOpenActionMenu(null)}
+                      >
+                        <MenuIcon size={16} strokeWidth={1.9} aria-hidden="true" />
+                        <span>{t(item.labelKey)}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

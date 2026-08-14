@@ -1,5 +1,5 @@
 import { useEffect, useRef, type FormEvent } from "react";
-import { Camera, Search, X } from "lucide-react";
+import { Camera, Search, TriangleAlert, X } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import { MemberAvatar } from "@/components/member/MemberAvatar";
 import { shouldCloseDropdown } from "@/lib/dropdownInteraction";
@@ -9,11 +9,19 @@ import styles from "./MemberDetail.module.css";
 type MemberProfileDialogProps = {
   memberName: string;
   editor: MemberProfileEditor;
+  mode?: "create" | "edit";
 };
 
-export function MemberProfileDialog({ memberName, editor }: MemberProfileDialogProps) {
+export function MemberProfileDialog({
+  memberName,
+  editor,
+  mode = "edit",
+}: MemberProfileDialogProps) {
   const { t } = usePreferences();
   const ingredientDropdownRef = useRef<HTMLDivElement>(null);
+  const isCreate = mode === "create";
+  const titleId = isCreate ? "create-member-title" : "edit-member-title";
+  const showMobileError = editor.draft.mobile.trim().length > 0 && !editor.mobileValid;
 
   useEffect(() => {
     if (!editor.ingredientOptionsOpen) return;
@@ -48,12 +56,12 @@ export function MemberProfileDialog({ memberName, editor }: MemberProfileDialogP
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="edit-member-title"
+        aria-labelledby={titleId}
       >
         <div className={styles.dialogHeader}>
           <div>
-            <p>{t("member.profile")}</p>
-            <h2 id="edit-member-title">{t("member.editProfile")}</h2>
+            <p>{t(isCreate ? "member.directory" : "member.profile")}</p>
+            <h2 id={titleId}>{t(isCreate ? "member.create" : "member.editProfile")}</h2>
           </div>
         </div>
         <form className={styles.editForm} onSubmit={submit}>
@@ -113,14 +121,21 @@ export function MemberProfileDialog({ memberName, editor }: MemberProfileDialogP
               autoComplete="tel"
               maxLength={200}
               placeholder="081-234-5678,089-123-4567"
-              aria-describedby="edit-member-mobile-hint"
-              aria-invalid={editor.draft.mobile.length > 0 && !editor.mobileValid}
+              aria-describedby={showMobileError ? "member-mobile-error" : undefined}
+              aria-invalid={showMobileError}
               required
             />
           </label>
-          <p id="edit-member-mobile-hint" className={styles.readOnlyNote}>
-            {t("member.mobileHint")}
-          </p>
+          {showMobileError && (
+            <p
+              id="member-mobile-error"
+              className={`${styles.formError} ${styles.phoneError}`}
+              role="alert"
+            >
+              <TriangleAlert size={14} aria-hidden="true" />
+              {t("member.mobileInvalid")}
+            </p>
+          )}
 
           <div className={styles.allergyEditor}>
             <div className={styles.allergyEditorLabel}>
@@ -211,14 +226,18 @@ export function MemberProfileDialog({ memberName, editor }: MemberProfileDialogP
             </div>
           </div>
 
-          <p className={styles.readOnlyNote}>{t("member.loyaltyReadOnly")}</p>
+          <p className={styles.readOnlyNote}>
+            {t(isCreate ? "member.createHint" : "member.loyaltyReadOnly")}
+          </p>
           {editor.saveError && (
             <p className={styles.formError} role="alert">{editor.saveError}</p>
           )}
           <div className={styles.dialogActions}>
             <button type="button" onClick={editor.cancel}>{t("member.cancel")}</button>
             <button type="submit" disabled={!editor.canSave}>
-              {editor.saving ? t("common.saving") : t("member.saveChanges")}
+              {editor.saving
+                ? t("common.saving")
+                : t(isCreate ? "member.create" : "member.saveChanges")}
             </button>
           </div>
         </form>

@@ -32,7 +32,7 @@ export type ProductItemDraft = {
   brandName: string;
   genericName: string;
   legalCategory: string;
-  dosageForm: StoredDosageForm;
+  dosageForm: StoredDosageForm | "";
   packagingRows: ProductPackagingRow[];
 };
 
@@ -124,9 +124,9 @@ export function normalizeProductUnit(
 export function createPackagingRow(id: string = crypto.randomUUID()): ProductPackagingRow {
   return {
     id,
-    parentUnit: "box",
+    parentUnit: "",
     childQuantity: "",
-    childUnit: "blisterpack",
+    childUnit: "",
     barcode: "",
     sellPrice: "",
   };
@@ -135,7 +135,9 @@ export function createPackagingRow(id: string = crypto.randomUUID()): ProductPac
 export function createProductItemDraft(
   initialItem: Partial<StockItemInput> | undefined,
   defaultCategory: string,
+  mode: "create" | "edit",
 ): ProductItemDraft {
+  const isCreate = mode === "create";
   const packagingRows = initialItem?.packagingRows?.map((row, index) => ({
     ...row,
     parentUnit: normalizeProductUnit(
@@ -160,32 +162,51 @@ export function createProductItemDraft(
     location: initialItem?.location ?? "",
     manufacturer: initialItem?.manufacturer ?? "",
     sellPrice: initialItem?.sellPrice ?? "",
-    itemCategory: defaultCategory,
+    itemCategory: isCreate
+      ? ""
+      : initialItem?.itemCategory && initialItem.itemCategory !== "Unclassified"
+        ? initialItem.itemCategory
+        : "",
     weightage: initialItem?.weightage ?? "",
-    subUnit: normalizeProductUnit(
-      initialItem?.subUnit,
-      PRODUCT_SUBUNIT_VALUES,
-      PRODUCT_SUBUNIT_VALUES[0],
-    ),
-    unit: normalizeProductUnit(
-      initialItem?.unit,
-      PRODUCT_UNIT_VALUES,
-      PRODUCT_UNIT_VALUES[0],
-    ),
+    subUnit: isCreate
+      ? ""
+      : normalizeProductUnit(
+        initialItem?.subUnit,
+        PRODUCT_SUBUNIT_VALUES,
+        "",
+      ),
+    unit: isCreate
+      ? ""
+      : normalizeProductUnit(
+        initialItem?.unit,
+        PRODUCT_UNIT_VALUES,
+        "",
+      ),
     brandName: initialItem?.brandName ?? "",
     genericName: initialItem?.genericName ?? "",
     legalCategory: initialItem?.legalCategory ?? "",
-    dosageForm: initialItem?.dosageForm ?? "Unclassified",
+    dosageForm: initialItem?.dosageForm && initialItem.dosageForm !== "Unclassified"
+      ? initialItem.dosageForm
+      : "",
     packagingRows: packagingRows.length > 0 ? packagingRows : [createPackagingRow()],
   };
 }
 
-export function getMissingProductFields(draft: ProductItemDraft): string[] {
+export function getMissingProductFields(
+  draft: ProductItemDraft,
+  mode: "create" | "edit",
+): string[] {
   const price = Number(draft.sellPrice);
   const missing: string[] = [];
   if (!draft.itemName.trim()) missing.push("item name");
+  if (mode === "create" && !draft.brandName.trim()) missing.push("brand name");
   if (!Number.isFinite(price) || price <= 0) missing.push("sell price");
-  if (!draft.weightage.trim()) missing.push("weightage");
+  if (!draft.weightage.trim()) missing.push("amount");
+  if (mode === "create" && !draft.subUnit.trim()) missing.push("sub unit");
+  if (mode === "create" && !draft.unit.trim()) missing.push("unit");
+  if (mode === "create" && !getProductBarcodeSlots(draft.barcode).some(Boolean)) {
+    missing.push("base unit barcode");
+  }
   return missing;
 }
 
@@ -227,12 +248,12 @@ export function serializeProductItemDraft(
     location: draft.location,
     manufacturer: draft.manufacturer,
     sellPrice: draft.sellPrice,
-    itemCategory: draft.itemCategory,
+    itemCategory: draft.itemCategory.trim() || null,
     weightage: draft.weightage,
     subUnit: draft.subUnit,
     unit: draft.unit,
     brandName: draft.brandName,
-    dosageForm: draft.dosageForm,
+    dosageForm: draft.dosageForm || null,
     packagingRows: draft.packagingRows.map((row) => ({
       ...row,
       childUnit: options.packagingChildUnit ?? row.childUnit,

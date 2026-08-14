@@ -22,7 +22,6 @@ import { ProductCompositionPanel } from "./ProductCompositionPanel";
 import { ProductIdentityFields } from "./ProductIdentityFields";
 import { ProductPackagingEditor } from "./ProductPackagingEditor";
 import { ProductPhotoField } from "./ProductPhotoField";
-import { ProductRegulatoryFields } from "./ProductRegulatoryFields";
 import {
   PRODUCT_EDIT_TABS,
   getAdjacentProductEditTab,
@@ -131,11 +130,7 @@ export function ProductEntryForm({
   return (
     <form
       ref={formRef}
-      className={`${styles.stockForm} ${styles.stockFormPortrait} ${
-        !controller.isEditing ? styles.stockFormCreate : ""
-      } ${
-        controller.isEditing ? styles.stockFormEdit : ""
-      }`}
+      className={`${styles.stockForm} ${styles.stockFormPortrait} ${styles.stockFormEdit}`}
       onSubmit={submit}
       noValidate
     >
@@ -153,7 +148,7 @@ export function ProductEntryForm({
               <span>{t("stockForm.delete")}</span>
             </button>
           )}
-          {controller.isEditing && onClose && (
+          {onClose && (
             <button
               type="button"
               className={styles.formCloseButton}
@@ -170,113 +165,89 @@ export function ProductEntryForm({
       {controller.deleteConfirmationOpen && <ProductDeleteDialog controller={controller} />}
 
       <div className={styles.stockFormContent}>
-        {controller.isEditing ? (
-          <div className={styles.editWorkspace}>
-            <ProductPhotoField
-              controller={controller}
-              variant="edit"
-              onFlowEnter={handleFlowEnter}
-              onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
-            />
+        <div className={styles.editWorkspace}>
+          <ProductPhotoField
+            controller={controller}
+            variant="edit"
+            onFlowEnter={handleFlowEnter}
+            onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
+          />
 
-            <div className={styles.editContentColumn}>
-              <div
-                className={styles.editTabBar}
-                role="tablist"
-                aria-label={t("stockForm.editSections")}
-              >
-                {PRODUCT_EDIT_TABS.map((tab) => (
-                  <button
-                    key={tab}
-                    ref={(element) => {
-                      editTabRefs.current[tab] = element;
-                    }}
-                    id={`edit-item-tab-${tab}`}
-                    type="button"
-                    className={`${styles.editTabButton} ${
-                      activeEditTab === tab ? styles.editTabButtonActive : ""
-                    }`}
-                    role="tab"
-                    aria-selected={activeEditTab === tab}
-                    aria-controls="edit-item-tab-panel"
-                    tabIndex={activeEditTab === tab ? 0 : -1}
-                    onClick={() => setActiveEditTab(tab)}
-                    onKeyDown={(event) => handleTabKeyDown(event, tab)}
-                  >
-                    {editTabLabels[tab]}
-                  </button>
-                ))}
-              </div>
+          <div className={styles.editContentColumn}>
+            <div
+              className={styles.editTabBar}
+              role="tablist"
+              aria-label={t("stockForm.editSections")}
+            >
+              {PRODUCT_EDIT_TABS.map((tab) => (
+                <button
+                  key={tab}
+                  ref={(element) => {
+                    editTabRefs.current[tab] = element;
+                  }}
+                  id={`edit-item-tab-${tab}`}
+                  type="button"
+                  className={`${styles.editTabButton} ${
+                    activeEditTab === tab ? styles.editTabButtonActive : ""
+                  }`}
+                  role="tab"
+                  aria-selected={activeEditTab === tab}
+                  aria-controls="edit-item-tab-panel"
+                  tabIndex={activeEditTab === tab ? 0 : -1}
+                  onClick={() => setActiveEditTab(tab)}
+                  onKeyDown={(event) => handleTabKeyDown(event, tab)}
+                >
+                  {editTabLabels[tab]}
+                </button>
+              ))}
+            </div>
 
-              <div
-                id="edit-item-tab-panel"
-                className={styles.editTabViewport}
-                role="tabpanel"
-                aria-labelledby={`edit-item-tab-${activeEditTab}`}
-              >
-                {activeEditTab === "general" && (
-                  <ProductIdentityFields
-                    controller={controller}
-                    categoryOptions={categoryOptions}
-                    section="general"
-                    activeIngredients={activeIngredients}
-                    importedIngredients={importedIngredients}
-                    compositionStatus={compositionStatus}
-                    onFlowEnter={handleFlowEnter}
-                    onFlowCommit={focusNextField}
-                    onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
-                  />
-                )}
-                {activeEditTab === "pricing-stock" && (
-                  <ProductIdentityFields
-                    controller={controller}
-                    categoryOptions={categoryOptions}
-                    section="pricing-stock"
-                    onFlowEnter={handleFlowEnter}
-                    onFlowCommit={focusNextField}
-                    onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
-                  />
-                )}
-                {activeEditTab === "ingredients" && (
-                  <ProductCompositionPanel
-                    variant="edit"
-                    activeIngredients={activeIngredients}
-                    importedIngredients={importedIngredients}
-                    compositionStatus={compositionStatus}
-                    genericName={controller.draft.genericName}
-                  />
-                )}
-                {activeEditTab === "packaging" && (
-                  <div className={styles.editPackagingTab}>
-                    <ProductPackagingEditor controller={controller} variant="edit" />
-                  </div>
-                )}
-              </div>
+            <div
+              id="edit-item-tab-panel"
+              className={styles.editTabViewport}
+              role="tabpanel"
+              aria-labelledby={`edit-item-tab-${activeEditTab}`}
+            >
+              {activeEditTab === "general" && (
+                <ProductIdentityFields
+                  controller={controller}
+                  categoryOptions={categoryOptions}
+                  section="general"
+                  activeIngredients={activeIngredients}
+                  importedIngredients={importedIngredients}
+                  compositionStatus={compositionStatus}
+                  onFlowEnter={handleFlowEnter}
+                  onFlowCommit={focusNextField}
+                  onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
+                />
+              )}
+              {activeEditTab === "pricing-stock" && (
+                <ProductIdentityFields
+                  controller={controller}
+                  categoryOptions={categoryOptions}
+                  section="pricing-stock"
+                  onFlowEnter={handleFlowEnter}
+                  onFlowCommit={focusNextField}
+                  onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
+                />
+              )}
+              {activeEditTab === "ingredients" && (
+                <ProductCompositionPanel
+                  variant="edit"
+                  activeIngredients={activeIngredients}
+                  importedIngredients={importedIngredients}
+                  compositionStatus={compositionStatus}
+                  genericName={controller.draft.genericName}
+                />
+              )}
+              {activeEditTab === "packaging" && (
+                <div className={styles.editPackagingTab}>
+                  <ProductPackagingEditor controller={controller} variant="edit" />
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          <>
-            <div className={styles.formBody}>
-              <ProductPhotoField
-                controller={controller}
-                onFlowEnter={handleFlowEnter}
-                onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
-              />
-              <ProductIdentityFields
-                controller={controller}
-                categoryOptions={categoryOptions}
-                onFlowEnter={handleFlowEnter}
-                onFlowCommit={focusNextField}
-                onSelectIdentity={(input) => selectProductIdentityText(mode, input)}
-              />
-            </div>
-
-            <div className={styles.stockFormLowerGrid}>
-              <ProductPackagingEditor controller={controller} />
-              <ProductRegulatoryFields controller={controller} />
-            </div>
-          </>
-        )}
+        </div>
       </div>
 
       <div className={styles.formFooter}>
@@ -286,7 +257,7 @@ export function ProductEntryForm({
           </p>
         )}
         <div className={styles.formFooterActions}>
-          {controller.isEditing && onClose && (
+          {onClose && (
             <button
               type="button"
               className={styles.formCancelButton}

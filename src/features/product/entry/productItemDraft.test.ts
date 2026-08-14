@@ -20,6 +20,42 @@ test("product barcode slots are limited to three and preserve slot positions", (
   assert.equal(setProductBarcodeSlot("111", 2, "333"), "111, , 333");
 });
 
+test("new product drafts use empty values for optional classifications and units", () => {
+  const draft = createProductItemDraft(undefined, "medicine", "create");
+
+  assert.equal(draft.itemCategory, "");
+  assert.equal(draft.dosageForm, "");
+  assert.equal(draft.subUnit, "");
+  assert.equal(draft.unit, "");
+  assert.equal(draft.packagingRows[0].parentUnit, "");
+  assert.equal(draft.packagingRows[0].childUnit, "");
+});
+
+test("new products require identity, price, amount, units, and a base-unit barcode", () => {
+  const draft = createProductItemDraft(undefined, "medicine", "create");
+
+  assert.deepEqual(getMissingProductFields(draft, "create"), [
+    "item name",
+    "brand name",
+    "sell price",
+    "amount",
+    "sub unit",
+    "unit",
+    "base unit barcode",
+  ]);
+
+  assert.deepEqual(getMissingProductFields({
+    ...draft,
+    itemName: "Example medicine",
+    brandName: "Example brand",
+    sellPrice: "20",
+    weightage: "1",
+    subUnit: "tablet",
+    unit: "tablet",
+    barcode: "8850000000001",
+  }, "create"), []);
+});
+
 test("product drafts normalize imported package units at their boundary", () => {
   const draft = createProductItemDraft({
     barcode: "8850000000001",
@@ -35,18 +71,18 @@ test("product drafts normalize imported package units at their boundary", () => 
       barcode: "8850000000002",
       sellPrice: "10",
     }],
-  }, "medicine");
+  }, "medicine", "edit");
 
   assert.equal(draft.subUnit, "ml");
   assert.equal(draft.unit, "pack");
-  assert.equal(draft.dosageForm, "Unclassified");
+  assert.equal(draft.dosageForm, "");
   assert.equal(draft.packagingRows[0].parentUnit, "bottle");
   assert.equal(draft.packagingRows[0].childUnit, "g");
-  assert.deepEqual(getMissingProductFields(draft), []);
+  assert.deepEqual(getMissingProductFields(draft, "edit"), []);
 });
 
 test("product drafts preserve a manually selected dosage form", () => {
-  const draft = createProductItemDraft({ dosageForm: "Capsule" }, "medicine");
+  const draft = createProductItemDraft({ dosageForm: "Capsule" }, "medicine", "edit");
 
   assert.equal(draft.dosageForm, "Capsule");
   assert.equal(
@@ -55,20 +91,20 @@ test("product drafts preserve a manually selected dosage form", () => {
   );
 });
 
-test("a product without a physical barcode can still be saved", () => {
+test("an existing product without a physical barcode can still be edited", () => {
   const draft = {
-    ...createProductItemDraft(undefined, "medicine"),
+    ...createProductItemDraft(undefined, "medicine", "edit"),
     barcode: "",
     itemName: "Compounded cream",
     sellPrice: "120",
     weightage: "1",
   };
 
-  assert.deepEqual(getMissingProductFields(draft), []);
+  assert.deepEqual(getMissingProductFields(draft, "edit"), []);
 });
 
 test("packaging transitions preserve the rest of the product draft", () => {
-  const initial = createProductItemDraft(undefined, "medicine");
+  const initial = createProductItemDraft(undefined, "medicine", "edit");
   const withRow = addPackagingRow(initial, "row-2");
   const updated = updatePackagingRow(withRow, "row-2", {
     childQuantity: "24",
@@ -78,16 +114,20 @@ test("packaging transitions preserve the rest of the product draft", () => {
   assert.equal(updated.packagingRows.length, 2);
   assert.equal(updated.packagingRows[1].childQuantity, "24");
   assert.equal(updated.packagingRows[1].barcode, "8850000000003");
-  assert.equal(updated.itemCategory, "medicine");
+  assert.equal(updated.itemCategory, "");
 });
 
 test("product serialization preserves the existing stock API contract", () => {
   const draft = {
-    ...createProductItemDraft(undefined, "medicine"),
+    ...createProductItemDraft(undefined, "medicine", "create"),
     barcode: "8850000000001",
     itemName: "Example medicine",
     sellPrice: "120",
     weightage: "500",
+    itemCategory: "medicine",
+    subUnit: "tablet",
+    unit: "tablet",
+    brandName: "Example brand",
   };
 
   assert.deepEqual(serializeProductItemDraft(draft, {
@@ -108,15 +148,15 @@ test("product serialization preserves the existing stock API contract", () => {
     weightage: "500",
     subUnit: "tablet",
     unit: "tablet",
-    brandName: "",
-    dosageForm: "Unclassified",
+    brandName: "Example brand",
+    dosageForm: null,
     packagingRows: draft.packagingRows,
   });
 });
 
 test("edit serialization binds packaging conversions to the item base unit", () => {
   const draft = {
-    ...createProductItemDraft(undefined, "medicine"),
+    ...createProductItemDraft(undefined, "medicine", "edit"),
     unit: "blisterpack",
     packagingRows: [{
       id: "package-1",

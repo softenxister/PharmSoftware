@@ -17,6 +17,8 @@ type SearchableSelectProps = {
   customOptionLabel?: (value: string) => string;
   onCommit?: () => void;
   compact?: boolean;
+  required?: boolean;
+  placeholder?: string;
 };
 
 export function SearchableSelect({
@@ -28,6 +30,8 @@ export function SearchableSelect({
   customOptionLabel,
   onCommit,
   compact = false,
+  required = false,
+  placeholder,
 }: SearchableSelectProps) {
   const { t } = usePreferences();
   const [open, setOpen] = useState(false);
@@ -72,9 +76,10 @@ export function SearchableSelect({
           ref={inputRef}
           type="text"
           value={open ? search : selectedLabel}
-          placeholder={selectedLabel || t("stockForm.select")}
+          placeholder={placeholder ?? (selectedLabel || t("stockForm.select"))}
           readOnly={!open}
           aria-label={ariaLabel}
+          aria-required={required}
           aria-haspopup="listbox"
           aria-expanded={open}
           onFocus={openWithEmptySearch}

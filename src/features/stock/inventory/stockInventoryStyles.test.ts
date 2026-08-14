@@ -32,6 +32,26 @@ test("inventory filters expose all three regulatory records", () => {
   assert.match(inventoryFilters, /filters\.toggleOption\("regulatoryForms", option\)/);
 });
 
+test("create item action sits at the far right of the inventory toolbar", () => {
+  assert.doesNotMatch(inventoryFilters, /t\("stock\.createItem"\)/);
+
+  const toolbar = inventoryTable.match(
+    /<div className=\{styles\.toolbar\}>([\s\S]*?)<\/div>\s*\n\s*<div className=\{styles\.tablePanel\}>/,
+  )?.[1];
+  assert.ok(toolbar);
+
+  const searchPosition = toolbar.indexOf("className={styles.searchField}");
+  const spacerPosition = toolbar.indexOf("className={styles.toolbarSpacer}");
+  const createPosition = toolbar.indexOf("styles.toolbarAddButton");
+
+  assert.ok(searchPosition >= 0);
+  assert.ok(spacerPosition > searchPosition);
+  assert.ok(createPosition > spacerPosition);
+  assert.match(toolbar, /styles\.createActionButton/);
+  assert.match(toolbar, /onClick=\{controller\.productEntry\.openCreate\}/);
+  assert.match(toolbar, /t\("stock\.createItem"\)/);
+});
+
 test("sortable inventory headers align their labels with column values instead of sort icons", () => {
   assert.match(
     inventoryTable,

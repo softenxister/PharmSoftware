@@ -64,10 +64,39 @@ test("Product write normalizes one valid request before persistence", () => {
   });
 });
 
-test("Product write accepts a missing physical barcode", () => {
-  const parsed = parseProductWriteRequest({
+test("Product write requires brand and base-unit barcode when creating", () => {
+  assert.equal(parseProductWriteRequest({
     ...validProduct(),
     barcode: "",
+    packagingRows: [],
+  }), null);
+
+  assert.equal(parseProductWriteRequest({
+    ...validProduct(),
+    brandName: "",
+  }), null);
+});
+
+test("Product write converts unclassified category and dosage form to null", () => {
+  for (const itemCategory of ["", "Unclassified"]) {
+    const parsed = parseProductWriteRequest({
+      ...validProduct(),
+      itemCategory,
+      dosageForm: "Unclassified",
+    });
+
+    assert.ok(parsed);
+    assert.equal(parsed.items[0].category, null);
+    assert.equal(parsed.items[0].dosageForm, null);
+  }
+});
+
+test("Product write keeps legacy blank brand and barcode compatible when editing", () => {
+  const parsed = parseProductWriteRequest({
+    ...validProduct(),
+    productId: "product-1",
+    barcode: "",
+    brandName: "",
     packagingRows: [],
   });
 
@@ -215,10 +244,8 @@ test("Product write validates every item in a bulk request atomically", () => {
   assert.equal(parseProductWriteRequest({ items: [] }), null);
 });
 
-test("Product write generates or preserves an internal Product identity when barcode is blank", () => {
-  const parsed = parseProductWriteRequest({ ...validProduct(), barcode: "" });
-  assert.ok(parsed);
-  const command = parsed.items[0];
+test("Product identity helper supports legacy commands without a physical barcode", () => {
+  const command = { barcodes: [] };
 
   assert.deepEqual(resolveProductWriteIdentity(command, null, () => "abc-123"), {
     id: "p-abc-123",

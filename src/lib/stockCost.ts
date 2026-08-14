@@ -1,3 +1,6 @@
+export const MARKUP_ZERO_SELL_PRICE_MIN_THB = 20;
+export const MARKUP_ZERO_COST_MAX_THB = 1.07;
+
 export type PurchaseCostObservation = {
   costThb: number;
   unitMultiplier: number;
@@ -36,5 +39,9 @@ export function markupPercent(
   if (!Number.isFinite(sellPriceThb) || sellPriceThb <= 0) return undefined;
   if (costThb === undefined
     || !Number.isFinite(costThb) || costThb <= 0) return undefined;
+  if (sellPriceThb >= MARKUP_ZERO_SELL_PRICE_MIN_THB
+    && costThb <= MARKUP_ZERO_COST_MAX_THB) {
+    return 0;
+  }
   return roundCurrency(((sellPriceThb - costThb) / costThb) * 100);
 }

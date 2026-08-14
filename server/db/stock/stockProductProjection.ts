@@ -85,13 +85,13 @@ export function productRowToSalesProduct(
     barcodes: product.barcodeAliases
       .filter((alias) => alias.parentPackId === null)
       .map((alias) => alias.barcode),
-    category: product.category.name,
+    category: product.category?.name ?? "Unclassified",
     imageUrl: product.imageUrl,
     weeklySold: weeklySold ?? product.weeklySold,
     ...(latestCostThb === undefined ? {} : { averageCostThb: latestCostThb }),
     ...(product.migrationGenericName ? { genericName: product.migrationGenericName } : {}),
     ...(product.legalCategory ? { legalCategory: product.legalCategory } : {}),
-    dosageForm: product.dosageForm as StoredDosageForm,
+    dosageForm: (product.dosageForm ?? "Unclassified") as StoredDosageForm,
     compositionStatus: product.compositionStatus.toLowerCase() as SalesProduct["compositionStatus"],
     activeIngredients: product.activeIngredients.map(({ ingredient, strength, sourceName, sourceUrl }) => ({
       id: ingredient.id,

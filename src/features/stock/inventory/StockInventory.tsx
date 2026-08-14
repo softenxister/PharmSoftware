@@ -27,7 +27,7 @@ export function StockInventory() {
         >
           <section
             className={`${styles.stockEntryWindow} ${
-              editingProduct ? styles.stockEntryWindowEdit : ""
+              styles.stockEntryWindowEdit
             }`}
             role="dialog"
             aria-modal="true"
@@ -45,7 +45,7 @@ export function StockInventory() {
               mode={editingProduct ? "edit" : "create"}
               onSave={controller.productEntry.save}
               onDelete={editingProduct ? controller.productEntry.delete : undefined}
-              onClose={editingProduct ? controller.productEntry.close : undefined}
+              onClose={controller.productEntry.close}
             />
           </section>
         </div>

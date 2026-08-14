@@ -128,14 +128,14 @@ export type StockItemInput = {
   location: string;
   manufacturer: string;
   sellPrice: string;
-  itemCategory: string;
+  itemCategory: string | null;
   weightage: string;
   subUnit?: string;
   unit: string;
   brandName: string;
   genericName?: string;
   legalCategory?: string;
-  dosageForm?: StoredDosageForm;
+  dosageForm?: StoredDosageForm | null;
   packagingRows: StockPackagingInput[];
 };
 

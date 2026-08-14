@@ -5,7 +5,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import { shouldCloseDropdown } from "@/lib/dropdownInteraction";
 import {
@@ -133,15 +133,6 @@ export function StockInventoryFilters({
             <h1 className={styles.sidebarTitle}>{t("stock.inventory")}</h1>
           </div>
         </div>
-
-        <button
-          type="button"
-          className={`${styles.addStockButton} ${styles.createActionButton}`}
-          onClick={controller.productEntry.openCreate}
-        >
-          <Plus size={17} aria-hidden="true" />
-          <span>{t("stock.createItem")}</span>
-        </button>
 
         <div className={styles.filterList} ref={filterListRef}>
           <StockFilterDropdown

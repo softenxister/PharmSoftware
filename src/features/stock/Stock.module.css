@@ -31,6 +31,10 @@
 }
 
 .sidebar {
+  --stock-sidebar-bg: color-mix(in srgb, var(--app-action) 8%, var(--app-surface));
+  --stock-sidebar-ink: #1f5a3b;
+  --stock-sidebar-divider: color-mix(in srgb, var(--app-ink) 18%, var(--stock-sidebar-bg));
+  --stock-sidebar-hover: color-mix(in srgb, var(--app-action) 5%, var(--stock-sidebar-bg));
   position: relative;
   display: flex;
   width: 270px;
@@ -39,7 +43,8 @@
   flex-direction: column;
   overflow: visible;
   border-right: 1px solid var(--stock-border);
-  background: var(--app-surface-muted);
+  background: var(--stock-sidebar-bg);
+  color: var(--stock-sidebar-ink);
   transition: width 0.16s ease, min-width 0.16s ease;
 }
 
@@ -106,13 +111,13 @@
 
 .sidebarHeader {
   display: flex;
-  min-height: 48px;
+  min-height: 62px;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   margin-top: 0;
   padding: 5px 12px 5px 14px;
-  border-bottom: 1px solid var(--stock-border-soft);
+  border-bottom: 1px solid #cfcfcf;
 }
 
 .sidebarHeading {
@@ -123,7 +128,7 @@
 .sidebarTitle {
   margin: 0;
   color: var(--app-highlight-ink);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
@@ -144,7 +149,6 @@
   background: var(--stock-primary-soft);
 }
 
-.addStockButton,
 .toolbarAddButton,
 .applyButton {
   display: inline-flex;
@@ -162,23 +166,16 @@
   font-weight: 800;
 }
 
-.addStockButton {
-  margin: 10px 10px 8px;
-}
-
-.addStockButton:hover,
 .toolbarAddButton:hover,
 .applyButton:hover {
   background: var(--app-action-dark);
 }
 
-.addStockButton,
 .createActionButton {
   border-color: var(--app-create-action);
   background: var(--app-create-action);
 }
 
-.addStockButton:hover,
 .createActionButton:hover {
   background: var(--app-create-action-dark);
 }
@@ -199,26 +196,27 @@
   justify-content: space-between;
   gap: 12px;
   border: 0;
-  border-bottom: 1px solid var(--stock-border-soft);
+  border-bottom: 1px solid var(--stock-sidebar-divider);
   background: transparent;
-  color: var(--stock-primary-dark);
+  color: var(--app-action-dark);
   cursor: pointer;
   font: inherit;
   padding: 10px 6px;
   text-align: left;
 }
 
-.filterButton:hover {
-  background: var(--app-surface-muted);
+.filterButton:focus-visible {
+  background: var(--stock-sidebar-hover);
 }
 
 .categoryFilterGroup {
-  border-bottom: 1px solid var(--stock-border-soft);
+  border-bottom: 1px solid var(--stock-sidebar-divider);
 }
 
 .categoryFilterGroup .filterButton {
   border-bottom: 0;
 }
+
 
 .filterButtonEnd {
   display: inline-flex;
@@ -234,15 +232,15 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--stock-primary-soft);
-  color: var(--stock-primary-dark);
+  background: color-mix(in srgb, var(--app-action) 16%, var(--app-action-soft));
+  color: var(--app-action-dark);
   font-size: 11px;
   font-weight: 850;
   padding: 0 6px;
 }
 
 .filterButton svg {
-  color: var(--app-icon-ink);
+  color: var(--app-action-dark);
   transition: transform 0.14s ease;
 }
 
@@ -251,6 +249,7 @@
 }
 
 .categoryDropdown {
+  background: var(--app-action-soft);
   padding: 0 5px 10px;
 }
 
@@ -261,8 +260,8 @@
   gap: 7px;
   border: 1px solid var(--stock-border);
   border-radius: 6px;
-  background: var(--stock-surface);
-  color: var(--stock-muted);
+  background: var(--app-surface);
+  color: var(--app-action-dark);
   padding: 0 9px;
 }
 
@@ -309,7 +308,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 5px;
-  color: var(--stock-ink);
+  color: var(--app-action-dark);
   cursor: pointer;
   font-size: 12px;
   font-weight: 650;
@@ -334,19 +333,20 @@
 }
 
 .categoryEmpty {
-  color: var(--stock-muted);
+  color: var(--app-action-dark);
   font-size: 12px;
   padding: 10px 7px;
 }
 
 .filterHelperText {
   margin: 7px 7px 0;
-  color: var(--stock-muted);
+  color: var(--app-action-dark);
   font-size: 11px;
   line-height: 1.35;
 }
 
 .stockRangePanel {
+  background: var(--app-action-soft);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
@@ -358,7 +358,7 @@
   min-width: 0;
   flex-direction: column;
   gap: 5px;
-  color: var(--stock-muted);
+  color: var(--app-action-dark);
   font-size: 11px;
   font-weight: 750;
 }
@@ -370,8 +370,8 @@
   border: 1px solid var(--stock-border);
   border-radius: 6px;
   outline: 0;
-  background: var(--stock-surface);
-  color: var(--stock-ink);
+  background: var(--app-surface);
+  color: var(--app-action-dark);
   font: inherit;
   font-size: 12px;
   padding: 0 8px;
@@ -420,8 +420,8 @@
   height: 34px;
   border: 1px solid var(--stock-border);
   border-radius: 6px;
-  background: var(--stock-surface);
-  color: var(--stock-muted);
+  background: color-mix(in srgb, var(--app-action-soft) 78%, var(--app-surface));
+  color: var(--app-action-dark);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -445,8 +445,7 @@
   cursor: not-allowed;
 }
 
-/* Inventory filter bar typography stays neutral across application themes. */
-.sidebarTitle,
+/* Inventory filters use dark-green text while the sidebar heading stays black. */
 .filterLabel,
 .filterCount,
 .categorySearchField input,
@@ -457,14 +456,13 @@
 .stockRangeField,
 .stockRangeField input,
 .resetButton {
-  color: #111111;
+  color: var(--stock-sidebar-ink);
 }
 
 .sidebarTitle {
   font-weight: 700;
 }
 
-.addStockButton span,
 .filterLabel,
 .filterCount,
 .resetButton,
@@ -482,9 +480,37 @@
   font-weight: 550;
 }
 
-.addStockButton span,
 .applyButton:not(:disabled) {
   color: #ffffff;
+}
+
+.sidebar .filterButton,
+.sidebar .filterCount,
+.sidebar .categorySearchField,
+.sidebar .categorySearchField input,
+.sidebar .categorySearchField input::placeholder,
+.sidebar .categoryOption,
+.sidebar .categoryOption span,
+.sidebar .categoryEmpty,
+.sidebar .filterHelperText,
+.sidebar .stockRangeField,
+.sidebar .stockRangeField input,
+.sidebar .resetButton {
+  color: var(--stock-sidebar-ink);
+}
+
+.sidebar .filterButton svg {
+  color: var(--stock-sidebar-ink);
+}
+
+.sidebar .categoryDropdown,
+.sidebar .stockRangePanel {
+  background: var(--stock-sidebar-bg);
+}
+
+.sidebar .resetButton:hover {
+  color: var(--stock-sidebar-ink);
+  background: var(--stock-sidebar-hover);
 }
 
 .content {

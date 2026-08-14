@@ -27,3 +27,11 @@ test("markup percent uses profit divided by cost", () => {
   assert.equal(markupPercent(0, 10), undefined);
   assert.equal(markupPercent(20, undefined), undefined);
 });
+
+test("markup percent is zero for sell prices from 20 with costs up to 1.07", () => {
+  assert.equal(markupPercent(20, 1.07), 0);
+  assert.equal(markupPercent(45, 1), 0);
+
+  assert.equal(markupPercent(19.99, 1.07), 1768.22);
+  assert.equal(markupPercent(20, 1.08), 1751.85);
+});

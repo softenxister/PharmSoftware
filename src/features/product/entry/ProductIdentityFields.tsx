@@ -17,13 +17,13 @@ import {
 } from "@/components/forms/SearchableSelect";
 import { decimalText } from "./productItemDraft";
 import { ProductRegulatoryFields } from "./ProductRegulatoryFields";
-import { DOSAGE_FORMS, DOSAGE_FORM_STATUSES } from "@/lib/productDosageForm";
+import { DOSAGE_FORMS } from "@/lib/productDosageForm";
 import { getStockFilterOptionLabel } from "@/features/stock/stockFilterLabels";
 import type { ProductItemDraftController } from "./useProductItemDraft";
 import styles from "./ProductEntry.module.css";
 
 function dosageFormOptions(locale: AppLocale): SearchableSelectOption[] {
-  return [...DOSAGE_FORMS, ...DOSAGE_FORM_STATUSES].map((value) => ({
+  return [...DOSAGE_FORMS, "Not Applicable"].map((value) => ({
     value,
     label: getStockFilterOptionLabel(locale, value),
   }));
@@ -81,6 +81,7 @@ export function ProductIdentityFields({
         {showGeneral && <label className={fieldClassName} data-stock-flow="itemName" onKeyDown={onFlowEnter}>
           <span>{t("stock.itemName")}</span>
           <input
+            required
             value={draft.itemName}
             placeholder="Paracetamol 500 mg"
             onClick={(event) => onSelectIdentity(event.currentTarget)}
@@ -104,6 +105,7 @@ export function ProductIdentityFields({
         {showPricingStock && <label className={fieldClassName} data-stock-flow="sellPrice" onKeyDown={onFlowEnter}>
           <span>{t("stock.sellPrice")}</span>
           <input
+            required
             type="text"
             inputMode="decimal"
             value={draft.sellPrice}
@@ -117,11 +119,12 @@ export function ProductIdentityFields({
             ariaLabel={t("stock.category")}
             value={draft.itemCategory}
             options={categoryOptions}
+            placeholder={getStockFilterOptionLabel(preferences.locale, "Unclassified")}
             onChange={(value) => controller.updateField("itemCategory", value)}
             onCommit={() => onFlowCommit("itemCategory")}
           />
         </label>}
-        {showGeneral && controller.isEditing && (
+        {showGeneral && section !== "all" && (
           <label className={fieldClassName} data-stock-flow="dosageForm">
             <span>{t("stockForm.dosageForm")}</span>
             <SearchableSelect
@@ -129,6 +132,7 @@ export function ProductIdentityFields({
               ariaLabel={t("stockForm.dosageForm")}
               value={draft.dosageForm}
               options={dosageFormOptions(preferences.locale)}
+              placeholder={getStockFilterOptionLabel(preferences.locale, "Unclassified")}
               onChange={(value) => controller.updateField("dosageForm", value as typeof draft.dosageForm)}
               onCommit={() => onFlowCommit("dosageForm")}
             />
@@ -137,6 +141,7 @@ export function ProductIdentityFields({
         {showPricingStock && <label className={fieldClassName} data-stock-flow="weightage" onKeyDown={onFlowEnter}>
           <span>{t("stockForm.amount")}</span>
           <input
+            required
             value={draft.weightage}
             placeholder="500"
             onChange={(event) => controller.updateField("weightage", event.target.value)}
@@ -146,9 +151,11 @@ export function ProductIdentityFields({
           <span>{t("stockForm.subUnit")}</span>
           <SearchableSelect
             compact
+            required={!controller.isEditing}
             ariaLabel={t("stockForm.subUnit")}
             value={draft.subUnit}
             options={unitOptions(PRODUCT_SUBUNIT_VALUES, preferences.locale, draft.subUnit)}
+            placeholder={getStockFilterOptionLabel(preferences.locale, "Unclassified")}
             onChange={(value) => controller.updateField("subUnit", value)}
             onCommit={() => onFlowCommit("subUnit")}
           />
@@ -157,9 +164,11 @@ export function ProductIdentityFields({
           <span>{t("stockForm.unit")}</span>
           <SearchableSelect
             compact
+            required={!controller.isEditing}
             ariaLabel={t("stockForm.unit")}
             value={draft.unit}
             options={unitOptions(PRODUCT_UNIT_VALUES, preferences.locale, draft.unit)}
+            placeholder={getStockFilterOptionLabel(preferences.locale, "Unclassified")}
             onChange={(value) => controller.updateField("unit", value)}
             onCommit={() => onFlowCommit("unit")}
           />
@@ -167,6 +176,7 @@ export function ProductIdentityFields({
         {showGeneral && <label className={fieldClassName} data-stock-flow="brandName" onKeyDown={onFlowEnter}>
           <span>{t("stockForm.brand")}</span>
           <input
+            required={!controller.isEditing}
             value={draft.brandName}
             onChange={(event) => controller.updateField("brandName", event.target.value)}
           />

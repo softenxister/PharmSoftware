@@ -84,6 +84,7 @@
 .avatarError { grid-column: 2 / -1; margin: 0; color: #9d2d2d; font-size: 10px; }
 .readOnlyNote, .formError { margin: -3px 0 0; color: var(--app-muted); font-size: 11px; }
 .formError { color: #9d2d2d; }
+.phoneError { display: flex; align-items: center; gap: 5px; }
 .allergyEditor { display: grid; gap: 7px; }
 .allergyEditorLabel { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--app-muted); font-size: 12px; font-weight: 700; }
 .allergyEditorLabel small { color: var(--app-muted); font-size: 10px; font-weight: 520; }

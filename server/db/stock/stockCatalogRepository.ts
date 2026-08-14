@@ -164,7 +164,7 @@ async function readFilteredStockProductIds(
     SELECT product.id, COUNT(*) OVER()::integer AS total
       , ${weeklySoldSelect}::double precision AS "weeklySold"
     FROM "Product" product
-    INNER JOIN "Category" category ON category.id = product."categoryId"
+    LEFT JOIN "Category" category ON category.id = product."categoryId"
     INNER JOIN "Manufacturer" manufacturer ON manufacturer.id = product."manufacturerId"
     LEFT JOIN stock_totals ON stock_totals."productId" = product.id
     LEFT JOIN weekly_sales ON weekly_sales."productId" = product.id
