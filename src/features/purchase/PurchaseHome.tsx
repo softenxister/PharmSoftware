@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Search } from "lucide-react";
+import { PackagePlus, Search } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import {
   isEditablePurchaseBillRow,
@@ -81,6 +81,14 @@ export function PurchaseHome() {
               <p className={styles.eyebrow}>{t("purchase.counter")}</p>
               <h1 id="purchase-page-title" className={styles.title}>{t("purchase.bills")}</h1>
             </div>
+            <button
+              type="button"
+              className={styles.newPurchaseButton}
+              onClick={() => navigate("/purchase/new")}
+            >
+              <PackagePlus size={17} aria-hidden="true" />
+              <span>{t("purchase.new")}</span>
+            </button>
           </header>
 
           <div className={styles.summaryGrid} aria-label={t("purchase.summary")}>

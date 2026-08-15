@@ -14,6 +14,7 @@ test("the Node server registers every migrated API method and path once", () => 
     "GET /api/auth/setup-owner",
     "POST /api/auth/setup-owner",
     "GET /api/current-user",
+    "GET /api/dashboard",
     "GET /api/ingredients",
     "GET /api/members",
     "GET /api/members/avatar",

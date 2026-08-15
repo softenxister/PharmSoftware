@@ -102,6 +102,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
   const paidCount = bills.filter((bill) => bill.status === 'paid').length;
   const pendingCount = bills.filter((bill) => bill.status === 'pending').length;
 
+  const goToNewSale = () => navigate('/sales/new');
   const openPendingBill = (bill: RecentBill) => {
     if (bill.status !== 'pending') return;
     navigate(`/sales/new?billId=${encodeURIComponent(bill.id)}`);
@@ -116,6 +117,18 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
               <p className={styles.eyebrow}>{t('sales.counter')}</p>
               <h1 id="sales-page-title" className={styles.title}>{t('sales.recentBills')}</h1>
             </div>
+            <button
+              type="button"
+              className={styles.newSaleButton}
+              onClick={goToNewSale}
+              aria-label={t('sales.startNew')}
+              title={t('nav.newSale')}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <span>{t('nav.newSale')}</span>
+            </button>
           </header>
 
           <div className={styles.summaryGrid} aria-label={t('sales.summary')}>

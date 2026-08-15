@@ -98,70 +98,57 @@ export function SalesReports() {
     window.setTimeout(() => setExportingFormat(null), 700);
   };
 
-  const hasMissingCost = Boolean(report
-    && report.canViewProfit
-    && report.costCoverage.totalLines > report.costCoverage.pricedLines
-    && (report.view === "daily" || report.view === "bill-profit" || report.view === "product-profit"));
-
   return (
     <main className={styles.page}>
       <div className={styles.content}>
-        <header className={styles.pageHeader}>
-          <div className={styles.titleBlock}>
-            <span className={styles.eyebrow}>{t("reports.eyebrow")}</span>
-            <h1>{t("reports.title")}</h1>
-            <p>{t("reports.subtitle")}</p>
-            <div className={styles.basis}>
-              <ShieldCheck size={13} strokeWidth={1.9} aria-hidden="true" />
-              <span><strong>{t("reports.calculationBasis")}:</strong> {t("reports.inclusiveVat")}</span>
+        <section className={styles.overview} aria-labelledby="reports-page-title">
+          <header className={styles.pageHeader}>
+            <div className={styles.titleBlock}>
+              <span className={styles.eyebrow}>{t("reports.eyebrow")}</span>
+              <h1 id="reports-page-title" className={styles.title}>{t("reports.title")}</h1>
             </div>
-          </div>
-          <div className={styles.headerActions}>
-            <button type="button" className={styles.secondaryButton} disabled={!report || isLoading || Boolean(exportingFormat)} onClick={() => exportReport("csv")}>
-              <Download size={15} aria-hidden="true" />
-              {t(exportingFormat === "csv" ? "reports.exportingCsv" : "reports.export")}
-            </button>
-            <button type="button" className={styles.secondaryButton} disabled={!report || isLoading || Boolean(exportingFormat)} onClick={() => exportReport("pdf")}>
-              <FileDown size={15} aria-hidden="true" />
-              {t(exportingFormat === "pdf" ? "reports.exportingPdf" : "reports.exportPdf")}
-            </button>
-          </div>
-        </header>
+            <div className={styles.headerActions}>
+              <button type="button" className={styles.secondaryButton} disabled={!report || isLoading || Boolean(exportingFormat)} onClick={() => exportReport("csv")}>
+                <Download size={15} aria-hidden="true" />
+                {t(exportingFormat === "csv" ? "reports.exportingCsv" : "reports.export")}
+              </button>
+              <button type="button" className={styles.secondaryButton} disabled={!report || isLoading || Boolean(exportingFormat)} onClick={() => exportReport("pdf")}>
+                <FileDown size={15} aria-hidden="true" />
+                {t(exportingFormat === "pdf" ? "reports.exportingPdf" : "reports.exportPdf")}
+              </button>
+            </div>
+          </header>
+          <section className={styles.workspace}>
+            <SalesReportSelector view={location.view} canViewProfit={canViewProfit} onSelect={selectView} t={t} />
+            <SalesReportFilters
+              range={location.range}
+              from={draftFrom}
+              to={draftTo}
+              onRangeChange={selectRange}
+              onFromChange={setDraftFrom}
+              onToChange={setDraftTo}
+              onApply={applyCustomRange}
+              t={t}
+            />
+          </section>
 
-        <section className={styles.workspace}>
-          <SalesReportSelector view={location.view} canViewProfit={canViewProfit} onSelect={selectView} t={t} />
-          <SalesReportFilters
-            range={location.range}
-            from={draftFrom}
-            to={draftTo}
-            onRangeChange={selectRange}
-            onFromChange={setDraftFrom}
-            onToChange={setDraftTo}
-            onApply={applyCustomRange}
-            t={t}
-          />
+          {isLoading && (
+            <div className={styles.overviewLoading} aria-busy="true" aria-label={t("reports.loading")}>
+              <div className={styles.metricSkeletons}>{[0, 1, 2, 3].map((index) => <span key={index} />)}</div>
+            </div>
+          )}
+
+          {!isLoading && !error && report && report.rows.length > 0 && (
+            <SalesReportMetrics metrics={report.metrics} formatMoney={formatMoney} formatNumber={formatNumber} t={t} />
+          )}
         </section>
 
         {!canViewProfit && (
           <div className={styles.permissionNote}><ShieldCheck size={15} aria-hidden="true" />{t("reports.financialRestricted")}</div>
         )}
 
-        {hasMissingCost && report && (
-          <div className={styles.costNotice} role="status">
-            <AlertCircle size={16} aria-hidden="true" />
-            <div>
-              <strong>{t("reports.costMissing")}</strong>
-              <span>{t("reports.costCoverage", {
-                priced: report.costCoverage.pricedLines,
-                total: report.costCoverage.totalLines,
-              })}</span>
-            </div>
-          </div>
-        )}
-
         {isLoading && (
           <div className={styles.loadingState} aria-busy="true" aria-label={t("reports.loading")}>
-            <div className={styles.metricSkeletons}>{[0, 1, 2, 3].map((index) => <span key={index} />)}</div>
             <div className={styles.tableSkeleton}>{Array.from({ length: 7 }, (_, index) => <span key={index} />)}</div>
           </div>
         )}
@@ -187,7 +174,6 @@ export function SalesReports() {
 
         {!isLoading && !error && report && report.rows.length > 0 && (
           <>
-            <SalesReportMetrics metrics={report.metrics} formatMoney={formatMoney} formatNumber={formatNumber} t={t} />
             <SalesReportTable
               report={report}
               formatDate={formatDate}

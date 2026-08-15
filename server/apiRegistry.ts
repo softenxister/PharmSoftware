@@ -4,6 +4,7 @@ import * as login from "./routes/auth/login";
 import * as logout from "./routes/auth/logout";
 import * as setupOwner from "./routes/auth/setupOwner";
 import * as currentUser from "./routes/currentUser";
+import * as dashboard from "./routes/dashboard";
 import * as distributors from "./routes/distributors";
 import * as ingredients from "./routes/ingredients";
 import * as memberAvatar from "./routes/memberAvatar";
@@ -55,6 +56,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "GET", path: "/api/auth/setup-owner", handler: handler(setupOwner.GET) },
   { method: "POST", path: "/api/auth/setup-owner", handler: handler(setupOwner.POST) },
   { method: "GET", path: "/api/current-user", handler: handler(currentUser.GET) },
+  { method: "GET", path: "/api/dashboard", handler: handler(dashboard.GET) },
   { method: "GET", path: "/api/ingredients", handler: handler(ingredients.GET) },
   { method: "GET", path: "/api/members", handler: handler(members.GET) },
   { method: "GET", path: "/api/members/avatar", handler: handler(memberAvatar.GET) },

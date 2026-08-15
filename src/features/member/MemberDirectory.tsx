@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
-import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown, Plus, Search } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import {
@@ -107,6 +107,10 @@ export function MemberDirectory() {
               <p className={styles.eyebrow}>{t("member.directory")}</p>
               <h1 id="member-page-title" className={styles.title}>{t("member.members")}</h1>
             </div>
+            <button type="button" className={styles.createButton} onClick={creator.beginCreate}>
+              <Plus size={17} aria-hidden="true" />
+              {t("member.create")}
+            </button>
           </header>
 
           <div className={styles.summaryGrid} aria-label={t("member.memberSummary")}>

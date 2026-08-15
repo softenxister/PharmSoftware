@@ -7,7 +7,7 @@ export const stockEnglish = {
   "stock.inventory": "Inventory Stock",
   "stock.closeFilters": "Close filter bar",
   "stock.openFilters": "Open filter bar",
-  "stock.createItem": "Create New Item",
+  "stock.createItem": "New Item",
   "stock.items": "Items",
   "stock.category": "Category",
   "stock.legalCategory": "Legal Category",

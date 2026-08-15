@@ -173,6 +173,37 @@ test("Product write accepts blank or public HTTPS photos and rejects unsafe valu
   }
 });
 
+test("Product write preserves a zero-priced parent pack when updating CRAVIXIN", () => {
+  const parsed = parseProductWriteRequest({
+    productId: "cw-p-4401-5dea5460",
+    photoUrl: "https://ratutid9pharmacy.com/wp-content/uploads/2025/09/%E0%B8%84%E0%B8%A3%E0%B8%B2%E0%B8%A7%E0%B8%B4%E0%B8%8B%E0%B8%B4%E0%B8%99-500mg-Cravixin-10%E0%B9%80%E0%B8%A1%E0%B9%87%E0%B8%94-%E0%B8%81%E0%B8%A5.10%E0%B9%81%E0%B8%9C%E0%B8%87-1.webp",
+    barcode: "8859999019270",
+    itemName: "CRAVIXIN 500MG.5'S.",
+    lotNo: "50987",
+    expiryDate: "2028-07-04",
+    location: "-",
+    manufacturer: "POLIPHARM CO.,LTD.",
+    sellPrice: "100",
+    itemCategory: "",
+    weightage: "5",
+    subUnit: "tablet",
+    unit: "blisterpack",
+    brandName: "CRAVIXIN",
+    dosageForm: "Tablet",
+    packagingRows: [{
+      parentUnit: "กล่อง",
+      childQuantity: "10",
+      childUnit: "แผง",
+      barcode: "8852645211011",
+      sellPrice: "0",
+    }],
+  });
+
+  assert.ok(parsed);
+  assert.equal(parsed.items[0].photoUrl, "https://ratutid9pharmacy.com/wp-content/uploads/2025/09/%E0%B8%84%E0%B8%A3%E0%B8%B2%E0%B8%A7%E0%B8%B4%E0%B8%8B%E0%B8%B4%E0%B8%99-500mg-Cravixin-10%E0%B9%80%E0%B8%A1%E0%B9%87%E0%B8%94-%E0%B8%81%E0%B8%A5.10%E0%B9%81%E0%B8%9C%E0%B8%87-1.webp");
+  assert.equal(parsed.items[0].packaging[0].sellPriceThb, 0);
+});
+
 test("Product write accepts only the edited product's managed photo URL", () => {
   const managed = parseProductWriteRequest({
     ...validProduct(),

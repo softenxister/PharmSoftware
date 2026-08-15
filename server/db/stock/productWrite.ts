@@ -76,12 +76,18 @@ function cleanText(value: unknown, maximum: number): string | null {
   return text.length <= maximum && !CONTROL_CHARACTERS.test(text) ? text : null;
 }
 
-function positiveDecimal(value: string, maximum: number, scale: number): number | null {
+function positiveDecimal(
+  value: string,
+  maximum: number,
+  scale: number,
+  options: { allowZero?: boolean } = {},
+): number | null {
   if (!/^(?:\d+\.?\d*|\.\d+)$/.test(value)) return null;
   const fraction = (value.split(".")[1] ?? "").replace(/0+$/, "");
   if (fraction.length > scale) return null;
   const number = Number(value);
-  return Number.isFinite(number) && number > 0 && number <= maximum ? number : null;
+  const isAllowed = options.allowZero ? number >= 0 : number > 0;
+  return Number.isFinite(number) && isAllowed && number <= maximum ? number : null;
 }
 
 function cleanBarcodes(primary: unknown, aliases: unknown): string[] | null {
@@ -153,7 +159,7 @@ function parsePackaging(value: unknown): ProductWriteCommand["packaging"] | null
     const childUnit = cleanUnit(row.childUnit, PRODUCT_SUBUNIT_VALUES);
     const childQuantity = positiveDecimal(quantityText, MAX_PACK_QUANTITY, 3);
     const sellPriceThb = sellPriceText
-      ? positiveDecimal(sellPriceText, MAX_SELL_PRICE_THB, 2)
+      ? positiveDecimal(sellPriceText, MAX_SELL_PRICE_THB, 2, { allowZero: true })
       : undefined;
     if (!packUnit || !childUnit || childQuantity === null || (sellPriceText && sellPriceThb === null)) {
       return null;
