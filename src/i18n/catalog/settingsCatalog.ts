@@ -90,7 +90,7 @@ export const settingsEnglish = {
   "pos.paymentMethods": "Accepted payment methods",
   "pos.paymentMethodsHint": "Choose methods for every counter. At least one is required.",
   "pos.cash": "Cash",
-  "pos.bankTransfer": "Bank transfer",
+  "pos.bankTransfer": "Bank",
   "pos.creditCard": "Credit card",
   "pos.enableMethod": "Enable {method}",
   "pos.disableMethod": "Disable {method}",

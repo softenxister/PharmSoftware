@@ -5,6 +5,7 @@ import {
   normalizeStorePosSettings,
   parseStorePosSettingsUpdate,
   resolveConfiguredPaymentMethod,
+  switchPaymentMethod,
   shouldUsePaymentToggle,
 } from "./storePosSettings";
 
@@ -44,6 +45,11 @@ test("Cash and Bank transfer alone use the compact two-method toggle", () => {
   assert.equal(shouldUsePaymentToggle(["Bank transfer", "Cash"]), true);
   assert.equal(shouldUsePaymentToggle(["Cash"]), false);
   assert.equal(shouldUsePaymentToggle(["Cash", "Bank transfer", "Credit card"]), false);
+});
+
+test("the compact payment toggle switches to the other enabled method", () => {
+  assert.equal(switchPaymentMethod("Cash", ["Cash", "Bank transfer"]), "Bank transfer");
+  assert.equal(switchPaymentMethod("Bank transfer", ["Cash", "Bank transfer"]), "Cash");
 });
 
 test("a disabled or legacy payment selection resolves to an enabled method", () => {

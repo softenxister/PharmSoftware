@@ -56,6 +56,13 @@ export function shouldUsePaymentToggle(methods: readonly StorePaymentMethod[]): 
   return methods.length === 2 && methods.includes("Cash") && methods.includes("Bank transfer");
 }
 
+export function switchPaymentMethod(
+  current: StorePaymentMethod,
+  enabledMethods: readonly StorePaymentMethod[],
+): StorePaymentMethod {
+  return enabledMethods.find((method) => method !== current) ?? current;
+}
+
 export function getPaymentMethodShortcut(method: StorePaymentMethod): "F1" | "F2" | "F3" {
   if (method === "Cash") return "F1";
   if (method === "Bank transfer") return "F2";

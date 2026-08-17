@@ -6,6 +6,7 @@ import { SaleCompletionDialog } from './workflow/SaleCompletionDialog';
 import { SaleCustomerField } from './workflow/SaleCustomerField';
 import { SaleItemEntry } from './workflow/SaleItemEntry';
 import { SalePaymentPanel } from './workflow/SalePaymentPanel';
+import { SalePaymentMethodDialog } from './workflow/SalePaymentMethodDialog';
 import { SaleProductBrowser } from './workflow/SaleProductBrowser';
 import { SaleReminderPanel } from './workflow/SaleReminderPanel';
 import { SaleSettingsDialog } from './workflow/SaleSettingsDialog';
@@ -29,6 +30,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       <SaleSummaryBar model={workflow.summaryBar} />
       <SaleReminderPanel model={workflow.reminderPanel} />
       <SaleSettingsDialog model={workflow.settingsDialog} />
+      <SalePaymentMethodDialog model={workflow.paymentMethodDialog} />
       <SalePaymentPanel model={workflow.paymentPanel} />
       <SaleCompletionDialog model={workflow.completionDialog} />
       <PosConfirmationDialog

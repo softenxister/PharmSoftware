@@ -4,6 +4,9 @@ import test from "node:test";
 
 const workflowSource = readFileSync(new URL("./useSaleWorkflow.ts", import.meta.url), "utf8");
 const compositionSource = readFileSync(new URL("../NewSale.tsx", import.meta.url), "utf8");
+const toolbarSource = readFileSync(new URL("./SaleToolbar.tsx", import.meta.url), "utf8");
+const stylesSource = readFileSync(new URL("../NewSale.module.css", import.meta.url), "utf8");
+const settingsCatalogSource = readFileSync(new URL("../../../../i18n/catalog/settingsCatalog.ts", import.meta.url), "utf8");
 const viewSources = [
   "SaleToolbar.tsx",
   "SaleCustomerField.tsx",
@@ -16,6 +19,24 @@ const viewSources = [
   "SalePaymentPanel.tsx",
   "SaleCompletionDialog.tsx",
 ].map((file) => readFileSync(new URL(`./${file}`, import.meta.url), "utf8"));
+
+test("the compact payment toggle labels Bank and gives Cash and Bank distinct hover states", () => {
+  assert.match(toolbarSource, /paymentMethod === 'Cash' \? styles\.paymentMethodToggleCash : styles\.paymentMethodToggleBank/);
+  assert.match(stylesSource, /\.paymentMethodToggleCash:hover/);
+  assert.match(stylesSource, /\.paymentMethodToggleBank:hover/);
+  assert.match(settingsCatalogSource, /"pos\.bankTransfer": "Bank",/);
+});
+
+test("Net Total opens a payment-method window before the invoice breakdown", () => {
+  const salePageSource = readFileSync(new URL("../NewSale.tsx", import.meta.url), "utf8");
+
+  assert.match(salePageSource, /SalePaymentMethodDialog/);
+  assert.match(workflowSource, /openPaymentMethodSelection/);
+  assert.match(workflowSource, /confirmPaymentMethodSelection/);
+  assert.match(workflowSource, /openPaymentDrawer\(\)/);
+  const shortcutHandler = workflowSource.match(/function handleSaleShortcut\([\s\S]*?\n  \}\n\n  useEffect/)?.[0] ?? '';
+  assert.match(shortcutHandler, /if \(!discountOpen\) openPaymentMethodSelection\(\);/);
+});
 
 test("Sale views receive focused workflow projections instead of the complete workflow", () => {
   const projections = [

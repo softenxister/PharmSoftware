@@ -150,6 +150,8 @@ export function useSaleWorkflow(user: PharmUser) {
 
   const [ownerId, setOwnerId] = useState(OWNERS[0].id);
   const [paymentMethod, setPaymentMethod] = useState<StorePaymentMethod>('Cash');
+  const [paymentMethodSelectionOpen, setPaymentMethodSelectionOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<StorePaymentMethod>('Cash');
   const [purchaseMethod, setPurchaseMethod] = useState<PurchaseMethod>('pickup');
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const saveMenuRef = useClickOutside<HTMLDivElement>(() => setSaveMenuOpen(false));
@@ -213,6 +215,19 @@ export function useSaleWorkflow(user: PharmUser) {
   } = salePayment;
   const canSaveSale = hasPayableSale(cartLines.length, netPayable);
   const canOpenInvoiceBreakdown = canSaveSale;
+  function openPaymentMethodSelection() {
+    if (!canOpenInvoiceBreakdown) return;
+    setSelectedPaymentMethod(paymentMethod);
+    setPaymentMethodSelectionOpen(true);
+  }
+  function closePaymentMethodSelection() {
+    setPaymentMethodSelectionOpen(false);
+  }
+  function confirmPaymentMethodSelection() {
+    setPaymentMethod(selectedPaymentMethod);
+    setPaymentMethodSelectionOpen(false);
+    openDiscountDrawer();
+  }
   const { topItems, topItemsLabel, recommendedBatchId } = useSaleRecommendations(
     catalog,
     customer,
@@ -481,7 +496,7 @@ export function useSaleWorkflow(user: PharmUser) {
       if (!discountOpen) void handleSave('save');
       return;
     }
-    if (!discountOpen) openDiscountDrawer();
+    if (!discountOpen) openPaymentMethodSelection();
   }
 
   useEffect(() => {
@@ -644,7 +659,7 @@ export function useSaleWorkflow(user: PharmUser) {
       netPayable,
       showKeyboardHints: preferences.showKeyboardHints,
       canOpenInvoiceBreakdown,
-      openInvoiceBreakdown: openDiscountDrawer,
+      openInvoiceBreakdown: openPaymentMethodSelection,
     },
     reminderPanel: {
       t,
@@ -676,6 +691,16 @@ export function useSaleWorkflow(user: PharmUser) {
       },
       chooseCashDrawer: setCashDrawerDevice,
       toggleAutoCashDrawer: setAutoOpenCashDrawer,
+    },
+    paymentMethodDialog: {
+      t,
+      open: paymentMethodSelectionOpen,
+      paymentMethods: storeSettings.paymentMethods,
+      selectedPaymentMethod,
+      paymentMethodLabel,
+      choosePaymentMethod: setSelectedPaymentMethod,
+      closePaymentMethodSelection,
+      confirmPaymentMethodSelection,
     },
     paymentPanel: {
       t,
@@ -742,5 +767,6 @@ export type SaleProductBrowserModel = SaleWorkflow['productBrowser'];
 export type SaleSummaryBarModel = SaleWorkflow['summaryBar'];
 export type SaleReminderPanelModel = SaleWorkflow['reminderPanel'];
 export type SaleSettingsDialogModel = SaleWorkflow['settingsDialog'];
+export type SalePaymentMethodDialogModel = SaleWorkflow['paymentMethodDialog'];
 export type SalePaymentPanelModel = SaleWorkflow['paymentPanel'];
 export type SaleCompletionDialogModel = SaleWorkflow['completionDialog'];
