@@ -10,6 +10,7 @@ export function SaleCompletionDialog({ model }: { model: SaleCompletionDialogMod
     invoiceCreated,
     paymentMethodLabel,
     formatDate,
+    paperSize,
     startNewSale,
     newSaleButtonRef,
   } = model;
@@ -64,7 +65,7 @@ export function SaleCompletionDialog({ model }: { model: SaleCompletionDialogMod
           onClick={() => {
             const nextStep = resolvePaidSaleNextStep('print', invoiceCreated.saleId);
             if (nextStep.kind === 'receipt-route') {
-              window.open(nextStep.path, '_blank', 'noopener,noreferrer');
+              window.open(`${nextStep.path}?paper=${paperSize}`, '_blank', 'noopener,noreferrer');
               if (nextStep.resetOriginalSale) startNewSale();
             }
           }}

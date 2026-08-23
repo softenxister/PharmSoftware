@@ -403,6 +403,10 @@ model StorePosSettings {
   id                  String   @id
   showProductLocation Boolean  @default(false)
   paymentMethods      Json
+  billingDevice       String   @default("Front Counter Thermal Printer")
+  paperSize           String   @default("80")
+  cashDrawerDevice    String   @default("Front Counter Cash Drawer")
+  autoOpenCashDrawer  Boolean  @default(true)
   updatedBy           String
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

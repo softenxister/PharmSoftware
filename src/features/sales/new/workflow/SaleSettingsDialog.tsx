@@ -1,3 +1,8 @@
+import {
+  STORE_BILLING_DEVICES,
+  STORE_CASH_DRAWER_DEVICES,
+  STORE_PAPER_SIZES,
+} from '@/config/preferences/storePosSettings';
 import styles from '../NewSale.module.css';
 import { CustomSelect, IconClose } from './SalePrimitives';
 import type { SaleSettingsDialogModel } from './useSaleWorkflow';
@@ -15,6 +20,15 @@ export function SaleSettingsDialog({ model }: { model: SaleSettingsDialogModel }
     chooseCashDrawer,
     autoOpenCashDrawer,
     toggleAutoCashDrawer,
+    billingDeviceIsOverridden,
+    paperSizeIsOverridden,
+    cashDrawerDeviceIsOverridden,
+    autoOpenCashDrawerIsOverridden,
+    resetBillingDevice,
+    resetPaperSize,
+    resetCashDrawer,
+    resetAutoCashDrawer,
+    openPosPreferences,
   } = model;
 
   if (!settingsOpen) return null;
@@ -29,63 +43,67 @@ export function SaleSettingsDialog({ model }: { model: SaleSettingsDialogModel }
           </button>
         </div>
 
+        <p className={styles.settingsDialogIntro}>{t('newSale.saleSettingsDescription')}</p>
+        <button type="button" className={styles.settingsManageLink} onClick={openPosPreferences}>
+          {t('newSale.managePosPreferences')}
+        </button>
+
         <p className={styles.drawerSectionLabel}>{t('newSale.billingDevice')}</p>
         <div className={styles.settingsField}>
-          <span className={styles.settingsLabel}>{t('newSale.receiptPrinter')}</span>
-          <CustomSelect
-            ariaLabel={t('newSale.receiptPrinter')}
-            value={billingDevice}
-            options={[
-              { value: 'Front Counter Thermal Printer', label: 'Front Counter Thermal Printer' },
-              { value: 'Back Counter Thermal Printer', label: 'Back Counter Thermal Printer' },
-              { value: 'PDF Preview Only', label: 'PDF Preview Only' },
-              { value: 'USB Receipt Printer', label: 'USB Receipt Printer' },
-            ]}
-            onChange={chooseBillingDevice}
-            className={styles.settingsCustomSelect}
-          />
+          <span className={styles.settingsLabel}>{t('newSale.receiptPrinter')} {billingDeviceIsOverridden && <span className={styles.settingsOverrideTag}>{t('newSale.currentSaleOnly')}</span>}</span>
+          <div className={styles.settingsFieldControl}>
+            <CustomSelect
+              ariaLabel={t('newSale.receiptPrinter')}
+              value={billingDevice}
+              options={STORE_BILLING_DEVICES.map((device) => ({ value: device, label: device }))}
+              onChange={chooseBillingDevice}
+              className={styles.settingsCustomSelect}
+            />
+            {billingDeviceIsOverridden && <button type="button" className={styles.settingsResetButton} onClick={resetBillingDevice}>{t('newSale.usePosDefault')}</button>}
+          </div>
         </div>
 
         <div className={styles.settingsField}>
-          <span className={styles.settingsLabel}>{t('newSale.paperSize')}</span>
-          <CustomSelect
-            ariaLabel={t('newSale.paperSize')}
-            value={paperSize}
-            options={[
-              { value: '80', label: '80 mm thermal' },
-              { value: '58', label: '58 mm thermal' },
-            ]}
-            onChange={choosePaperSize}
-            className={styles.settingsCustomSelect}
-          />
+          <span className={styles.settingsLabel}>{t('newSale.paperSize')} {paperSizeIsOverridden && <span className={styles.settingsOverrideTag}>{t('newSale.currentSaleOnly')}</span>}</span>
+          <div className={styles.settingsFieldControl}>
+            <CustomSelect
+              ariaLabel={t('newSale.paperSize')}
+              value={paperSize}
+              options={STORE_PAPER_SIZES.map((size) => ({ value: size, label: `${size} mm thermal` }))}
+              onChange={choosePaperSize}
+              className={styles.settingsCustomSelect}
+            />
+            {paperSizeIsOverridden && <button type="button" className={styles.settingsResetButton} onClick={resetPaperSize}>{t('newSale.usePosDefault')}</button>}
+          </div>
         </div>
 
         <div className={styles.settingsField}>
-          <span className={styles.settingsLabel}>{t('newSale.cashDrawer')}</span>
-          <CustomSelect
-            ariaLabel={t('newSale.cashDrawer')}
-            value={cashDrawerDevice}
-            options={[
-              { value: 'Front Counter Cash Drawer', label: 'Front Counter Cash Drawer' },
-              { value: 'Back Counter Cash Drawer', label: 'Back Counter Cash Drawer' },
-              { value: 'Printer-connected Drawer', label: 'Printer-connected Drawer' },
-              { value: 'No Cash Drawer', label: 'No Cash Drawer' },
-            ]}
-            onChange={chooseCashDrawer}
-            className={styles.settingsCustomSelect}
-          />
+          <span className={styles.settingsLabel}>{t('newSale.cashDrawer')} {cashDrawerDeviceIsOverridden && <span className={styles.settingsOverrideTag}>{t('newSale.currentSaleOnly')}</span>}</span>
+          <div className={styles.settingsFieldControl}>
+            <CustomSelect
+              ariaLabel={t('newSale.cashDrawer')}
+              value={cashDrawerDevice}
+              options={STORE_CASH_DRAWER_DEVICES.map((device) => ({ value: device, label: device }))}
+              onChange={chooseCashDrawer}
+              className={styles.settingsCustomSelect}
+            />
+            {cashDrawerDeviceIsOverridden && <button type="button" className={styles.settingsResetButton} onClick={resetCashDrawer}>{t('newSale.usePosDefault')}</button>}
+          </div>
         </div>
 
         <label className={styles.settingsToggle}>
           <span>
-            <span className={styles.settingsLabel}>{t('newSale.autoDrawer')}</span>
+            <span className={styles.settingsLabel}>{t('newSale.autoDrawer')} {autoOpenCashDrawerIsOverridden && <span className={styles.settingsOverrideTag}>{t('newSale.currentSaleOnly')}</span>}</span>
             <span className={styles.settingsHelp}>{t('newSale.autoDrawerHint')}</span>
           </span>
-          <input
-            type="checkbox"
-            checked={autoOpenCashDrawer}
-            onChange={(event) => toggleAutoCashDrawer(event.target.checked)}
-          />
+          <span className={styles.settingsToggleControl}>
+            <input
+              type="checkbox"
+              checked={autoOpenCashDrawer}
+              onChange={(event) => toggleAutoCashDrawer(event.target.checked)}
+            />
+            {autoOpenCashDrawerIsOverridden && <button type="button" className={styles.settingsResetButton} onClick={resetAutoCashDrawer}>{t('newSale.usePosDefault')}</button>}
+          </span>
         </label>
 
         <div className={styles.devicePreview}>

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Printer, ReceiptText } from "lucide-react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
+import { useStorePosSettings } from "@/hooks/useStorePosSettings";
 import type { ReceiptPaperSize } from "@/lib/receipt";
 import styles from "./ReceiptPreview.module.css";
-
-const PAPER_STORAGE_KEY = "pharm_receipt_paper_size";
 
 type ReceiptMetadata = {
   saleId: string;
@@ -12,14 +11,15 @@ type ReceiptMetadata = {
   isLegacy: boolean;
 };
 
-function initialPaperSize(): ReceiptPaperSize {
-  if (typeof window === "undefined") return "80";
-  return window.localStorage.getItem(PAPER_STORAGE_KEY) === "58" ? "58" : "80";
-}
-
 export default function ReceiptPreview() {
   const { saleId = "" } = useParams();
-  const [paper, setPaper] = useState<ReceiptPaperSize>(initialPaperSize);
+  const [searchParams] = useSearchParams();
+  const { settings: storeSettings } = useStorePosSettings();
+  const requestedPaper = searchParams.get("paper");
+  const [paperOverride, setPaperOverride] = useState<ReceiptPaperSize | null>(
+    requestedPaper === "58" || requestedPaper === "80" ? requestedPaper : null,
+  );
+  const paper: ReceiptPaperSize = paperOverride ?? storeSettings.paperSize;
   const [receipt, setReceipt] = useState<ReceiptMetadata | null>(null);
   const [error, setError] = useState("");
   const [pdfLoading, setPdfLoading] = useState(true);
@@ -80,9 +80,8 @@ export default function ReceiptPreview() {
   }, [pdfUrl, receipt]);
 
   const choosePaper = (nextPaper: ReceiptPaperSize) => {
-    window.localStorage.setItem(PAPER_STORAGE_KEY, nextPaper);
     setPdfLoading(true);
-    setPaper(nextPaper);
+    setPaperOverride(nextPaper);
   };
 
   const print = () => {

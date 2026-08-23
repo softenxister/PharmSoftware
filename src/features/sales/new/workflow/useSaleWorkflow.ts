@@ -163,11 +163,16 @@ export function useSaleWorkflow(user: PharmUser) {
   const newSaleButtonRef = useRef<HTMLButtonElement | null>(null);
   const pendingStockRefreshIdsRef = useRef<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [billingDevice, setBillingDevice] = useState('Front Counter Thermal Printer');
-  const [cashDrawerDevice, setCashDrawerDevice] = useState('Front Counter Cash Drawer');
-  const [paperSize, setPaperSize] = useState(() => window.localStorage.getItem('pharm_receipt_paper_size') === '58' ? '58' : '80');
-  const [autoOpenCashDrawer, setAutoOpenCashDrawer] = useState(true);
+  const [billingDeviceOverride, setBillingDeviceOverride] = useState<string | null>(null);
+  const [cashDrawerDeviceOverride, setCashDrawerDeviceOverride] = useState<string | null>(null);
+  const [paperSizeOverride, setPaperSizeOverride] = useState<string | null>(null);
+  const [autoOpenCashDrawerOverride, setAutoOpenCashDrawerOverride] = useState<boolean | null>(null);
   const saleShortcutHandlerRef = useRef<(event: KeyboardEvent) => void>(() => undefined);
+
+  const billingDevice = billingDeviceOverride ?? storeSettings.billingDevice;
+  const cashDrawerDevice = cashDrawerDeviceOverride ?? storeSettings.cashDrawerDevice;
+  const paperSize = paperSizeOverride ?? storeSettings.paperSize;
+  const autoOpenCashDrawer = autoOpenCashDrawerOverride ?? storeSettings.autoOpenCashDrawer;
 
   useEffect(() => {
     setPaymentMethod((current) => resolveConfiguredPaymentMethod(current, storeSettings.paymentMethods));
@@ -321,6 +326,10 @@ export function useSaleWorkflow(user: PharmUser) {
     setSaleSubmitError('');
     setEditingBillId(null);
     setEditingBillNo(null);
+    setBillingDeviceOverride(null);
+    setCashDrawerDeviceOverride(null);
+    setPaperSizeOverride(null);
+    setAutoOpenCashDrawerOverride(null);
     setBillDate(new Date().toISOString().slice(0, 10));
     window.setTimeout(() => {
       itemSearchInputRef.current?.focus();
@@ -676,14 +685,20 @@ export function useSaleWorkflow(user: PharmUser) {
       paperSize,
       cashDrawerDevice,
       autoOpenCashDrawer,
+      billingDeviceIsOverridden: billingDeviceOverride !== null,
+      paperSizeIsOverridden: paperSizeOverride !== null,
+      cashDrawerDeviceIsOverridden: cashDrawerDeviceOverride !== null,
+      autoOpenCashDrawerIsOverridden: autoOpenCashDrawerOverride !== null,
       closeSettings: () => setSettingsOpen(false),
-      chooseBillingDevice: setBillingDevice,
-      choosePaperSize: (value: string) => {
-        window.localStorage.setItem('pharm_receipt_paper_size', value);
-        setPaperSize(value);
-      },
-      chooseCashDrawer: setCashDrawerDevice,
-      toggleAutoCashDrawer: setAutoOpenCashDrawer,
+      chooseBillingDevice: setBillingDeviceOverride,
+      choosePaperSize: setPaperSizeOverride,
+      chooseCashDrawer: setCashDrawerDeviceOverride,
+      toggleAutoCashDrawer: setAutoOpenCashDrawerOverride,
+      resetBillingDevice: () => setBillingDeviceOverride(null),
+      resetPaperSize: () => setPaperSizeOverride(null),
+      resetCashDrawer: () => setCashDrawerDeviceOverride(null),
+      resetAutoCashDrawer: () => setAutoOpenCashDrawerOverride(null),
+      openPosPreferences: () => navigate('/settings'),
     },
     paymentPanel: {
       t,
@@ -721,6 +736,7 @@ export function useSaleWorkflow(user: PharmUser) {
       invoiceCreated,
       paymentMethodLabel,
       formatDate,
+      paperSize,
       newSaleButtonRef,
       startNewSale: resetForNewWalkIn,
     },

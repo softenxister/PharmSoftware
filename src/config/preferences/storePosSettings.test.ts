@@ -12,6 +12,10 @@ test("store POS settings default to hidden locations and all supported payment m
   assert.deepEqual(DEFAULT_STORE_POS_SETTINGS, {
     showProductLocation: false,
     paymentMethods: ["Cash", "Bank transfer", "Credit card"],
+    billingDevice: "Front Counter Thermal Printer",
+    paperSize: "80",
+    cashDrawerDevice: "Front Counter Cash Drawer",
+    autoOpenCashDrawer: true,
   });
 });
 
@@ -22,6 +26,10 @@ test("store POS settings update requires a boolean and at least one unique suppo
   }), {
     showProductLocation: true,
     paymentMethods: ["Cash", "Bank transfer"],
+    billingDevice: "Front Counter Thermal Printer",
+    paperSize: "80",
+    cashDrawerDevice: "Front Counter Cash Drawer",
+    autoOpenCashDrawer: true,
   });
   assert.equal(parseStorePosSettingsUpdate({ showProductLocation: true, paymentMethods: [] }), null);
   assert.equal(parseStorePosSettingsUpdate({ showProductLocation: true, paymentMethods: ["Cash", "Cash"] }), null);
@@ -35,8 +43,35 @@ test("persisted store POS settings discard invalid methods and fall back safely"
   }), {
     showProductLocation: true,
     paymentMethods: ["Cash", "Bank transfer"],
+    billingDevice: "Front Counter Thermal Printer",
+    paperSize: "80",
+    cashDrawerDevice: "Front Counter Cash Drawer",
+    autoOpenCashDrawer: true,
   });
   assert.deepEqual(normalizeStorePosSettings({ paymentMethods: [] }), DEFAULT_STORE_POS_SETTINGS);
+});
+
+test("store POS settings preserve valid device defaults and reject invalid device values", () => {
+  assert.deepEqual(parseStorePosSettingsUpdate({
+    showProductLocation: false,
+    paymentMethods: ["Cash", "Bank transfer"],
+    billingDevice: "PDF Preview Only",
+    paperSize: "58",
+    cashDrawerDevice: "No Cash Drawer",
+    autoOpenCashDrawer: false,
+  }), {
+    showProductLocation: false,
+    paymentMethods: ["Cash", "Bank transfer"],
+    billingDevice: "PDF Preview Only",
+    paperSize: "58",
+    cashDrawerDevice: "No Cash Drawer",
+    autoOpenCashDrawer: false,
+  });
+  assert.equal(parseStorePosSettingsUpdate({
+    showProductLocation: false,
+    paymentMethods: ["Cash"],
+    billingDevice: "Unknown printer",
+  }), null);
 });
 
 test("Cash and Bank transfer alone use the compact two-method toggle", () => {
@@ -60,5 +95,9 @@ test("legacy Mobile payment API input is accepted and returned as Bank transfer"
   }), {
     showProductLocation: false,
     paymentMethods: ["Cash", "Bank transfer"],
+    billingDevice: "Front Counter Thermal Printer",
+    paperSize: "80",
+    cashDrawerDevice: "Front Counter Cash Drawer",
+    autoOpenCashDrawer: true,
   });
 });

@@ -12,6 +12,9 @@ import {
 import type { PharmUser } from "@server/auth/pharmUser";
 import type { PosPreferences, SalesLanding } from "@/config/preferences/posPreferences";
 import {
+  STORE_BILLING_DEVICES,
+  STORE_CASH_DRAWER_DEVICES,
+  STORE_PAPER_SIZES,
   STORE_PAYMENT_METHODS,
   getPaymentMethodShortcut,
   type StorePaymentMethod,
@@ -84,6 +87,22 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
       ...storeSettings,
       paymentMethods: STORE_PAYMENT_METHODS.filter((candidate) => selected.has(candidate)),
     });
+  };
+  const setBillingDevice = (billingDevice: string) => {
+    if (!isOwner || !STORE_BILLING_DEVICES.includes(billingDevice as typeof STORE_BILLING_DEVICES[number])) return;
+    void updateStoreSettings({ ...storeSettings, billingDevice: billingDevice as typeof storeSettings.billingDevice });
+  };
+  const setPaperSize = (paperSize: string) => {
+    if (!isOwner || !STORE_PAPER_SIZES.includes(paperSize as typeof STORE_PAPER_SIZES[number])) return;
+    void updateStoreSettings({ ...storeSettings, paperSize: paperSize as typeof storeSettings.paperSize });
+  };
+  const setCashDrawerDevice = (cashDrawerDevice: string) => {
+    if (!isOwner || !STORE_CASH_DRAWER_DEVICES.includes(cashDrawerDevice as typeof STORE_CASH_DRAWER_DEVICES[number])) return;
+    void updateStoreSettings({ ...storeSettings, cashDrawerDevice: cashDrawerDevice as typeof storeSettings.cashDrawerDevice });
+  };
+  const setAutoOpenCashDrawer = (autoOpenCashDrawer: boolean) => {
+    if (!isOwner) return;
+    void updateStoreSettings({ ...storeSettings, autoOpenCashDrawer });
   };
 
   return (
@@ -199,6 +218,85 @@ export function PosPreferencesPanel({ user }: { user: PharmUser }) {
                 </label>
               );
             })}
+          </div>
+        </div>
+
+        <div className={styles.preferenceGroupHeader}>
+          <h3>{t("pos.devicesAndReceipts")}</h3>
+          <p>{isOwner ? t("pos.devicesAndReceiptsOwner") : t("pos.devicesAndReceiptsStaff")}</p>
+        </div>
+
+        <div className={styles.preferenceRow}>
+          <div className={styles.preferenceCopy}>
+            <h3 id="default-billing-device" className={styles.preferenceTitle}>{t("pos.billingDevice")}</h3>
+            <p className={styles.preferenceDescription}>{t("pos.billingDeviceHint")}</p>
+          </div>
+          <Select
+            value={storeSettings.billingDevice}
+            disabled={!isOwner || !storeSettingsReady || storeSettingsSaving}
+            onValueChange={setBillingDevice}
+          >
+            <SelectTrigger className={styles.selectTrigger} aria-labelledby="default-billing-device">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className={styles.selectContent} position="popper">
+              {STORE_BILLING_DEVICES.map((device) => <SelectItem className={styles.selectItem} key={device} value={device}>{device}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className={styles.preferenceRow}>
+          <div className={styles.preferenceCopy}>
+            <h3 id="default-paper-size" className={styles.preferenceTitle}>{t("pos.paperSize")}</h3>
+            <p className={styles.preferenceDescription}>{t("pos.paperSizeHint")}</p>
+          </div>
+          <Select
+            value={storeSettings.paperSize}
+            disabled={!isOwner || !storeSettingsReady || storeSettingsSaving}
+            onValueChange={setPaperSize}
+          >
+            <SelectTrigger className={styles.selectTrigger} aria-labelledby="default-paper-size">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className={styles.selectContent} position="popper">
+              {STORE_PAPER_SIZES.map((size) => <SelectItem className={styles.selectItem} key={size} value={size}>{size} mm thermal</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className={styles.preferenceRow}>
+          <div className={styles.preferenceCopy}>
+            <h3 id="default-cash-drawer" className={styles.preferenceTitle}>{t("pos.cashDrawer")}</h3>
+            <p className={styles.preferenceDescription}>{t("pos.cashDrawerHint")}</p>
+          </div>
+          <Select
+            value={storeSettings.cashDrawerDevice}
+            disabled={!isOwner || !storeSettingsReady || storeSettingsSaving}
+            onValueChange={setCashDrawerDevice}
+          >
+            <SelectTrigger className={styles.selectTrigger} aria-labelledby="default-cash-drawer">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className={styles.selectContent} position="popper">
+              {STORE_CASH_DRAWER_DEVICES.map((device) => <SelectItem className={styles.selectItem} key={device} value={device}>{device}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className={styles.preferenceRow}>
+          <div className={styles.preferenceCopy}>
+            <h3 id="default-auto-drawer" className={styles.preferenceTitle}>{t("pos.autoDrawer")}</h3>
+            <p className={styles.preferenceDescription}>{t("pos.autoDrawerHint")}</p>
+          </div>
+          <div className={styles.switchControl}>
+            <span className={styles.switchState}>{storeSettings.autoOpenCashDrawer ? t("pos.on") : t("pos.off")}</span>
+            <Switch
+              className={styles.preferenceSwitch}
+              checked={storeSettings.autoOpenCashDrawer}
+              disabled={!isOwner || !storeSettingsReady || storeSettingsSaving}
+              onCheckedChange={setAutoOpenCashDrawer}
+              aria-labelledby="default-auto-drawer"
+            />
           </div>
         </div>
       </div>
