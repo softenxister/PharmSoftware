@@ -159,6 +159,7 @@ export function useSaleWorkflow(user: PharmUser) {
   const [invoiceCreated, setInvoiceCreated] = useState<InvoiceCreated | null>(null);
   const [saleSubmitting, setSaleSubmitting] = useState(false);
   const [saleSubmitError, setSaleSubmitError] = useState('');
+  const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
   const newSaleButtonRef = useRef<HTMLButtonElement | null>(null);
   const pendingStockRefreshIdsRef = useRef<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -267,8 +268,15 @@ export function useSaleWorkflow(user: PharmUser) {
     };
   }, [customers, customersLoaded, pendingBillId, storeSettings.paymentMethods]);
 
-  function openDiscountDrawer() {
+  function openInvoiceBreakdown() {
+    if (!canOpenInvoiceBreakdown || saleSubmitting) return;
     setSaleSubmitError('');
+    setPaymentMethodDialogOpen(true);
+  }
+
+  function choosePaymentMethodForInvoice(method: StorePaymentMethod) {
+    setPaymentMethod(method);
+    setPaymentMethodDialogOpen(false);
     openPaymentDrawer();
   }
 
@@ -476,12 +484,12 @@ export function useSaleWorkflow(user: PharmUser) {
       setPaymentMethod(action.method);
       return;
     }
-    if (invoiceCreated || reminderOpen || settingsOpen || pendingConfirmation) return;
+    if (invoiceCreated || reminderOpen || settingsOpen || pendingConfirmation || paymentMethodDialogOpen) return;
     if (action.type === 'save-pending') {
       if (!discountOpen) void handleSave('save');
       return;
     }
-    if (!discountOpen) openDiscountDrawer();
+    if (!discountOpen) openInvoiceBreakdown();
   }
 
   useEffect(() => {
@@ -644,7 +652,7 @@ export function useSaleWorkflow(user: PharmUser) {
       netPayable,
       showKeyboardHints: preferences.showKeyboardHints,
       canOpenInvoiceBreakdown,
-      openInvoiceBreakdown: openDiscountDrawer,
+      openInvoiceBreakdown,
     },
     reminderPanel: {
       t,
@@ -716,6 +724,17 @@ export function useSaleWorkflow(user: PharmUser) {
       newSaleButtonRef,
       startNewSale: resetForNewWalkIn,
     },
+    paymentMethodDialog: {
+      open: paymentMethodDialogOpen,
+      methods: storeSettings.paymentMethods,
+      selectedMethod: paymentMethod,
+      paymentMethodLabel,
+      title: t('newSale.choosePaymentMethod'),
+      description: t('newSale.choosePaymentMethodHint'),
+      closeLabel: t('newSale.close'),
+      onCancel: () => setPaymentMethodDialogOpen(false),
+      onChoose: choosePaymentMethodForInvoice,
+    },
     confirmationDialog: {
       open: pendingConfirmation !== null,
       title: pendingConfirmation?.kind === 'remove-item'
@@ -744,3 +763,4 @@ export type SaleReminderPanelModel = SaleWorkflow['reminderPanel'];
 export type SaleSettingsDialogModel = SaleWorkflow['settingsDialog'];
 export type SalePaymentPanelModel = SaleWorkflow['paymentPanel'];
 export type SaleCompletionDialogModel = SaleWorkflow['completionDialog'];
+export type PaymentMethodDialogModel = SaleWorkflow['paymentMethodDialog'];

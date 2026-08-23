@@ -195,46 +195,49 @@
 
 .paymentMethodToggle {
   display: inline-flex;
-  min-height: 34px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--app-page);
-}
-
-.paymentMethodToggleOption {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 0;
-  border-right: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink-muted);
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 94px;
+  min-height: 34px;
+  padding: 5px 9px 5px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+  color: var(--app-ink);
   cursor: pointer;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 7px 10px;
   white-space: nowrap;
 }
 
-.paymentMethodToggleOption:last-child {
-  border-right: 0;
+.paymentMethodToggle:hover {
+  filter: brightness(0.98);
 }
 
-.paymentMethodToggleOptionActive {
-  background: var(--primary);
-  color: #fff;
+.paymentMethodToggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
-.paymentMethodToggleOption:focus-visible {
-  position: relative;
-  z-index: 1;
-  outline: 3px solid var(--primary-soft);
-  outline-offset: -2px;
+.paymentMethodToggleCash {
+  border-color: #e8b27a;
+  background: #fff3e8;
+  color: #b85c0a;
 }
 
-.paymentMethodToggleOption kbd,
+.paymentMethodToggleBank {
+  border-color: #b7cfea;
+  background: #eef5fb;
+  color: var(--app-create-action);
+}
+
+.paymentMethodToggleIcon {
+  flex-shrink: 0;
+  opacity: 0.72;
+}
+
 .actionShortcut,
 .netPayableShortcut {
   border: 1px solid currentColor;
@@ -1633,6 +1636,128 @@
 .confirmProceed:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--primary) 20%, transparent);
   outline-offset: 1px;
+}
+
+/* ── Payment method confirmation ──────────────────────────────── */
+
+.paymentMethodBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 22, 18, 0.42);
+}
+
+.paymentMethodDialog {
+  width: min(360px, 100%);
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 20px;
+  box-shadow: 0 24px 64px -24px rgba(8, 28, 20, 0.62);
+}
+
+.paymentMethodDialogTitle {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--app-font);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.paymentMethodDialogDescription {
+  margin: 6px 0 16px;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.paymentMethodOptions {
+  display: grid;
+  gap: 9px;
+}
+
+.paymentMethodOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--app-border);
+  border-radius: 11px;
+  background: var(--app-surface);
+  color: var(--app-ink);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.paymentMethodOption:hover,
+.paymentMethodOptionSelected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.paymentMethodOptionCash {
+  border-color: #e8b27a;
+}
+
+.paymentMethodOptionBank {
+  border-color: #b7cfea;
+}
+
+.paymentMethodOptionCard {
+  border-color: #cbbce7;
+}
+
+.paymentMethodOptionIcon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.paymentMethodOptionCheck {
+  margin-left: auto;
+  font-size: 17px;
+}
+
+.paymentMethodDialogCancel {
+  display: block;
+  min-height: 34px;
+  margin: 14px 0 0 auto;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-surface);
+  color: var(--app-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 0 13px;
+}
+
+.paymentMethodDialogCancel:hover {
+  background: var(--app-page);
+}
+
+.paymentMethodDialogCancel:focus-visible,
+.paymentMethodOption:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 /* ── Bottom summary bar ─────────────────────────────────────────── */

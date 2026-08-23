@@ -1,5 +1,6 @@
 import type { PharmUser } from '@server/auth/pharmUser';
 import styles from './NewSale.module.css';
+import { PaymentMethodDialog } from './PaymentMethodDialog';
 import { PosConfirmationDialog } from './PosConfirmationDialog';
 import { SaleCartTable } from './workflow/SaleCartTable';
 import { SaleCompletionDialog } from './workflow/SaleCompletionDialog';
@@ -31,6 +32,7 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
       <SaleSettingsDialog model={workflow.settingsDialog} />
       <SalePaymentPanel model={workflow.paymentPanel} />
       <SaleCompletionDialog model={workflow.completionDialog} />
+      <PaymentMethodDialog {...workflow.paymentMethodDialog} />
       <PosConfirmationDialog
         open={confirmation.open}
         title={confirmation.title}

@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react';
+import { ArrowLeftRight, Settings } from 'lucide-react';
 import {
   getPaymentMethodShortcut,
   shouldUsePaymentToggle,
@@ -48,20 +48,15 @@ export function SaleToolbar({ model }: { model: SaleToolbarModel }) {
         />
 
         {shouldUsePaymentToggle(paymentMethods) ? (
-          <div className={styles.paymentMethodToggle} role="group" aria-label={t('sales.payment')}>
-            {paymentMethods.map((method) => (
-              <button
-                key={method}
-                type="button"
-                className={`${styles.paymentMethodToggleOption} ${paymentMethod === method ? styles.paymentMethodToggleOptionActive : ''}`}
-                aria-pressed={paymentMethod === method}
-                onClick={() => choosePaymentMethod(method)}
-              >
-                {showKeyboardHints && <kbd>{getPaymentMethodShortcut(method)}</kbd>}
-                <span>{paymentMethodLabel(method)}</span>
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            className={`${styles.paymentMethodToggle} ${paymentMethod === 'Cash' ? styles.paymentMethodToggleCash : styles.paymentMethodToggleBank}`}
+            onClick={() => choosePaymentMethod(paymentMethod === 'Cash' ? 'Bank transfer' : 'Cash')}
+            aria-label={t('newSale.togglePaymentMethod')}
+          >
+            <span>{paymentMethod === 'Cash' ? t('pos.cash') : t('pos.bank')}</span>
+            <ArrowLeftRight className={styles.paymentMethodToggleIcon} size={16} strokeWidth={2.25} aria-hidden="true" />
+          </button>
         ) : (
           <CustomSelect
             ariaLabel={t('sales.payment')}
