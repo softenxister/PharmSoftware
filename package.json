@@ -7,7 +7,7 @@
     "build": "vite build && vite build --config vite.server.config.ts",
     "build:client": "vite build",
     "build:server": "vite build --config vite.server.config.ts",
-    "dev": "concurrently --kill-others-on-fail --names web,api --prefix-colors green,cyan \"vite --host 127.0.0.1 --port 3000\" \"tsx watch --clear-screen=false server/index.ts\"",
+    "dev": "concurrently --kill-others-on-fail --names web,api --prefix-colors green,cyan \"vite --host 127.0.0.1 --port 3000\" \"node --watch --watch-preserve-output server/dev-runner.cjs\"",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

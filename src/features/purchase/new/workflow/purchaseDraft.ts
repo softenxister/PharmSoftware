@@ -186,16 +186,19 @@ export function calculatePurchaseTotals(
 
 export function calculatePurchaseLineActualCost(
   existingLines: Array<Pick<PurchaseLine, "qty" | "cost">>,
-  draftLine: Pick<PurchaseLine, "qty" | "cost">,
+  draftLine: Pick<PurchaseLine, "qty" | "cost"> & Partial<Pick<
+    PurchaseLine,
+    "freeQty" | "freeUnitMultiplier" | "unitMultiplier"
+  >>,
   vatIncluded: boolean,
   discount: string,
   discountType: PurchaseDiscountType,
   discountTiming: PurchaseDiscountTiming,
 ) {
   const quantity = positivePurchaseNumber(draftLine.qty);
-  const baseCost = positivePurchaseNumber(draftLine.cost);
-  if (quantity === 0 || baseCost === 0) {
-    return { baseCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
+  const enteredCost = positivePurchaseNumber(draftLine.cost);
+  if (quantity === 0 || enteredCost === 0) {
+    return { baseCost: enteredCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
   }
 
   const totals = calculatePurchaseTotals(
@@ -206,12 +209,22 @@ export function calculatePurchaseLineActualCost(
     discountTiming,
   );
   if (totals.subtotal === 0) {
-    return { baseCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
+    return { baseCost: enteredCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
   }
 
-  const unitAllocation = baseCost / totals.subtotal;
-  const discountPerUnit = roundPurchaseCurrency(totals.discountAmount * unitAllocation);
-  const vatPerUnit = roundPurchaseCurrency(totals.vatAmount * unitAllocation);
+  const unitMultiplier = positivePurchaseNumber(String(draftLine.unitMultiplier ?? 1)) || 1;
+  const freeUnitMultiplier = positivePurchaseNumber(String(draftLine.freeUnitMultiplier ?? 1)) || 1;
+  const freeQuantity = positivePurchaseNumber(draftLine.freeQty ?? "");
+  const paidLineSubtotal = quantity * enteredCost;
+  const equivalentQuantity = quantity + ((freeQuantity * freeUnitMultiplier) / unitMultiplier);
+  const lineAllocation = paidLineSubtotal / totals.subtotal;
+  const baseCost = roundPurchaseCurrency(paidLineSubtotal / equivalentQuantity);
+  const discountPerUnit = roundPurchaseCurrency(
+    (totals.discountAmount * lineAllocation) / equivalentQuantity,
+  );
+  const vatPerUnit = roundPurchaseCurrency(
+    (totals.vatAmount * lineAllocation) / equivalentQuantity,
+  );
   return {
     baseCost,
     discountPerUnit,

@@ -13,6 +13,7 @@
   --amber: #b9791e;
   --amber-soft: #fbf1dd;
 
+  position: relative;
   display: flex;
   width: 100%;
   height: 100%;
@@ -1288,8 +1289,8 @@
 }
 
 .purchaseWindowBackdrop {
-  position: fixed;
-  inset: 56px 0 0;
+  position: absolute;
+  inset: 0;
   z-index: 90;
   display: flex;
   align-items: center;
@@ -1440,6 +1441,29 @@
   background: var(--app-surface-muted);
   margin: 0;
   padding: 12px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.freeQtyPanel:hover,
+.freeQtyPanel:focus-within {
+  border-color: var(--primary);
+}
+
+.freeQtyPanel:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  outline: none;
+}
+
+.freeQtyPanelEnabled {
+  background: var(--surface);
+  cursor: default;
+  box-shadow: 0 0 0 1px var(--primary-soft);
+}
+
+.freeQtyPanel:not(.freeQtyPanelEnabled) .freeQtyControls {
+  pointer-events: none;
 }
 
 .freeQtyPanel legend {
@@ -1447,21 +1471,13 @@
 }
 
 .freeQtyLegend {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
   color: var(--ink-muted);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   font-family: var(--app-font);
   font-size-adjust: var(--app-uppercase-font-size-adjust);
-}
-
-.freeQtyLegend input {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--primary);
+  cursor: pointer;
 }
 
 .freeQtyControls {

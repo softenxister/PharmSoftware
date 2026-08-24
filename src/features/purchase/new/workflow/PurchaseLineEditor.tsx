@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Package, PackagePlus, ReceiptText, Save, X } from "lucide-react";
 import { ProductImage } from "@/components/product/ProductImage";
 import { isPurchaseExpiryDate as isValidExpiryDate } from "@/lib/expiryDate";
@@ -7,6 +8,7 @@ import type { PurchaseLineEditorModel } from "./usePurchaseWorkflow";
 import styles from "../PurchaseEntry.module.css";
 
 export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }) {
+  const freeQtyInputRef = useRef<HTMLInputElement>(null);
   const {
     t, formatMoney, isOpen, selectedItem, closeLine, localizeUnit,
     qtyInputRef, lineQty, changeQuantity, handlePurchaseFlowEnter,
@@ -22,6 +24,14 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
     && Number(lineQty) > 0
     && lineActualCost.baseCost > 0;
   const displayUnit = (value: string) => localizeUnit(getPurchaseUnitDisplayValue(value));
+  const toggleFreeQtyRow = (enabled: boolean) => {
+    toggleFreeQuantity(enabled);
+    if (!enabled) return;
+    window.setTimeout(() => {
+      freeQtyInputRef.current?.focus();
+      freeQtyInputRef.current?.select();
+    }, 0);
+  };
 
   return (
     <div className={styles.purchaseWindowBackdrop} role="presentation" onMouseDown={closeLine}>
@@ -99,19 +109,26 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
                         />
                       </div>
 
-                      <fieldset className={styles.freeQtyPanel}>
-                        <legend>
-                          <label className={styles.freeQtyLegend}>
-                            <input
-                              type="checkbox"
-                              checked={includeFreeQty}
-                              onChange={event => toggleFreeQuantity(event.target.checked)}
-                            />
-                            <span>{t("purchaseEntry.freeQty")}</span>
-                          </label>
-                        </legend>
+                      <fieldset
+                        className={`${styles.freeQtyPanel} ${includeFreeQty ? styles.freeQtyPanelEnabled : ""}`}
+                        tabIndex={0}
+                        aria-label={t("purchaseEntry.freeQty")}
+                        aria-expanded={includeFreeQty}
+                        onClick={(event) => {
+                          if ((event.target as HTMLElement).closest("input, button")) return;
+                          toggleFreeQtyRow(!includeFreeQty);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.target !== event.currentTarget) return;
+                          if (event.key !== "Enter" && event.key !== " ") return;
+                          event.preventDefault();
+                          toggleFreeQtyRow(!includeFreeQty);
+                        }}
+                      >
+                        <legend className={styles.freeQtyLegend}>{t("purchaseEntry.freeQty")}</legend>
                         <div className={styles.freeQtyControls}>
                           <input
+                            ref={freeQtyInputRef}
                             type="text"
                             inputMode="numeric"
                             placeholder={t("purchaseEntry.freeQty")}
@@ -119,6 +136,8 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
                             className={styles.freeQtyInput}
                             value={freeQty}
                             onChange={event => changeFreeQuantity(event.target.value)}
+                            data-purchase-flow="free-qty"
+                            onKeyDown={handlePurchaseFlowEnter}
                           />
                           <PurchaseUnitDropdown
                             label={t("purchaseEntry.freeUnit")}

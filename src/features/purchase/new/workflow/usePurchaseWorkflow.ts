@@ -129,6 +129,11 @@ export function usePurchaseWorkflow(purchaseId?: string) {
     Number(lineCost) > 0 &&
     Number.isFinite(Number(lineQty)) &&
     Number.isFinite(Number(lineCost)) &&
+    (!includeFreeQty || (
+      freeUnit &&
+      Number(freeQty) > 0 &&
+      Number.isFinite(Number(freeQty))
+    )) &&
     isValidExpiryDate(expiryDate),
   );
   const {
@@ -151,15 +156,22 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   const lineActualCost = useMemo(
     () => calculatePurchaseLineActualCost(
       purchaseLines.filter(line => line.id !== editingPurchaseLineId),
-      { qty: lineQty, cost: lineCost },
+      {
+        qty: lineQty,
+        cost: lineCost,
+        freeQty: includeFreeQty ? freeQty : "",
+        unitMultiplier: selectedItem ? purchaseUnitMultiplier(selectedItem, unit) : 1,
+        freeUnitMultiplier: selectedItem ? purchaseUnitMultiplier(selectedItem, freeUnit) : 1,
+      },
       vatIncluded,
       purchaseDiscount,
       purchaseDiscountType,
       purchaseDiscountTiming,
     ),
     [
-      lineCost, lineQty, purchaseDiscount, purchaseDiscountTiming,
-      purchaseDiscountType, purchaseLines, editingPurchaseLineId, vatIncluded,
+      freeQty, freeUnit, includeFreeQty, lineCost, lineQty, purchaseDiscount,
+      purchaseDiscountTiming, purchaseDiscountType, purchaseLines,
+      editingPurchaseLineId, selectedItem, unit, vatIncluded,
     ],
   );
 

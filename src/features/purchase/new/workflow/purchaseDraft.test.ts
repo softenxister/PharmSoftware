@@ -194,3 +194,51 @@ test("purchase line actual cost does not add VAT when VAT is included", () => {
     actualCost: 90,
   });
 });
+
+test("purchase line actual cost spreads percentage discount across paid and free units", () => {
+  const preview = calculatePurchaseLineActualCost(
+    [],
+    {
+      qty: "10",
+      cost: "100",
+      freeQty: "2",
+      unitMultiplier: 1,
+      freeUnitMultiplier: 1,
+    },
+    true,
+    "10",
+    "percent",
+    "beforeVat",
+  );
+
+  assert.deepEqual(preview, {
+    baseCost: 83.33,
+    discountPerUnit: 8.33,
+    vatPerUnit: 0,
+    actualCost: 75,
+  });
+});
+
+test("purchase line actual cost converts free quantities from a different pack size", () => {
+  const preview = calculatePurchaseLineActualCost(
+    [],
+    {
+      qty: "2",
+      cost: "500",
+      freeQty: "10",
+      unitMultiplier: 10,
+      freeUnitMultiplier: 1,
+    },
+    true,
+    "0",
+    "percent",
+    "beforeVat",
+  );
+
+  assert.deepEqual(preview, {
+    baseCost: 333.33,
+    discountPerUnit: 0,
+    vatPerUnit: 0,
+    actualCost: 333.33,
+  });
+});

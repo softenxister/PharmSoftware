@@ -965,8 +965,8 @@
 }
 
 .adjustmentBackdrop {
-  position: fixed;
-  inset: 56px 0 0;
+  position: absolute;
+  inset: 0;
   z-index: 90;
   display: flex;
   align-items: center;
