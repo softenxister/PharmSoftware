@@ -73,6 +73,7 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
         <div className={styles.purchaseWindowBody}>
           <section className={styles.purchaseFormPanel} aria-label={t("purchaseEntry.lineDetails")}>
                     <div className={styles.purchaseFormGrid}>
+                      <div className={styles.purchaseFieldsColumn}>
                       <div className={styles.purchasePrimaryRow}>
                         <label className={styles.compactField}>
                           <span>{t("purchaseEntry.quantity")}</span>
@@ -177,6 +178,7 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
                             onKeyDown={handlePurchaseFlowEnter}
                           />
                         </label>
+                      </div>
                       </div>
 
                       <section className={styles.actualCostRow} aria-live="polite" aria-label={t("purchaseEntry.actualCost")}>
