@@ -3,31 +3,11 @@ import { Banknote, CreditCard, Landmark, Printer, Store, Truck } from 'lucide-re
 import { useNavigate } from 'react-router';
 import { usePreferences } from '@/app/providers/PreferencesProvider';
 import { formatThaiPhoneNumber } from '@/lib/thaiPhoneNumber';
+import type { SavedSale } from './new/workflow/saleTypes';
 import styles from './SalesHome.module.css';
 
-/**
- * ── Types ──────────────────────────────────────────────────────────────
- * Swap these for generated API types once the /sales endpoints exist.
- */
-type BillStatus = 'paid' | 'pending' | 'void';
-type PurchaseMethod = 'pickup' | 'delivery';
-
-interface RecentBill {
-  id: string;
-  billNo: string;
-  date: string; // ISO
-  customerName: string;
-  customerMobile?: string;
-  customerAvatar?: string;
-  isMember: boolean;
-  itemCount: number;
-  paymentMethod: string;
-  purchaseMethod: PurchaseMethod;
-  netTotal: number;
-  status: BillStatus;
-}
-
-const SAVED_SALES_KEY = 'pharm_recent_sales';
+type BillStatus = SavedSale['status'];
+type RecentBill = SavedSale;
 
 function initials(name: string): string {
   const parts = name.trim().split(' ').filter(Boolean);
@@ -47,6 +27,8 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
   const [bills, setBills] = useState<RecentBill[]>([]);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
     setStatusFilter(initialStatus);
@@ -56,22 +38,20 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
     let cancelled = false;
 
     async function loadSales() {
+      setLoadState('loading');
       try {
         const response = await fetch('/api/sales', { cache: 'no-store' });
         if (!response.ok) throw new Error('Unable to load sales.');
-        const data = await response.json() as { sales?: Array<RecentBill & { lines?: unknown[] }> };
+        const data = await response.json() as { sales?: RecentBill[] };
         const sales = Array.isArray(data.sales) ? data.sales : [];
         if (!cancelled) {
           setBills(sales);
-          window.localStorage.setItem(SAVED_SALES_KEY, JSON.stringify(sales.slice(0, 100)));
+          setLoadState('ready');
         }
       } catch {
-        const saved = window.localStorage.getItem(SAVED_SALES_KEY);
-        if (!saved || cancelled) return;
-        try {
-          setBills(JSON.parse(saved) as RecentBill[]);
-        } catch {
+        if (!cancelled) {
           setBills([]);
+          setLoadState('unavailable');
         }
       }
     }
@@ -80,7 +60,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryVersion]);
 
   const filteredBills = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -188,7 +168,7 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
           </div>
 
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            {loadState !== 'unavailable' && <table className={styles.table}>
               <colgroup>
                 <col className={styles.fulfilmentColumn} />
                 <col className={styles.billColumn} />
@@ -306,9 +286,30 @@ export default function SaleHome({ initialStatus = 'all' }: { initialStatus?: St
                   );
                 })}
               </tbody>
-            </table>
+            </table>}
 
-            {filteredBills.length === 0 && (
+            {loadState === 'loading' && (
+              <div className={styles.emptyState} aria-live="polite">
+                <p className={styles.emptyTitle}>{t('sales.loading')}</p>
+                <p className={styles.emptyBody}>{t('sales.loadingHint')}</p>
+              </div>
+            )}
+
+            {loadState === 'unavailable' && (
+              <div className={styles.unavailableState} role="alert">
+                <p className={styles.emptyTitle}>{t('sales.unavailable')}</p>
+                <p className={styles.emptyBody}>{t('sales.unavailableHint')}</p>
+                <button
+                  type="button"
+                  className={styles.retryButton}
+                  onClick={() => setRetryVersion((version) => version + 1)}
+                >
+                  {t('sales.retry')}
+                </button>
+              </div>
+            )}
+
+            {loadState === 'ready' && filteredBills.length === 0 && (
               <div className={styles.emptyState}>
                 <p className={styles.emptyTitle}>{t('sales.noBills')}</p>
                 <p className={styles.emptyBody}>{t('sales.noBillsHint')}</p>

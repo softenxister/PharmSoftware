@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  assertPendingSaleWritable,
   loyaltyPointsForSale,
+  parsePendingSaleDeleteRequest,
   receiptLineCostSnapshot,
   summarizeSaleLines,
   validateSale,
   type SaleInput,
 } from "./saleRepository";
+
+const repositorySource = readFileSync(new URL("./saleRepository.ts", import.meta.url), "utf8");
 
 function saleInput(overrides: Partial<SaleInput> = {}): SaleInput {
   return {
@@ -29,6 +34,28 @@ function saleInput(overrides: Partial<SaleInput> = {}): SaleInput {
     ...overrides,
   };
 }
+
+test("pending sale deletion accepts a trimmed id and remains pending-only", () => {
+  assert.equal(parsePendingSaleDeleteRequest({ saleId: " pending-1 " }), "pending-1");
+  assert.equal(parsePendingSaleDeleteRequest({ saleId: "" }), null);
+  assert.equal(parsePendingSaleDeleteRequest({ saleId: 1 }), null);
+  assert.match(
+    repositorySource,
+    /deletePendingSale[\s\S]*?deleteMany\([\s\S]*?status: SaleStatus\.PENDING/,
+  );
+});
+
+test("stale Pending Sale identities cannot be recreated or overwrite completed sales", () => {
+  assert.doesNotThrow(() => assertPendingSaleWritable("pending-1", "pending"));
+  assert.throws(() => assertPendingSaleWritable("deleted-1", null), /no longer available/);
+  assert.throws(() => assertPendingSaleWritable("paid-1", "paid"), /already been paid/);
+  assert.throws(() => assertPendingSaleWritable("void-1", "void"), /no longer available/);
+});
+
+test("sales reject malformed bill dates", () => {
+  assert.throws(() => validateSale(saleInput({ billDate: "03/09/2026" })), /bill date is invalid/);
+  assert.doesNotThrow(() => validateSale(saleInput({ billDate: "2026-09-03" })));
+});
 
 test("paid sales reject a payment below net payable", () => {
   assert.throws(

@@ -2,6 +2,7 @@ import type { PharmUser } from '@server/auth/pharmUser';
 import styles from './NewSale.module.css';
 import { PaymentMethodDialog } from './PaymentMethodDialog';
 import { PosConfirmationDialog } from './PosConfirmationDialog';
+import { PendingSaleStatus } from './PendingSaleStatus';
 import { SaleCartTable } from './workflow/SaleCartTable';
 import { SaleCompletionDialog } from './workflow/SaleCompletionDialog';
 import { SaleCustomerField } from './workflow/SaleCustomerField';
@@ -18,8 +19,17 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
   const workflow = useSaleWorkflow(user);
   const confirmation = workflow.confirmationDialog;
 
+  if (workflow.pendingSaleStatus.loading || workflow.pendingSaleStatus.unavailable) {
+    return (
+      <div className={styles.page}>
+        <PendingSaleStatus model={workflow.pendingSaleStatus} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
+      <PendingSaleStatus model={workflow.pendingSaleStatus} />
       <SaleToolbar model={workflow.toolbar} />
       <SaleCustomerField model={workflow.customerField} />
       <div className={styles.scrollArea}>
@@ -37,7 +47,12 @@ export default function NewSale({ user }: { user: PharmUser }): React.ReactEleme
         open={confirmation.open}
         title={confirmation.title}
         description={confirmation.description}
+        cancelLabel={confirmation.cancelLabel}
         confirmLabel={confirmation.confirmLabel}
+        confirmTone={confirmation.confirmTone}
+        confirmDisabled={confirmation.confirmDisabled}
+        busy={confirmation.busy}
+        onDismiss={confirmation.dismiss}
         onCancel={confirmation.cancel}
         onConfirm={confirmation.confirm}
       />

@@ -4,6 +4,7 @@ export type PosPreferences = {
   showAvailableStock: boolean;
   showKeyboardHints: boolean;
   confirmDestructiveActions: boolean;
+  showPaymentMethodAfterNetTotal: boolean;
   defaultSalesLanding: SalesLanding;
 };
 
@@ -21,6 +22,7 @@ export const DEFAULT_POS_PREFERENCES: Readonly<PosPreferences> = Object.freeze({
   showAvailableStock: false,
   showKeyboardHints: false,
   confirmDestructiveActions: false,
+  showPaymentMethodAfterNetTotal: true,
   defaultSalesLanding: "new-sale",
 });
 
@@ -64,6 +66,9 @@ export function loadPosPreferences(
     confirmDestructiveActions: typeof saved.confirmDestructiveActions === "boolean"
       ? saved.confirmDestructiveActions
       : DEFAULT_POS_PREFERENCES.confirmDestructiveActions,
+    showPaymentMethodAfterNetTotal: typeof saved.showPaymentMethodAfterNetTotal === "boolean"
+      ? saved.showPaymentMethodAfterNetTotal
+      : DEFAULT_POS_PREFERENCES.showPaymentMethodAfterNetTotal,
     defaultSalesLanding: typeof saved.defaultSalesLanding === "string" && SALES_LANDINGS.has(saved.defaultSalesLanding as SalesLanding)
       ? saved.defaultSalesLanding as SalesLanding
       : DEFAULT_POS_PREFERENCES.defaultSalesLanding,

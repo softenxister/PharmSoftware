@@ -92,6 +92,7 @@ export function normalizeStorePosSettings(value: unknown): StorePosSettings {
 export function parseStorePosSettingsUpdate(value: unknown): StorePosSettings | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Record<string, unknown>;
+  const autoOpenCashDrawer = candidate.autoOpenCashDrawer;
   if (typeof candidate.showProductLocation !== "boolean" || !Array.isArray(candidate.paymentMethods)) return null;
   if (candidate.paymentMethods.length < 1 || candidate.paymentMethods.length > STORE_PAYMENT_METHODS.length) return null;
   const paymentMethods = candidate.paymentMethods.map(toStorePaymentMethod);
@@ -100,16 +101,16 @@ export function parseStorePosSettingsUpdate(value: unknown): StorePosSettings | 
   if (candidate.billingDevice !== undefined && !STORE_BILLING_DEVICES.includes(candidate.billingDevice as StoreBillingDevice)) return null;
   if (candidate.paperSize !== undefined && !STORE_PAPER_SIZES.includes(candidate.paperSize as StorePaperSize)) return null;
   if (candidate.cashDrawerDevice !== undefined && !STORE_CASH_DRAWER_DEVICES.includes(candidate.cashDrawerDevice as StoreCashDrawerDevice)) return null;
-  if (candidate.autoOpenCashDrawer !== undefined && typeof candidate.autoOpenCashDrawer !== "boolean") return null;
+  if (autoOpenCashDrawer !== undefined && typeof autoOpenCashDrawer !== "boolean") return null;
   return {
     showProductLocation: candidate.showProductLocation,
     paymentMethods: normalizePaymentMethods(paymentMethods),
     billingDevice: normalizeBillingDevice(candidate.billingDevice),
     paperSize: normalizePaperSize(candidate.paperSize),
     cashDrawerDevice: normalizeCashDrawerDevice(candidate.cashDrawerDevice),
-    autoOpenCashDrawer: candidate.autoOpenCashDrawer === undefined
-      ? DEFAULT_STORE_POS_SETTINGS.autoOpenCashDrawer
-      : candidate.autoOpenCashDrawer,
+    autoOpenCashDrawer: typeof autoOpenCashDrawer === "boolean"
+      ? autoOpenCashDrawer
+      : DEFAULT_STORE_POS_SETTINGS.autoOpenCashDrawer,
   };
 }
 

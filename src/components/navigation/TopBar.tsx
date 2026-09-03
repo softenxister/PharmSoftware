@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
+import { useUnsavedChangesNavigation } from "@/app/providers/UnsavedChangesProvider";
 import type { TranslationKey } from "@/i18n/i18n";
 import type { PharmUser } from "@server/auth/pharmUser";
 import { getSalesLandingHref } from "@/config/preferences/posPreferences";
@@ -58,6 +59,7 @@ export function TopBar({ user }: { user: PharmUser }) {
   const languageRef = useRef<HTMLDivElement>(null);
   const { preferences: appPreferences, isSaving: isSavingPreferences, updatePreferences, t } = usePreferences();
   const { preferences } = usePosPreferences(user);
+  const { requestAction } = useUnsavedChangesNavigation();
   const salesHref = getSalesLandingHref(preferences.defaultSalesLanding);
   const roleLabel = user.role === "owner" ? t("common.owner") : t("common.pharmacist");
 
@@ -93,7 +95,7 @@ export function TopBar({ user }: { user: PharmUser }) {
     };
   }, [langOpen]);
 
-  const logout = async () => {
+  const performLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
@@ -103,6 +105,8 @@ export function TopBar({ user }: { user: PharmUser }) {
       navigate("/login", { replace: true });
     }
   };
+
+  const logout = () => requestAction(performLogout);
 
   return (
     <div

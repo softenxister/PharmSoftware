@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import type {
   SalesProduct,
   StockInventoryMetadata,
@@ -7,6 +8,7 @@ import type {
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
   invalidateStockCatalog,
+  loadStockProductsByIds,
   loadStockPage,
   saveStockProduct,
   saveStockProductPhotoUrl,
@@ -30,6 +32,10 @@ import {
   type StockTableSort,
   type StockTableSortKey,
 } from "./stockInventoryModel";
+import {
+  stockEditorProductId,
+  withStockEditorProductId,
+} from "./stockEditorRoute";
 
 const EMPTY_INVENTORY_METADATA: StockInventoryMetadata = {
   facets: { legalCategories: [], dosageTypes: [], manufacturers: [], tags: [] },
@@ -38,6 +44,8 @@ const EMPTY_INVENTORY_METADATA: StockInventoryMetadata = {
 
 export function useStockInventory() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedEditProductId = stockEditorProductId(searchParams);
   const [isSidebarClosed, setIsSidebarClosed] = useState(false);
   const [openFilterPanel, setOpenFilterPanel] = useState<StockFilterPanel | null>(null);
   const [draftFilters, setDraftFilters] = useState(createEmptyDraftFilters);
@@ -115,6 +123,27 @@ export function useStockInventory() {
     const timeout = window.setTimeout(() => setAdjustmentSuccess(false), 2600);
     return () => window.clearTimeout(timeout);
   }, [adjustmentSuccess]);
+
+  useEffect(() => {
+    if (!requestedEditProductId) return;
+    let cancelled = false;
+
+    async function openLinkedProductEditor() {
+      try {
+        const [product] = await loadStockProductsByIds([requestedEditProductId]);
+        if (cancelled || !product) return;
+        setEditingProduct(product);
+        setStockWindowOpen(true);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void openLinkedProductEditor();
+    return () => {
+      cancelled = true;
+    };
+  }, [requestedEditProductId]);
 
   const items = useMemo(
     () => products.map(projectStockInventoryItem),
@@ -212,12 +241,15 @@ export function useStockInventory() {
     if (product) {
       setEditingProduct(product);
       setStockWindowOpen(true);
+      setSearchParams(withStockEditorProductId(searchParams, product.id));
     }
   };
 
   const closeProductEntry = () => {
     setStockWindowOpen(false);
     setEditingProduct(null);
+    if (!requestedEditProductId) return;
+    setSearchParams(withStockEditorProductId(searchParams, null), { replace: true });
   };
 
   const openAdjustmentByBarcode = (barcode: string) => {

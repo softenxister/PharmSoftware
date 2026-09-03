@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { usePreferences } from '@/app/providers/PreferencesProvider';
+import {
+  useUnsavedChangesGuard,
+  useUnsavedChangesNavigation,
+} from '@/app/providers/UnsavedChangesProvider';
 import { localizeUnitExpression } from '@/i18n/productUnits';
 import type { PharmUser } from '@server/auth/pharmUser';
 import {
@@ -24,8 +28,6 @@ import { resolveSaleShortcut, subscribeSaleShortcuts } from '../salesShortcuts';
 import {
   OWNERS,
   PHARMACISTS,
-  type AppliedDiscount,
-  type BillStatus,
   type CatalogItem,
   type InvoiceCreated,
   type PurchaseMethod,
@@ -35,12 +37,12 @@ import { useClickOutside } from './useClickOutside';
 import { useSaleCatalog } from './useSaleCatalog';
 import { useSaleCart } from './useSaleCart';
 import { useSalePayment } from './useSalePayment';
+import { usePendingSaleLifecycle } from './usePendingSaleLifecycle';
 import { useSaleRecommendations } from './useSaleRecommendations';
 import {
-  loadPendingSale,
-  persistRecentSale,
   postSale,
   refreshSoldProductCatalog,
+  SaleWriteError,
 } from './salePersistence';
 
 export function useSaleWorkflow(user: PharmUser) {
@@ -89,9 +91,9 @@ export function useSaleWorkflow(user: PharmUser) {
   };
   const formatExpiry = (value: string) => formatBatchExpiry(appPreferences.locale, value);
   const [searchParams] = useSearchParams();
-  const pendingBillId = searchParams.get('billId');
+  const pendingBillId = searchParams.get('billId')?.trim() || null;
   const { preferences } = usePosPreferences(user);
-  const { settings: storeSettings } = useStorePosSettings();
+  const { settings: storeSettings, isReady: storeSettingsReady } = useStorePosSettings();
   const saleCart = useSaleCart({
     catalog,
     itemSearchQuery,
@@ -144,9 +146,16 @@ export function useSaleWorkflow(user: PharmUser) {
     startHold,
     endHold,
   } = saleCart;
-
-  const [editingBillId, setEditingBillId] = useState<string | null>(null);
-  const [editingBillNo, setEditingBillNo] = useState<string | null>(null);
+  const unsavedSaleNavigation = useUnsavedChangesNavigation();
+  const pendingSale = usePendingSaleLifecycle({
+    requestedSaleId: pendingBillId,
+    customers,
+    dependenciesReady: customersLoaded && storeSettingsReady,
+    enabledPaymentMethods: storeSettings.paymentMethods,
+  });
+  const editingBillId = pendingSale.session?.saleId ?? null;
+  const editingBillNo = pendingSale.session?.billNo ?? null;
+  const hydratedPendingSaleRef = useRef(pendingSale.session);
 
   const [ownerId, setOwnerId] = useState(OWNERS[0].id);
   const [paymentMethod, setPaymentMethod] = useState<StorePaymentMethod>('Cash');
@@ -159,7 +168,12 @@ export function useSaleWorkflow(user: PharmUser) {
   const [invoiceCreated, setInvoiceCreated] = useState<InvoiceCreated | null>(null);
   const [saleSubmitting, setSaleSubmitting] = useState(false);
   const [saleSubmitError, setSaleSubmitError] = useState('');
+  const [saveAndLeaveError, setSaveAndLeaveError] = useState('');
   const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
+  const [deleteBillConfirmationOpen, setDeleteBillConfirmationOpen] = useState(false);
+  const [deleteBillSubmitting, setDeleteBillSubmitting] = useState(false);
+  const [deleteBillError, setDeleteBillError] = useState('');
+  const [pendingSaleConflict, setPendingSaleConflict] = useState('');
   const newSaleButtonRef = useRef<HTMLButtonElement | null>(null);
   const pendingStockRefreshIdsRef = useRef<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -217,8 +231,38 @@ export function useSaleWorkflow(user: PharmUser) {
     clearDiscount,
     openCashDrawer,
   } = salePayment;
-  const canSaveSale = hasPayableSale(cartLines.length, netPayable);
-  const canOpenInvoiceBreakdown = canSaveSale;
+  const saleIsPayable = hasPayableSale(cartLines.length, netPayable);
+  const currentPendingSaleDraft = useMemo(() => ({
+    ownerId,
+    paymentMethod,
+    purchaseMethod,
+    billDate,
+    pharmacistId,
+    customer,
+    lines: cartLines,
+    discount: appliedDiscount,
+  }), [
+    appliedDiscount,
+    billDate,
+    cartLines,
+    customer,
+    ownerId,
+    paymentMethod,
+    pharmacistId,
+    purchaseMethod,
+  ]);
+  const pendingSaleChanged = pendingSale.session !== null
+    && pendingSale.hasMeaningfulChanges(currentPendingSaleDraft);
+  const hasUnsavedSaleChanges = editingBillId === null
+    ? pendingBillId === null && cartLines.length > 0
+    : pendingSaleChanged;
+  const canSaveSale = saleIsPayable && (
+    pendingBillId === null || (pendingSale.loadState === 'opened' && pendingSaleChanged)
+  );
+  const canOpenInvoiceBreakdown = saleIsPayable;
+  useUnsavedChangesGuard(
+    preferences.confirmDestructiveActions && hasUnsavedSaleChanges && invoiceCreated === null,
+  );
   const { topItems, topItemsLabel, recommendedBatchId } = useSaleRecommendations(
     catalog,
     customer,
@@ -234,49 +278,32 @@ export function useSaleWorkflow(user: PharmUser) {
   }, [invoiceCreated]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!pendingBillId || !customersLoaded) return;
-
-    async function loadPendingBill() {
-      try {
-        const pending = await loadPendingSale(pendingBillId);
-        if (cancelled || !pending) return;
-        const savedBill = pending.sale;
-        setCatalog((currentCatalog) => mergeCatalogItems(currentCatalog, pending.catalog));
-
-        setEditingBillId(savedBill.id);
-        setEditingBillNo(savedBill.billNo);
-        setOwnerId(savedBill.ownerId ?? OWNERS[0].id);
-        setPaymentMethod(resolveConfiguredPaymentMethod(savedBill.paymentMethod ?? 'Cash', storeSettings.paymentMethods));
-        setPurchaseMethod(savedBill.purchaseMethod ?? 'pickup');
-        setBillDate(savedBill.billDate ?? savedBill.date.slice(0, 10));
-        setPharmacistId(savedBill.pharmacistId ?? PHARMACISTS[0].id);
-        setCustomer(customers.find((c) => c.id === savedBill.customerId) ?? null);
-        setCustomerQuery('');
-        setCartLines(savedBill.lines);
-        setCartQtyDrafts({});
-        setAppliedDiscount(savedBill.discount ?? null);
-        if (savedBill.discount) {
-          setDiscountType(savedBill.discount.type);
-          setDiscountInput(String(savedBill.discount.value));
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setSaleSubmitError(error instanceof Error ? error.message : 'Unable to load pending sale.');
-        }
-      }
-    }
-
-    void loadPendingBill();
-    return () => {
-      cancelled = true;
-    };
-  }, [customers, customersLoaded, pendingBillId, storeSettings.paymentMethods]);
+    const opened = pendingSale.opened;
+    if (!opened || hydratedPendingSaleRef.current === opened.session) return;
+    hydratedPendingSaleRef.current = opened.session;
+    setCatalog((currentCatalog) => mergeCatalogItems(currentCatalog, opened.catalog));
+    setOwnerId(opened.draft.ownerId);
+    setPaymentMethod(opened.draft.paymentMethod);
+    setPurchaseMethod(opened.draft.purchaseMethod);
+    setBillDate(opened.draft.billDate);
+    setPharmacistId(opened.draft.pharmacistId);
+    setCustomer(opened.draft.customer);
+    setCustomerQuery('');
+    setCartLines(opened.draft.lines);
+    setCartQtyDrafts({});
+    setAppliedDiscount(opened.draft.discount);
+    setDiscountType(opened.draft.discount?.type ?? 'percent');
+    setDiscountInput(opened.draft.discount ? String(opened.draft.discount.value) : '');
+  }, [pendingSale.opened, setCartLines, setCatalog, setCustomer]);
 
   function openInvoiceBreakdown() {
     if (!canOpenInvoiceBreakdown || saleSubmitting) return;
     setSaleSubmitError('');
-    setPaymentMethodDialogOpen(true);
+    if (preferences.showPaymentMethodAfterNetTotal) {
+      setPaymentMethodDialogOpen(true);
+      return;
+    }
+    openPaymentDrawer();
   }
 
   function choosePaymentMethodForInvoice(method: StorePaymentMethod) {
@@ -324,8 +351,9 @@ export function useSaleWorkflow(user: PharmUser) {
     setInvoiceCreated(null);
     setSaleSubmitting(false);
     setSaleSubmitError('');
-    setEditingBillId(null);
-    setEditingBillNo(null);
+    setPendingSaleConflict('');
+    hydratedPendingSaleRef.current = null;
+    pendingSale.clear();
     setBillingDeviceOverride(null);
     setCashDrawerDeviceOverride(null);
     setPaperSizeOverride(null);
@@ -336,43 +364,8 @@ export function useSaleWorkflow(user: PharmUser) {
     }, 0);
   }
 
-  function persistSale(_mode: SaveMode, overrides: {
-    id?: string;
-    billNo?: string;
-    createdAt?: string;
-    discount?: AppliedDiscount | null;
-    netPayable?: number;
-    customerPaid?: number | null;
-    changeDue?: number;
-    status?: BillStatus;
-  } = {}): InvoiceCreated {
-    const effectiveNetPayable = overrides.netPayable ?? netPayable;
-    const effectiveCustomerPaid = overrides.customerPaid !== undefined
-      ? overrides.customerPaid
-      : parseFloat(customerPayInput) || null;
-    const effectiveChangeDue = overrides.changeDue ?? liveChangeDue;
-    return persistRecentSale(window.localStorage, {
-      id: overrides.id ?? editingBillId ?? undefined,
-      billNo: overrides.billNo ?? editingBillNo ?? undefined,
-      createdAt: overrides.createdAt,
-      customer,
-      itemCount: uniqueItemCount,
-      paymentMethod,
-      purchaseMethod,
-      netPayable: effectiveNetPayable,
-      status: overrides.status ?? 'paid',
-      ownerId,
-      billDate,
-      pharmacistId,
-      lines: cartLines,
-      discount: overrides.discount ?? appliedDiscount,
-      customerPaid: effectiveCustomerPaid,
-      changeDue: effectiveChangeDue,
-    });
-  }
-
   async function submitInvoicePayment() {
-    if (!canSaveSale || saleSubmitting) return;
+    if (!saleIsPayable || saleSubmitting) return;
     const nextDiscount = readDraftDiscount();
     const nextNetPayable = calculateSalePricing(pricingLines, nextDiscount).netPayable;
     const paid = parseFloat(customerPayInput);
@@ -398,6 +391,7 @@ export function useSaleWorkflow(user: PharmUser) {
         customer,
         paymentMethod,
         purchaseMethod,
+        billDate,
         subtotal,
         netPayable: nextNetPayable,
         customerPaid: Number.isNaN(paid) ? null : paid,
@@ -406,7 +400,13 @@ export function useSaleWorkflow(user: PharmUser) {
         lines: cartLines,
       });
     } catch (error) {
-      setSaleSubmitError(error instanceof Error ? error.message : 'Unable to update stock for this sale.');
+      const message = error instanceof Error ? error.message : 'Unable to update stock for this sale.';
+      setSaleSubmitError(message);
+      if (error instanceof SaleWriteError && error.code === 'PENDING_SALE_CONFLICT') {
+        setPendingSaleConflict(message);
+        setDiscountOpen(false);
+        setPaymentMethodDialogOpen(false);
+      }
       setSaleSubmitting(false);
       return;
     }
@@ -417,16 +417,15 @@ export function useSaleWorkflow(user: PharmUser) {
       openCashDrawer('customer payment submitted');
     }
 
-    const createdInvoice = persistSale('save-new', {
-      id: savedSale?.id,
-      billNo: savedSale?.billNo,
-      createdAt: savedSale?.date,
-      discount: nextDiscount,
-      netPayable: nextNetPayable,
-      customerPaid: Number.isNaN(paid) ? null : paid,
+    const createdInvoice: InvoiceCreated = {
+      saleId: savedSale.id,
+      invoiceNo: savedSale.billNo,
+      amountPaid: Number.isNaN(paid) ? nextNetPayable : paid,
+      netTotal: nextNetPayable,
       changeDue: nextChangeDue,
-      status: 'paid',
-    });
+      paymentMode: paymentMethod,
+      createdAt: savedSale.date,
+    };
     setAppliedDiscount(nextDiscount);
     setDiscountOpen(false);
     const nextStep = resolvePaidSaleNextStep('submit', createdInvoice.saleId);
@@ -434,53 +433,96 @@ export function useSaleWorkflow(user: PharmUser) {
     setSaleSubmitting(false);
   }
 
-  async function handleSave(mode: SaveMode) {
-    if (!canSaveSale || saleSubmitting) return;
+  async function persistPendingSale(mode: SaveMode, reportInLeaveDialog = false): Promise<boolean> {
+    if (!canSaveSale || saleSubmitting) return false;
     setSaleSubmitting(true);
     setSaleSubmitError('');
+    if (reportInLeaveDialog) setSaveAndLeaveError('');
 
     try {
-      const savedSale = await postSale({
-        status: 'pending',
-        id: editingBillId ?? undefined,
-        billNo: editingBillNo ?? undefined,
-        owner: {
-          id: ownerId,
-          name: OWNERS.find((owner) => owner.id === ownerId)?.name ?? ownerId,
-        },
-        pharmacist: {
-          id: pharmacistId,
-          name: PHARMACISTS.find((pharmacist) => pharmacist.id === pharmacistId)?.name ?? pharmacistId,
-        },
-        customer,
-        paymentMethod,
-        purchaseMethod,
-        subtotal,
-        netPayable,
-        customerPaid: null,
-        changeDue: 0,
-        discount: appliedDiscount,
-        lines: cartLines,
-      });
-
-      persistSale(mode, {
-        id: savedSale?.id,
-        billNo: savedSale?.billNo,
-        createdAt: savedSale?.date,
-        status: 'pending',
-        customerPaid: null,
-        changeDue: 0,
-      });
+      const result = await pendingSale.save(currentPendingSaleDraft, { subtotal, netPayable });
+      if (result.kind !== 'saved') {
+        setSaleSubmitError(result.message);
+        if (result.kind === 'conflict') setPendingSaleConflict(result.message);
+        if (reportInLeaveDialog) setSaveAndLeaveError(result.message);
+        setSaleSubmitting(false);
+        return false;
+      }
       setSaveMenuOpen(false);
       if (mode === 'save-new') {
         resetForNewWalkIn();
+        unsavedSaleNavigation.navigateWithoutPrompt(() => navigate('/sales/new', { replace: true }));
+        return true;
+      }
+      setSaleSubmitting(false);
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to save this sale.';
+      setSaleSubmitError(message);
+      if (reportInLeaveDialog) setSaveAndLeaveError(message);
+      setSaleSubmitting(false);
+      return false;
+    }
+  }
+
+  async function handleSave(mode: SaveMode) {
+    const saved = await persistPendingSale(mode);
+    if (!saved || mode === 'save-new') return;
+    unsavedSaleNavigation.navigateWithoutPrompt(() => navigate('/sales'));
+  }
+
+  async function saveAndLeave() {
+    const saved = await persistPendingSale('save', true);
+    if (saved) unsavedSaleNavigation.confirmNavigation();
+  }
+
+  async function confirmDeletePendingBill() {
+    if (!editingBillId || deleteBillSubmitting) return;
+    setDeleteBillSubmitting(true);
+    setDeleteBillError('');
+    try {
+      const result = await pendingSale.remove();
+      if (result.kind !== 'deleted') {
+        setDeleteBillError(result.message);
+        if (result.kind === 'conflict') {
+          setPendingSaleConflict(result.message);
+          setDeleteBillConfirmationOpen(false);
+        }
+        setDeleteBillSubmitting(false);
         return;
       }
-      navigate('/sales');
+      setDeleteBillConfirmationOpen(false);
+      unsavedSaleNavigation.navigateWithoutPrompt(() => navigate('/sales/new'));
     } catch (error) {
-      setSaleSubmitError(error instanceof Error ? error.message : 'Unable to save this sale.');
-      setSaleSubmitting(false);
+      setDeleteBillError(error instanceof Error ? error.message : t('newSale.deleteBillError'));
+      setDeleteBillSubmitting(false);
     }
+  }
+
+  function requestDeletePendingBill() {
+    setDeleteBillError('');
+    setDeleteBillConfirmationOpen(true);
+  }
+
+  function removeSaleLine(cartKey: string) {
+    const removesLastPendingLine = editingBillId !== null
+      && cartDisplayGroups.length === 1
+      && cartDisplayGroups[0]?.key === cartKey;
+    if (removesLastPendingLine) {
+      requestDeletePendingBill();
+      return;
+    }
+    removeCartLine(cartKey);
+  }
+
+  function dismissLeaveConfirmation() {
+    setSaveAndLeaveError('');
+    unsavedSaleNavigation.cancelNavigation();
+  }
+
+  function leaveWithoutSaving() {
+    setSaveAndLeaveError('');
+    unsavedSaleNavigation.confirmNavigation();
   }
 
   function handleSaleShortcut(event: KeyboardEvent) {
@@ -532,6 +574,9 @@ export function useSaleWorkflow(user: PharmUser) {
       )),
       save: handleSave,
       toggleSaveMenu: () => setSaveMenuOpen((open) => !open),
+      canDeleteBill: editingBillId !== null,
+      deleteBillSubmitting,
+      requestDeleteBill: requestDeletePendingBill,
       openSettings: () => setSettingsOpen(true),
     },
     customerField: {
@@ -623,7 +668,7 @@ export function useSaleWorkflow(user: PharmUser) {
       allergyWarningForItem,
       localizeUnit,
       formatExpiry,
-      removeLine: removeCartLine,
+      removeLine: removeSaleLine,
       updateQuantity: updateCartQty,
       changeQuantity: (groupKey: string, value: string) => {
         const digitsOnly = normalizeThaiKeyboardNumericInput(value).replace(/\D/g, '');
@@ -752,18 +797,62 @@ export function useSaleWorkflow(user: PharmUser) {
       onChoose: choosePaymentMethodForInvoice,
     },
     confirmationDialog: {
-      open: pendingConfirmation !== null,
-      title: pendingConfirmation?.kind === 'remove-item'
+      open: pendingConfirmation !== null || deleteBillConfirmationOpen || unsavedSaleNavigation.navigationBlocked,
+      title: pendingConfirmation
         ? t('newSale.removeQuestion')
-        : t('newSale.cancelQuestion'),
-      description: pendingConfirmation?.kind === 'remove-item'
+        : deleteBillConfirmationOpen
+          ? t('newSale.deleteBillQuestion')
+        : t('newSale.leaveQuestion'),
+      description: pendingConfirmation
         ? t('newSale.removeDescription', { name: pendingConfirmation.itemName })
-        : t('newSale.cancelDescription'),
-      confirmLabel: pendingConfirmation?.kind === 'remove-item'
+        : deleteBillConfirmationOpen
+          ? deleteBillError || t('newSale.deleteBillDescription', { billNo: editingBillNo ?? '' })
+        : saveAndLeaveError || t('newSale.leaveDescription'),
+      cancelLabel: t(
+        pendingConfirmation || deleteBillConfirmationOpen
+          ? 'newSale.keepWorking'
+          : 'newSale.leaveSale',
+      ),
+      confirmLabel: pendingConfirmation
         ? t('newSale.removeItem')
-        : t('newSale.cancelSale'),
-      cancel: () => setPendingConfirmation(null),
-      confirm: confirmPendingAction,
+        : deleteBillConfirmationOpen
+          ? t(deleteBillSubmitting ? 'newSale.deletingBill' : 'newSale.deleteBill')
+        : t(saleSubmitting ? 'newSale.savingAndLeaving' : 'newSale.saveAndLeave'),
+      confirmTone: pendingConfirmation || deleteBillConfirmationOpen ? 'danger' as const : 'primary' as const,
+      confirmDisabled: !pendingConfirmation && !deleteBillConfirmationOpen && !canSaveSale,
+      busy: (deleteBillConfirmationOpen && deleteBillSubmitting)
+        || (unsavedSaleNavigation.navigationBlocked && saleSubmitting),
+      dismiss: pendingConfirmation
+        ? () => setPendingConfirmation(null)
+        : deleteBillConfirmationOpen
+          ? () => setDeleteBillConfirmationOpen(false)
+        : dismissLeaveConfirmation,
+      cancel: pendingConfirmation
+        ? () => setPendingConfirmation(null)
+        : deleteBillConfirmationOpen
+          ? () => setDeleteBillConfirmationOpen(false)
+        : leaveWithoutSaving,
+      confirm: pendingConfirmation
+        ? confirmPendingAction
+        : deleteBillConfirmationOpen
+          ? () => void confirmDeletePendingBill()
+        : () => void saveAndLeave(),
+    },
+    pendingSaleStatus: {
+      t,
+      loading: pendingBillId !== null && pendingSale.loadState === 'loading',
+      unavailable: pendingSale.unavailable,
+      conflictMessage: pendingSaleConflict,
+      retry: () => {
+        setPendingSaleConflict('');
+        pendingSale.retry();
+      },
+      returnToSales: () => unsavedSaleNavigation.navigateWithoutPrompt(() => navigate('/sales')),
+      startNewSale: () => {
+        resetForNewWalkIn();
+        unsavedSaleNavigation.navigateWithoutPrompt(() => navigate('/sales/new', { replace: true }));
+      },
+      dismissConflict: () => setPendingSaleConflict(''),
     },
   };
 }
@@ -780,3 +869,4 @@ export type SaleSettingsDialogModel = SaleWorkflow['settingsDialog'];
 export type SalePaymentPanelModel = SaleWorkflow['paymentPanel'];
 export type SaleCompletionDialogModel = SaleWorkflow['completionDialog'];
 export type PaymentMethodDialogModel = SaleWorkflow['paymentMethodDialog'];
+export type PendingSaleStatusModel = SaleWorkflow['pendingSaleStatus'];

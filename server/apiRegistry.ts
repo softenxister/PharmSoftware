@@ -74,6 +74,7 @@ export const apiRoutes: readonly ApiRoute[] = [
   { method: "PUT", path: "/api/purchase", handler: handler(purchase.PUT) },
   { method: "GET", path: "/api/sales", handler: handler(sales.GET) },
   { method: "POST", path: "/api/sales", handler: handler(sales.POST) },
+  { method: "DELETE", path: "/api/sales", handler: handler(sales.DELETE) },
   { method: "GET", path: "/api/sales/receipt", handler: handler(salesReceipt.GET) },
   { method: "GET", path: "/api/sales/receipt/pdf", handler: handler(salesReceiptPdf.GET) },
   { method: "GET", path: "/api/reports/sales", handler: handler(salesReports.GET) },

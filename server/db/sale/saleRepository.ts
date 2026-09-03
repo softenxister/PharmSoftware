@@ -45,6 +45,7 @@ export type SaleInput = {
   customer?: { id: string; name: string; mobile?: string; isMember?: boolean } | null;
   paymentMethod: string;
   purchaseMethod: string;
+  billDate?: string;
   subtotal: number;
   netPayable: number;
   customerPaid?: number | null;
@@ -64,6 +65,30 @@ export type SavedSaleResult = {
 export type SaveSaleResult = {
   sale: SavedSaleResult;
 };
+
+export class PendingSaleConflictError extends Error {
+  constructor(message = "This Pending Sale is no longer available.") {
+    super(message);
+    this.name = "PendingSaleConflictError";
+  }
+}
+
+export function assertPendingSaleWritable(
+  requestedSaleId: string | undefined,
+  currentStatus: SavedSale["status"] | null,
+): void {
+  if (requestedSaleId?.trim() && currentStatus === null) throw new PendingSaleConflictError();
+  if (currentStatus === "paid") {
+    throw new PendingSaleConflictError("This Pending Sale has already been paid.");
+  }
+  if (currentStatus === "void") throw new PendingSaleConflictError();
+}
+
+export function parsePendingSaleDeleteRequest(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const saleId = (value as { saleId?: unknown }).saleId;
+  return typeof saleId === "string" && saleId.trim() ? saleId.trim() : null;
+}
 
 export type SavedSale = {
   id: string;
@@ -220,6 +245,9 @@ export function validateSale(input: SaleInput) {
   if (!input.paymentMethod?.trim() || !input.purchaseMethod?.trim()) {
     throw new Error("Payment and purchase methods are required.");
   }
+  if (input.billDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(input.billDate)) {
+    throw new Error("Sale bill date is invalid.");
+  }
   const hasInvalidLine = input.lines.some((line) => (
     !line?.lineId?.trim()
     || !line.itemId?.trim()
@@ -321,16 +349,23 @@ async function awardPaidSaleLoyalty(
 export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
   validateSale(input);
   const now = new Date();
+  const soldAt = input.billDate
+    ? new Date(`${input.billDate}T${now.toISOString().slice(11)}`)
+    : now;
+  if (Number.isNaN(soldAt.getTime())) throw new Error("Sale bill date is invalid.");
   const identity = createBillIdentity(input, now);
   const nextStatus = input.status === "paid" ? SaleStatus.PAID : SaleStatus.PENDING;
   const storeProfile = nextStatus === SaleStatus.PAID ? await readStoreProfile() : null;
 
-  const sale = await prisma.$transaction(async (tx) => {
-    const existingSale = await tx.sale.findUnique({ where: { id: identity.id } });
-    if (existingSale?.status === SaleStatus.PAID) {
-      if (nextStatus === SaleStatus.PAID) return existingSale;
-      throw new Error("A paid sale cannot be changed.");
-    }
+  let sale: { id: string; billNo: string; soldAt: Date; status: SaleStatus };
+  try {
+    sale = await prisma.$transaction(async (tx) => {
+      const existingSale = await tx.sale.findUnique({ where: { id: identity.id } });
+      assertPendingSaleWritable(input.id, existingSale
+        ? existingSale.status === SaleStatus.PAID
+          ? "paid"
+          : existingSale.status === SaleStatus.VOIDED ? "void" : "pending"
+        : null);
 
     const productIds = [...new Set(input.lines.map((line) => line.itemId.trim()))];
     const pricedProducts = await tx.product.findMany({
@@ -362,7 +397,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
     const receiptSnapshot = storeProfile ? createReceiptSnapshot({
       saleId: identity.id,
       billNo: identity.billNo,
-      soldAt: now.toISOString(),
+      soldAt: soldAt.toISOString(),
       customerName: input.customer?.name || "Walk-in Customer",
       salespersonName: input.pharmacist?.name?.trim() || input.owner?.name?.trim() || "ไม่ระบุ",
       paymentMethod: input.paymentMethod,
@@ -404,7 +439,7 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
         : null;
     const saleData = {
       billNo: identity.billNo,
-      soldAt: now,
+      soldAt,
       customerId: input.customer?.id || null,
       customerName: input.customer?.name || "Walk-in Customer",
       isMember: Boolean(input.customer?.isMember),
@@ -426,55 +461,54 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
         : Prisma.DbNull,
     };
 
+    const lineCreates = input.lines.map((line, position) => ({
+      id: line.lineId,
+      productId: line.itemId,
+      itemName: line.itemName,
+      packLabel: line.packLabel,
+      packMultiplier: line.packMultiplier,
+      location: line.loc,
+      batchNo: line.batch.batchNo,
+      expiryDate: normalizeExpiryDate(line.batch.exp),
+      sellPriceThb: line.batch.sellPrice,
+      unitPriceThb: resolvedLineUnitPrice(line),
+      quantity: line.qty,
+      position,
+    }));
+
+    let savedSale;
     if (existingSale) {
       await tx.saleLine.deleteMany({ where: { saleId: identity.id } });
+      savedSale = await tx.sale.update({
+        where: { id: identity.id },
+        data: { ...saleData, lines: { create: lineCreates } },
+      });
+    } else {
+      savedSale = await tx.sale.create({
+        data: {
+          id: identity.id,
+          ...saleData,
+          lines: { create: lineCreates },
+        },
+      });
     }
-
-    const savedSale = await tx.sale.upsert({
-      where: { id: identity.id },
-      update: {
-        ...saleData,
-        lines: { create: input.lines.map((line, position) => ({
-          id: line.lineId,
-          productId: line.itemId,
-          itemName: line.itemName,
-          packLabel: line.packLabel,
-          packMultiplier: line.packMultiplier,
-          location: line.loc,
-          batchNo: line.batch.batchNo,
-          expiryDate: normalizeExpiryDate(line.batch.exp),
-          sellPriceThb: line.batch.sellPrice,
-          unitPriceThb: resolvedLineUnitPrice(line),
-          quantity: line.qty,
-          position,
-        })) },
-      },
-      create: {
-        id: identity.id,
-        ...saleData,
-        lines: { create: input.lines.map((line, position) => ({
-          id: line.lineId,
-          productId: line.itemId,
-          itemName: line.itemName,
-          packLabel: line.packLabel,
-          packMultiplier: line.packMultiplier,
-          location: line.loc,
-          batchNo: line.batch.batchNo,
-          expiryDate: normalizeExpiryDate(line.batch.exp),
-          sellPriceThb: line.batch.sellPrice,
-          unitPriceThb: resolvedLineUnitPrice(line),
-          quantity: line.qty,
-          position,
-        })) },
-      },
-    });
 
     if (nextStatus === SaleStatus.PAID && input.customer?.id) {
       await awardPaidSaleLoyalty(tx, input.customer.id, pricing.netPayable);
     }
 
-    return savedSale;
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      return savedSale;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    if (
+      input.id?.trim()
+      && error instanceof Prisma.PrismaClientKnownRequestError
+      && error.code === "P2025"
+    ) {
+      throw new PendingSaleConflictError();
+    }
+    throw error;
+  }
 
   return {
     sale: {
@@ -486,8 +520,18 @@ export async function saveSale(input: SaleInput): Promise<SaveSaleResult> {
   };
 }
 
-export async function readSales(): Promise<SavedSale[]> {
+export async function deletePendingSale(saleId: string): Promise<string | null> {
+  const id = saleId.trim();
+  if (!id) return null;
+  const deleted = await prisma.sale.deleteMany({
+    where: { id, status: SaleStatus.PENDING },
+  });
+  return deleted.count === 1 ? id : null;
+}
+
+export async function readSales(saleId?: string): Promise<SavedSale[]> {
   const sales = await prisma.sale.findMany({
+    where: saleId ? { id: saleId } : undefined,
     include: {
       customer: { select: { mobile: true } },
       lines: {
@@ -496,7 +540,7 @@ export async function readSales(): Promise<SavedSale[]> {
       },
     },
     orderBy: { soldAt: "desc" },
-    take: 100,
+    take: saleId ? 1 : 100,
   });
 
   return sales.map((sale) => ({

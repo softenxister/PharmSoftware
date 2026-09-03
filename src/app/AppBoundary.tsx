@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { TopBar } from "@/components/navigation/TopBar";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { UnsavedChangesProvider } from "@/app/providers/UnsavedChangesProvider";
 import { resolveAuthRoute } from "@/app/routing/authRouting";
 
 export function SessionLoading() {
@@ -39,10 +40,12 @@ export function AppBoundary() {
 
   if (decision?.showAppShell && user) {
     return (
-      <div className="app-shell">
-        <TopBar user={user} />
-        <main className="app-main"><Outlet /></main>
-      </div>
+      <UnsavedChangesProvider>
+        <div className="app-shell">
+          <TopBar user={user} />
+          <main className="app-main"><Outlet /></main>
+        </div>
+      </UnsavedChangesProvider>
     );
   }
 

@@ -4,26 +4,21 @@ import type { SalesProduct } from "@server/db/types";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import { localizeUnitExpression } from "@/i18n/productUnits";
 import { invalidateStockCatalog, loadStockProductsByIds, searchStockCatalog } from "@/api/stockCatalogClient";
+import { formatPurchaseExpiryDate as formatDateDisplay } from "@/lib/expiryDate";
 import {
-  formatPurchaseExpiryDate as formatDateDisplay,
-  formatPurchaseExpiryInput as formatExpiryDateInput,
-  isPurchaseExpiryDate as isValidExpiryDate,
-} from "@/lib/expiryDate";
-import {
-  applyPurchaseLineChange, calculatePurchaseLineActualCost, calculatePurchaseTotals, canSavePurchase,
-  getDistributorMatches, getPurchaseItemSearchPriority, getPurchaseLineEditorDraft,
-  getPurchaseLineEnterAction,
-  mergePurchaseCatalog, purchaseUnitMultiplier, selectPurchaseDiscountType,
+  calculatePurchaseTotals, canSavePurchase, getDistributorMatches,
+  getPurchaseItemSearchPriority, mergePurchaseCatalog, selectPurchaseDiscountType,
 } from "./purchaseDraft";
 import type {
   CurrentPharmUser, EditablePurchaseBill, PurchaseCorrection, PurchaseDiscountTiming,
   PurchaseDiscountType, PurchaseLine,
 } from "./purchaseDraft";
 import { persistPurchaseWorkflow, requestPurchaseCorrection } from "./purchasePersistence";
+import { usePurchaseLineEditor } from "./usePurchaseLineEditor";
 
 export function usePurchaseWorkflow(purchaseId?: string) {
   const navigate = useNavigate();
-  const { t, preferences, formatMoney } = usePreferences();
+  const { t, preferences } = usePreferences();
   const localizeUnit = useCallback(
     (value: string) => localizeUnitExpression(preferences.locale, value),
     [preferences.locale],
@@ -37,16 +32,6 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   const [itemSearchLoading, setItemSearchLoading] = useState(false);
   const [itemDropdownOpen, setItemDropdownOpen] = useState(false);
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(0);
-  const [selectedItem, setSelectedItem] = useState<SalesProduct | null>(null);
-  const [editingPurchaseLineId, setEditingPurchaseLineId] = useState<string | null>(null);
-  const [includeFreeQty, setIncludeFreeQty] = useState(false);
-  const [unit, setUnit] = useState("Blister");
-  const [freeUnit, setFreeUnit] = useState("Blister");
-  const [lineQty, setLineQty] = useState("");
-  const [lineCost, setLineCost] = useState("");
-  const [freeQty, setFreeQty] = useState("");
-  const [lotNo, setLotNo] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
   const [purchaseLines, setPurchaseLines] = useState<PurchaseLine[]>([]);
   const [vatIncluded, setVatIncluded] = useState(true);
   const [purchaseDiscount, setPurchaseDiscount] = useState("0");
@@ -71,9 +56,25 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   const [showMatches, setShowMatches] = useState(false);
   const [highlightedDistributorIndex, setHighlightedDistributorIndex] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
-  const qtyInputRef = useRef<HTMLInputElement>(null);
   const distributorSearchRef = useRef<HTMLDivElement>(null);
   const purchaseItemSearchRef = useRef<HTMLDivElement>(null);
+  const handleLineEditorOpen = useCallback((product: SalesProduct) => {
+    setManualItem(product.barcode);
+    setItemDropdownOpen(false);
+  }, []);
+  const handleLineEditorClose = useCallback(() => setManualItem(""), []);
+  const purchaseLineEditor = usePurchaseLineEditor({
+    lines: purchaseLines,
+    setLines: setPurchaseLines,
+    vatIncluded,
+    discount: purchaseDiscount,
+    discountType: purchaseDiscountType,
+    discountTiming: purchaseDiscountTiming,
+    onOpen: handleLineEditorOpen,
+    onClose: handleLineEditorClose,
+  });
+  const selectedItem = purchaseLineEditor.selectedItem;
+  const openPurchaseLine = purchaseLineEditor.openNew;
 
   const matches = useMemo(
     () => getDistributorMatches(distributorOptions, distributor),
@@ -113,29 +114,8 @@ export function usePurchaseWorkflow(purchaseId?: string) {
       return Math.min(current, itemMatches.length - 1);
     });
   }, [itemMatches.length]);
-  const hasLineDraft = selectedItem !== null;
+  const hasLineDraft = purchaseLineEditor.isOpen;
   const showScanCarousel = manualItem.trim().length === 0 && !hasLineDraft && purchaseLines.length === 0;
-  const selectedUnitOptions = useMemo(() => {
-    if (!selectedItem) return [];
-    return [
-      `${selectedItem.pack.packUnit}[1]`,
-      ...selectedItem.parentPacks.map((pack) => `${pack.packUnit}[${pack.childPackQuantity}]`),
-    ];
-  }, [selectedItem]);
-  const canAddPurchaseLine = Boolean(
-    selectedItem &&
-    unit &&
-    Number(lineQty) > 0 &&
-    Number(lineCost) > 0 &&
-    Number.isFinite(Number(lineQty)) &&
-    Number.isFinite(Number(lineCost)) &&
-    (!includeFreeQty || (
-      freeUnit &&
-      Number(freeQty) > 0 &&
-      Number.isFinite(Number(freeQty))
-    )) &&
-    isValidExpiryDate(expiryDate),
-  );
   const {
     totalQty,
     netTotal: netPurchaseTotal,
@@ -153,28 +133,6 @@ export function usePurchaseWorkflow(purchaseId?: string) {
   const hasValidBill = canSavePurchase(purchaseLines.length, netPurchaseTotal);
   const hasPendingCorrection = correctionRequests.some(request => request.status === "pending");
   const workflowStep = editingBillStatus === "received" ? 2 : editingBillStatus === "partial" ? 1 : 0;
-  const lineActualCost = useMemo(
-    () => calculatePurchaseLineActualCost(
-      purchaseLines.filter(line => line.id !== editingPurchaseLineId),
-      {
-        qty: lineQty,
-        cost: lineCost,
-        freeQty: includeFreeQty ? freeQty : "",
-        unitMultiplier: selectedItem ? purchaseUnitMultiplier(selectedItem, unit) : 1,
-        freeUnitMultiplier: selectedItem ? purchaseUnitMultiplier(selectedItem, freeUnit) : 1,
-      },
-      vatIncluded,
-      purchaseDiscount,
-      purchaseDiscountType,
-      purchaseDiscountTiming,
-    ),
-    [
-      freeQty, freeUnit, includeFreeQty, lineCost, lineQty, purchaseDiscount,
-      purchaseDiscountTiming, purchaseDiscountType, purchaseLines,
-      editingPurchaseLineId, selectedItem, unit, vatIncluded,
-    ],
-  );
-
   useEffect(() => {
     function closeDropdownsOnOutsideClick(event: MouseEvent) {
       const target = event.target as Node;
@@ -190,46 +148,11 @@ export function usePurchaseWorkflow(purchaseId?: string) {
     return () => document.removeEventListener("mousedown", closeDropdownsOnOutsideClick);
   }, []);
 
-  const openPurchaseLine = useCallback((product: SalesProduct, matchedBarcode?: string) => {
-    const matchedPack = matchedBarcode
-      ? product.parentPacks.find((pack) => (pack.barcodes ?? []).includes(matchedBarcode))
-      : undefined;
-    const defaultUnit = matchedPack
-      ? `${matchedPack.packUnit}[${matchedPack.childPackQuantity}]`
-      : `${product.pack.packUnit || "Blister"}[1]`;
-    const firstBatch = product.batches[0];
-    setEditingPurchaseLineId(null);
-    setSelectedItem(product);
-    setManualItem(product.barcode);
-    setItemDropdownOpen(false);
-    setUnit(defaultUnit);
-    setFreeUnit(defaultUnit);
-    setIncludeFreeQty(false);
-    setLineQty("");
-    setLineCost(firstBatch?.sellPriceThb ? String(firstBatch.sellPriceThb) : "");
-    setFreeQty("");
-    setLotNo("");
-    setExpiryDate("");
-  }, []);
-
   const editPurchaseLine = useCallback((line: PurchaseLine) => {
     const product = catalog.find(candidate => candidate.id === line.productId);
     if (!product) return;
-    const draft = getPurchaseLineEditorDraft(line);
-
-    setEditingPurchaseLineId(line.id);
-    setSelectedItem(product);
-    setManualItem(product.barcode);
-    setItemDropdownOpen(false);
-    setUnit(draft.unit);
-    setFreeUnit(draft.freeUnit);
-    setIncludeFreeQty(draft.includeFreeQty);
-    setLineQty(draft.lineQty);
-    setLineCost(draft.lineCost);
-    setFreeQty(draft.freeQty);
-    setLotNo(draft.lotNo);
-    setExpiryDate(draft.expiryDate);
-  }, [catalog]);
+    purchaseLineEditor.openExisting(product, line);
+  }, [catalog, purchaseLineEditor.openExisting]);
 
   function handleItemSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
     if (!itemDropdownOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
@@ -293,69 +216,6 @@ export function usePurchaseWorkflow(purchaseId?: string) {
       setShowMatches(false);
     }
   }
-
-  const closePurchaseLine = () => {
-    setEditingPurchaseLineId(null);
-    setSelectedItem(null);
-    setManualItem("");
-    setFreeUnit("Blister");
-    setIncludeFreeQty(false);
-    setLineQty("");
-    setLineCost("");
-    setFreeQty("");
-    setLotNo("");
-    setExpiryDate("");
-  };
-
-  const addPurchaseLine = () => {
-    if (!selectedItem || !canAddPurchaseLine) return;
-
-    const nextLine: PurchaseLine = {
-      id: editingPurchaseLineId ?? `${selectedItem.id}-${Date.now()}`,
-      productId: selectedItem.id,
-      barcode: selectedItem.barcode,
-      imageUrl: selectedItem.imageUrl,
-      itemName: selectedItem.itemName,
-      unit,
-      unitMultiplier: purchaseUnitMultiplier(selectedItem, unit),
-      qty: lineQty.trim(),
-      cost: lineCost.trim(),
-      freeQty: includeFreeQty ? freeQty.trim() : "",
-      freeUnit,
-      freeUnitMultiplier: purchaseUnitMultiplier(selectedItem, freeUnit),
-      lotNo: lotNo.trim(),
-      expiryDate: formatDateDisplay(expiryDate.trim()),
-    };
-    setPurchaseLines(lines => applyPurchaseLineChange(lines, nextLine, editingPurchaseLineId));
-    closePurchaseLine();
-  };
-
-  const focusNextPurchaseField = (currentElement: HTMLElement) => {
-    const fields = Array.from(document.querySelectorAll<HTMLElement>("[data-purchase-flow]"))
-      .filter(element => !element.hasAttribute("disabled") && element.getAttribute("aria-disabled") !== "true");
-    const currentIndex = fields.indexOf(currentElement);
-    const nextField = fields[currentIndex + 1];
-    if (!nextField) return;
-    nextField.focus();
-    if (nextField instanceof HTMLInputElement) nextField.select();
-  };
-
-  const handlePurchaseFlowEnter = (event: ReactKeyboardEvent<HTMLElement>) => {
-    const action = getPurchaseLineEnterAction(
-      event.key,
-      event.currentTarget.dataset.purchaseFlow,
-    );
-    if (action === "ignore") return;
-    event.preventDefault();
-    if (action === "submit") {
-      addPurchaseLine();
-      return;
-    }
-    const target = event.currentTarget;
-    if (target instanceof HTMLButtonElement) target.click();
-    if (target instanceof HTMLInputElement && target.type === "checkbox") target.click();
-    window.setTimeout(() => focusNextPurchaseField(target), 0);
-  };
 
   const savePurchase = async (status: "draft" | "partial" | "received", stayOnPage = false) => {
     if (isSavingPurchase || !hasValidBill) return;
@@ -557,14 +417,6 @@ export function usePurchaseWorkflow(purchaseId?: string) {
     if (exactMatch) openPurchaseLine(exactMatch, barcode);
   }, [catalog, manualItem, openPurchaseLine, selectedItem]);
 
-  useEffect(() => {
-    if (!selectedItem) return;
-    window.setTimeout(() => {
-      qtyInputRef.current?.focus();
-      qtyInputRef.current?.select();
-    }, 0);
-  }, [selectedItem]);
-
   return {
     header: {
       t,
@@ -631,7 +483,6 @@ export function usePurchaseWorkflow(purchaseId?: string) {
       purchaseItemSearchRef,
       changeQuery: (value: string) => {
         setManualItem(value);
-        setSelectedItem(null);
         setItemDropdownOpen(true);
       },
       focusSearch: () => {
@@ -660,37 +511,8 @@ export function usePurchaseWorkflow(purchaseId?: string) {
       )),
     },
     lineEditor: {
-      t,
-      formatMoney,
-      isOpen: isEditable && selectedItem !== null,
-      selectedItem,
-      localizeUnit,
-      qtyInputRef,
-      lineQty,
-      lineCost,
-      unit,
-      selectedUnitOptions,
-      includeFreeQty,
-      freeQty,
-      freeUnit,
-      lotNo,
-      expiryDate,
-      vatIncluded,
-      lineActualCost,
-      canAddPurchaseLine,
-      editingPurchaseLineId,
-      closeLine: closePurchaseLine,
-      changeQuantity: setLineQty,
-      handlePurchaseFlowEnter,
-      changeCost: setLineCost,
-      chooseUnit: setUnit,
-      toggleFreeQuantity: setIncludeFreeQty,
-      changeFreeQuantity: setFreeQty,
-      chooseFreeUnit: setFreeUnit,
-      changeLotNumber: setLotNo,
-      changeExpiryDate: (value: string) => setExpiryDate(formatExpiryDateInput(value)),
-      normalizeExpiryDate: () => setExpiryDate(formatExpiryDateInput(expiryDate)),
-      saveLine: addPurchaseLine,
+      ...purchaseLineEditor.model,
+      isOpen: isEditable && purchaseLineEditor.model.isOpen,
     },
     workflowBar: {
       status: editingBillStatus,
@@ -738,6 +560,5 @@ export type PurchaseHeaderModel = PurchaseWorkflow["header"];
 export type PurchaseDetailsModel = PurchaseWorkflow["details"];
 export type PurchaseItemSearchModel = PurchaseWorkflow["itemSearch"];
 export type PurchaseLineTableModel = PurchaseWorkflow["lines"];
-export type PurchaseLineEditorModel = PurchaseWorkflow["lineEditor"];
 export type PurchaseWorkflowBarModel = PurchaseWorkflow["workflowBar"];
 export type PurchaseCorrectionDialogModel = PurchaseWorkflow["correctionDialog"];

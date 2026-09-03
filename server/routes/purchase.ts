@@ -1,4 +1,5 @@
 import {
+  readLatestPurchaseLine,
   readPurchaseBill,
   readPurchaseBills,
   savePurchaseBill,
@@ -18,7 +19,13 @@ const purchaseErrorResponse = (error: unknown) => {
 export async function GET(request: Request) {
   try {
     await requireAuthenticatedUser();
-    const id = new URL(request.url).searchParams.get("id")?.trim();
+    const searchParams = new URL(request.url).searchParams;
+    const productId = searchParams.get("productId")?.trim();
+    if (productId) {
+      const latestLine = await readLatestPurchaseLine(productId);
+      return Response.json({ latestLine });
+    }
+    const id = searchParams.get("id")?.trim();
     if (id) {
       const bill = await readPurchaseBill(id);
       if (!bill) return Response.json({ error: "Purchase bill was not found." }, { status: 404 });

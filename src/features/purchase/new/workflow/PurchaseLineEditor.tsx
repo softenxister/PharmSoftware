@@ -1,40 +1,43 @@
-import { useRef } from "react";
-import { Package, PackagePlus, ReceiptText, Save, X } from "lucide-react";
+import { History, Package, PackagePlus, Pencil, ReceiptText, Save, X } from "lucide-react";
 import { ProductImage } from "@/components/product/ProductImage";
-import { isPurchaseExpiryDate as isValidExpiryDate } from "@/lib/expiryDate";
+import { formatPurchaseExpiryDate } from "@/lib/expiryDate";
 import { PurchaseUnitDropdown } from "../PurchaseUnitDropdown";
-import { getPurchaseUnitDisplayValue } from "./purchaseDraft";
-import type { PurchaseLineEditorModel } from "./usePurchaseWorkflow";
+import { purchaseLineUnitDisplayValue } from "./purchaseLineEditing";
+import type { PurchaseLineEditorModel } from "./usePurchaseLineEditor";
 import styles from "../PurchaseEntry.module.css";
 
+function formatHistoryDate(value: string, locale: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
 export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }) {
-  const freeQtyInputRef = useRef<HTMLInputElement>(null);
   const {
-    t, formatMoney, isOpen, selectedItem, closeLine, localizeUnit,
-    qtyInputRef, lineQty, changeQuantity, handlePurchaseFlowEnter,
-    lineCost, changeCost, unit, chooseUnit, selectedUnitOptions,
-    includeFreeQty, toggleFreeQuantity, freeQty, changeFreeQuantity,
-    freeUnit, chooseFreeUnit, lotNo, changeLotNumber,
-    expiryDate, changeExpiryDate, normalizeExpiryDate,
-    vatIncluded, lineActualCost, canAddPurchaseLine, saveLine,
-    editingPurchaseLineId,
+    t, formatMoney, locale, isOpen, selectedItem, localizeUnit, draft,
+    unitOptions, actualCost: lineActualCost, canCommit, expiryValid,
+    editingLineId, history, vatIncluded, refs, actions,
   } = model;
   if (!isOpen || !selectedItem) return null;
-  const hasActualCost = Number.isFinite(Number(lineQty))
-    && Number(lineQty) > 0
+  const hasActualCost = Number.isFinite(Number(draft.quantity))
+    && Number(draft.quantity) > 0
     && lineActualCost.baseCost > 0;
-  const displayUnit = (value: string) => localizeUnit(getPurchaseUnitDisplayValue(value));
-  const toggleFreeQtyRow = (enabled: boolean) => {
-    toggleFreeQuantity(enabled);
-    if (!enabled) return;
-    window.setTimeout(() => {
-      freeQtyInputRef.current?.focus();
-      freeQtyInputRef.current?.select();
-    }, 0);
-  };
+  const displayUnit = (value: string) => localizeUnit(purchaseLineUnitDisplayValue(value));
+  const latestLine = history.kind === "loaded" ? history.line : null;
+  const historyActualCost = history.kind === "loaded" ? history.actualCost : 0;
+  const isHistoryLoading = history.kind === "loading";
+  const historyError = history.kind === "failed" ? history.message : "";
+  const formatHistoryQuantity = (value: number) => new Intl.NumberFormat(
+    locale === "th" ? "th-TH" : "en-US",
+    { maximumFractionDigits: 3 },
+  ).format(value);
 
   return (
-    <div className={styles.purchaseWindowBackdrop} role="presentation" onMouseDown={closeLine}>
+    <div className={styles.purchaseWindowBackdrop} role="presentation" onMouseDown={actions.close}>
       <section
         className={styles.purchaseEntryWindow}
         role="dialog"
@@ -58,34 +61,51 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
               : <Package size={30} aria-hidden="true" />}
           </span>
           <span className={styles.purchaseHeaderProductInfo}>
-            <h2 id="purchase-line-title">{selectedItem.itemName}</h2>
+            <h2 id="purchase-line-title">
+              <button
+                type="button"
+                className={styles.purchaseHeaderItemLink}
+                aria-label={t("stock.editItemFor", { name: selectedItem.itemName })}
+                onClick={actions.openStockItem}
+              >
+                {selectedItem.itemName}
+              </button>
+            </h2>
             <span className={styles.purchaseHeaderProductMeta}>
               <span>{selectedItem.manufacturerName}</span>
               <span aria-hidden="true">|</span>
               <span>{localizeUnit(selectedItem.pack.label)}</span>
             </span>
           </span>
-          <button type="button" className={styles.windowCloseButton} onClick={closeLine} aria-label={t("purchaseEntry.closeLine")}>
+          <button type="button" className={styles.purchaseHeaderEditButton} onClick={actions.openStockItem}>
+            <Pencil size={15} aria-hidden="true" />
+            <span>{t("stock.editItem")}</span>
+          </button>
+          <button type="button" className={styles.windowCloseButton} onClick={actions.close} aria-label={t("purchaseEntry.closeLine")}>
             <X size={19} />
           </button>
         </header>
 
         <div className={styles.purchaseWindowBody}>
-          <section className={styles.purchaseFormPanel} aria-label={t("purchaseEntry.lineDetails")}>
-                    <div className={styles.purchaseFormGrid}>
-                      <div className={styles.purchaseFieldsColumn}>
+          <div className={styles.purchaseComparisonGrid}>
+            <section className={styles.purchaseFormPanel} aria-label={t("purchaseEntry.lineDetails")}>
+              <header className={styles.purchaseComparisonHeader}>
+                <strong>{t("purchaseEntry.currentPurchase")}</strong>
+                <small>{t("purchaseEntry.confirmLine")}</small>
+              </header>
+              <div className={styles.purchaseFormGrid}>
                       <div className={styles.purchasePrimaryRow}>
                         <label className={styles.compactField}>
                           <span>{t("purchaseEntry.quantity")}</span>
                           <input
-                            ref={qtyInputRef}
+                            ref={refs.quantityInput}
                             type="text"
                             inputMode="numeric"
                             placeholder="0"
-                            value={lineQty}
-                            onChange={event => changeQuantity(event.target.value)}
+                            value={draft.quantity}
+                            onChange={event => actions.change({ quantity: event.target.value })}
                             data-purchase-flow="qty"
-                            onKeyDown={handlePurchaseFlowEnter}
+                            onKeyDown={actions.handleEnter}
                           />
                         </label>
                         <label className={styles.compactField}>
@@ -94,60 +114,60 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
                             type="text"
                             inputMode="decimal"
                             placeholder={t("purchaseEntry.cost")}
-                            value={lineCost}
-                            onChange={event => changeCost(event.target.value)}
+                            value={draft.cost}
+                            onChange={event => actions.change({ cost: event.target.value })}
                             data-purchase-flow="cost"
-                            onKeyDown={handlePurchaseFlowEnter}
+                            onKeyDown={actions.handleEnter}
                           />
                         </label>
 
                         <PurchaseUnitDropdown
                           label={t("purchaseEntry.purchaseUnit")}
-                          value={unit}
-                          options={selectedUnitOptions}
+                          value={draft.unit}
+                          options={unitOptions}
                           getOptionLabel={displayUnit}
-                          onChange={chooseUnit}
+                          onChange={(unit) => actions.change({ unit })}
                         />
                       </div>
 
                       <fieldset
-                        className={`${styles.freeQtyPanel} ${includeFreeQty ? styles.freeQtyPanelEnabled : ""}`}
+                        className={`${styles.freeQtyPanel} ${draft.includeFreeQuantity ? styles.freeQtyPanelEnabled : ""}`}
                         tabIndex={0}
                         aria-label={t("purchaseEntry.freeQty")}
-                        aria-expanded={includeFreeQty}
+                        aria-expanded={draft.includeFreeQuantity}
                         onClick={(event) => {
                           if ((event.target as HTMLElement).closest("input, button")) return;
-                          toggleFreeQtyRow(!includeFreeQty);
+                          actions.toggleFreeQuantity(!draft.includeFreeQuantity);
                         }}
                         onKeyDown={(event) => {
                           if (event.target !== event.currentTarget) return;
                           if (event.key !== "Enter" && event.key !== " ") return;
                           event.preventDefault();
-                          toggleFreeQtyRow(!includeFreeQty);
+                          actions.toggleFreeQuantity(!draft.includeFreeQuantity);
                         }}
                       >
                         <legend className={styles.freeQtyLegend}>{t("purchaseEntry.freeQty")}</legend>
                         <div className={styles.freeQtyControls}>
                           <input
-                            ref={freeQtyInputRef}
+                            ref={refs.freeQuantityInput}
                             type="text"
                             inputMode="numeric"
                             placeholder={t("purchaseEntry.freeQty")}
-                            disabled={!includeFreeQty}
+                            disabled={!draft.includeFreeQuantity}
                             className={styles.freeQtyInput}
-                            value={freeQty}
-                            onChange={event => changeFreeQuantity(event.target.value)}
+                            value={draft.freeQuantity}
+                            onChange={event => actions.change({ freeQuantity: event.target.value })}
                             data-purchase-flow="free-qty"
-                            onKeyDown={handlePurchaseFlowEnter}
+                            onKeyDown={actions.handleEnter}
                           />
                           <PurchaseUnitDropdown
                             label={t("purchaseEntry.freeUnit")}
-                            value={freeUnit}
-                            options={selectedUnitOptions}
-                            disabled={!includeFreeQty}
+                            value={draft.freeUnit}
+                            options={unitOptions}
+                            disabled={!draft.includeFreeQuantity}
                             showLabel={false}
                             getOptionLabel={displayUnit}
-                            onChange={chooseFreeUnit}
+                            onChange={(freeUnit) => actions.change({ freeUnit })}
                           />
                         </div>
                       </fieldset>
@@ -158,10 +178,10 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
                           <input
                             type="text"
                           placeholder={t("purchaseEntry.lotNo")}
-                          value={lotNo}
-                          onChange={event => changeLotNumber(event.target.value)}
+                          value={draft.lotNumber}
+                          onChange={event => actions.change({ lotNumber: event.target.value })}
                             data-purchase-flow="lot"
-                            onKeyDown={handlePurchaseFlowEnter}
+                            onKeyDown={actions.handleEnter}
                           />
                         </label>
                         <label className={styles.compactField}>
@@ -170,54 +190,138 @@ export function PurchaseLineEditor({ model }: { model: PurchaseLineEditorModel }
                             type="text"
                             inputMode="numeric"
                             placeholder="DD-MM-YY"
-                            value={expiryDate}
-                            aria-invalid={expiryDate.length > 0 && !isValidExpiryDate(expiryDate)}
-                            onChange={event => changeExpiryDate(event.target.value)}
-                            onBlur={normalizeExpiryDate}
+                            value={draft.expiryDate}
+                            aria-invalid={draft.expiryDate.length > 0 && !expiryValid}
+                            onChange={event => actions.change({ expiryDate: event.target.value })}
+                            onBlur={() => actions.change({ expiryDate: draft.expiryDate })}
                             data-purchase-flow="expiry"
-                            onKeyDown={handlePurchaseFlowEnter}
+                            onKeyDown={actions.handleEnter}
                           />
                         </label>
-                      </div>
                       </div>
 
                       <section className={styles.actualCostRow} aria-live="polite" aria-label={t("purchaseEntry.actualCost")}>
                         <span className={styles.actualCostIcon}><ReceiptText size={18} /></span>
                         <span className={styles.actualCostCopy}>
                           <strong>{t("purchaseEntry.actualCost")}</strong>
-                          <small>
-                            {hasActualCost ? (
-                              <>
-                                <span>{t("purchaseEntry.cost")}: ฿{formatMoney(lineActualCost.baseCost)}</span>
-                                <span>{t("purchaseEntry.discount")}: −฿{formatMoney(lineActualCost.discountPerUnit)}</span>
-                                <span>VAT: +฿{formatMoney(lineActualCost.vatPerUnit)}{vatIncluded ? ` (${t("purchaseEntry.vatIncluded")})` : ""}</span>
-                              </>
-                            ) : t("purchaseEntry.actualCostHint")}
-                          </small>
+                          {hasActualCost && (
+                            <small>
+                              <span>{t("purchaseEntry.cost")}: ฿{formatMoney(lineActualCost.baseCost)}</span>
+                              <span>{t("purchaseEntry.discount")}: −฿{formatMoney(lineActualCost.discountPerUnit)}</span>
+                              <span>VAT: +฿{formatMoney(lineActualCost.vatPerUnit)}{vatIncluded ? ` (${t("purchaseEntry.vatIncluded")})` : ""}</span>
+                            </small>
+                          )}
                         </span>
                         <span className={styles.actualCostValue}>
                           <strong>{hasActualCost ? `฿${formatMoney(lineActualCost.actualCost)}` : "—"}</strong>
-                          <small>{t("purchaseEntry.perUnit", { unit: localizeUnit(unit) })}</small>
+                          <small>{t("purchaseEntry.perUnit", { unit: localizeUnit(draft.unit) })}</small>
                         </span>
                       </section>
+              </div>
+            </section>
+
+            <section
+              className={`${styles.purchaseFormPanel} ${styles.purchaseHistoryPanel}`}
+              aria-label={t("purchaseEntry.latestPreviousPurchase")}
+            >
+              <header className={styles.purchaseComparisonHeader}>
+                <strong><History size={15} aria-hidden="true" />{t("purchaseEntry.latestPreviousPurchase")}</strong>
+                {latestLine && (
+                  <small>
+                    {latestLine.billNo} · {formatHistoryDate(latestLine.date, locale)} · {latestLine.distributor}
+                  </small>
+                )}
+              </header>
+
+              {isHistoryLoading ? (
+                <div className={styles.purchaseHistoryStatus}>{t("purchaseEntry.loadingPurchaseHistory")}</div>
+              ) : historyError ? (
+                <div className={`${styles.purchaseHistoryStatus} ${styles.purchaseHistoryError}`}>
+                  {t("purchaseEntry.purchaseHistoryError")}
+                </div>
+              ) : latestLine ? (
+                <div className={styles.purchaseFormGrid}>
+                  <div className={styles.purchasePrimaryRow}>
+                    <div className={styles.compactField}>
+                      <span>{t("purchaseEntry.quantity")}</span>
+                      <output className={styles.purchaseHistoryValue}>
+                        {formatHistoryQuantity(latestLine.quantity)}
+                      </output>
                     </div>
-          </section>
+                    <div className={styles.compactField}>
+                      <span>{t("purchaseEntry.cost")}</span>
+                      <output className={styles.purchaseHistoryValue}>฿{formatMoney(latestLine.cost)}</output>
+                    </div>
+                    <div className={styles.unitDropdownField}>
+                      <span className={styles.unitDropdownLabel}>{t("purchaseEntry.purchaseUnit")}</span>
+                      <output className={styles.purchaseHistoryValue}>{displayUnit(latestLine.unit)}</output>
+                    </div>
+                  </div>
+
+                  <fieldset className={styles.freeQtyPanel}>
+                    <legend className={styles.freeQtyLegend}>{t("purchaseEntry.freeQty")}</legend>
+                    <div className={styles.freeQtyControls}>
+                      <output className={styles.purchaseHistoryValue}>
+                        {formatHistoryQuantity(latestLine.freeQuantity)}
+                      </output>
+                      <output className={styles.purchaseHistoryValue}>{displayUnit(latestLine.freeUnit)}</output>
+                    </div>
+                  </fieldset>
+
+                  <div className={styles.purchaseLotRow}>
+                    <div className={styles.compactField}>
+                      <span>{t("purchaseEntry.lotNo")}</span>
+                      <output className={styles.purchaseHistoryValue}>
+                        {latestLine.batchNo || t("purchaseEntry.noBatch")}
+                      </output>
+                    </div>
+                    <div className={styles.compactField}>
+                      <span>{t("purchaseEntry.expDate")}</span>
+                      <output className={styles.purchaseHistoryValue}>
+                        {formatPurchaseExpiryDate(latestLine.expiryDate)}
+                      </output>
+                    </div>
+                  </div>
+
+                  <section className={styles.actualCostRow} aria-label={t("purchaseEntry.actualCost")}>
+                    <span className={styles.actualCostIcon}><ReceiptText size={18} /></span>
+                    <span className={styles.actualCostCopy}>
+                      <strong>{t("purchaseEntry.actualCost")}</strong>
+                      <small>
+                        <span>{t("purchaseEntry.cost")}: ฿{formatMoney(latestLine.cost)}</span>
+                        <span>{t("purchaseEntry.freeQty")}: {formatHistoryQuantity(latestLine.freeQuantity)}</span>
+                      </small>
+                    </span>
+                    <span className={styles.actualCostValue}>
+                      <strong>฿{formatMoney(historyActualCost)}</strong>
+                      <small>{t("purchaseEntry.perUnit", { unit: displayUnit(latestLine.unit) })}</small>
+                    </span>
+                  </section>
+                </div>
+              ) : (
+                <div className={styles.purchaseHistoryStatus}>
+                  <strong>{t("purchaseEntry.noPurchaseHistory")}</strong>
+                  <small>{t("purchaseEntry.noPurchaseHistoryHint")}</small>
+                </div>
+              )}
+            </section>
+          </div>
         </div>
 
         <footer className={styles.purchaseWindowFooter}>
-          <button type="button" className={styles.secondaryWindowButton} onClick={closeLine}>
+          <button type="button" className={styles.secondaryWindowButton} onClick={actions.close}>
             {t("staff.cancel")}
           </button>
           <button
             type="button"
             className={styles.primaryWindowButton}
-            disabled={!canAddPurchaseLine}
-            onClick={saveLine}
+            disabled={!canCommit}
+            onClick={actions.commit}
             data-purchase-flow="add"
-            onKeyDown={handlePurchaseFlowEnter}
+            onKeyDown={actions.handleEnter}
           >
-            {editingPurchaseLineId ? <Save size={16} /> : <PackagePlus size={16} />}
-            {editingPurchaseLineId ? t("purchaseEntry.updateLine") : t("newSale.add")}
+            {editingLineId ? <Save size={16} /> : <PackagePlus size={16} />}
+            {editingLineId ? t("purchaseEntry.updateLine") : t("newSale.add")}
           </button>
         </footer>
       </section>

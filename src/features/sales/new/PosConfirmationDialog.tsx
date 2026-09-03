@@ -6,31 +6,42 @@ export function PosConfirmationDialog({
   open,
   title,
   description,
+  cancelLabel,
   confirmLabel,
+  confirmTone = "danger",
+  confirmDisabled = false,
+  busy = false,
+  onDismiss,
   onCancel,
   onConfirm,
 }: {
   open: boolean;
   title: string;
   description: string;
+  cancelLabel: string;
   confirmLabel: string;
+  confirmTone?: "danger" | "primary";
+  confirmDisabled?: boolean;
+  busy?: boolean;
+  onDismiss?: () => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
   const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
-  const onCancelRef = useRef(onCancel);
+  const onDismissRef = useRef(onDismiss ?? onCancel);
 
   useEffect(() => {
-    onCancelRef.current = onCancel;
-  }, [onCancel]);
+    onDismissRef.current = onDismiss ?? onCancel;
+  }, [onCancel, onDismiss]);
 
   useEffect(() => {
     if (!open) return;
     cancelButtonRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onCancelRef.current();
+        if (busy) return;
+        onDismissRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -44,12 +55,12 @@ export function PosConfirmationDialog({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
+  }, [busy, open]);
 
   if (!open) return null;
 
   return (
-    <div className={styles.confirmBackdrop} onMouseDown={onCancel}>
+    <div className={styles.confirmBackdrop} onMouseDown={busy ? undefined : onDismiss ?? onCancel}>
       <div
         className={styles.confirmDialog}
         role="alertdialog"
@@ -64,8 +75,16 @@ export function PosConfirmationDialog({
           <p id="pos-confirm-description">{description}</p>
         </div>
         <div className={styles.confirmActions}>
-          <button ref={cancelButtonRef} type="button" className={styles.confirmCancel} onClick={onCancel}>Keep working</button>
-          <button ref={confirmButtonRef} type="button" className={styles.confirmProceed} onClick={onConfirm}>{confirmLabel}</button>
+          <button ref={cancelButtonRef} type="button" className={styles.confirmCancel} onClick={onCancel} disabled={busy}>{cancelLabel}</button>
+          <button
+            ref={confirmButtonRef}
+            type="button"
+            className={`${styles.confirmProceed} ${confirmTone === "primary" ? styles.confirmProceedPrimary : ""}`}
+            onClick={onConfirm}
+            disabled={busy || confirmDisabled}
+          >
+            {confirmLabel}
+          </button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import type { SellPackOption } from './saleDraft';
+import type { StorePaymentMethod } from '@/config/preferences/storePosSettings';
 
 export type PurchaseMethod = 'pickup' | 'delivery';
 export type DiscountType = 'percent' | 'thb';
@@ -109,9 +110,7 @@ export type InvoiceCreated = {
   createdAt: string;
 };
 
-export type PendingConfirmation =
-  | { kind: 'remove-item'; cartKey: string; itemName: string }
-  | { kind: 'cancel-sale' };
+export type PendingConfirmation = { kind: 'remove-item'; cartKey: string; itemName: string };
 
 export type SalesApiResponse = {
   sale?: {
@@ -121,6 +120,7 @@ export type SalesApiResponse = {
     status: BillStatus;
   };
   error?: string;
+  code?: string;
 };
 
 export type SavedSale = {
@@ -128,18 +128,37 @@ export type SavedSale = {
   billNo: string;
   date: string;
   customerName: string;
+  customerMobile: string;
   isMember: boolean;
   itemCount: number;
   paymentMethod: string;
-  purchaseMethod: PurchaseMethod;
+  purchaseMethod: string;
   netTotal: number;
-  status: BillStatus;
+  status: BillStatus | 'void';
   ownerId: string | null;
   billDate: string;
   pharmacistId: string | null;
   customerId: string | null;
   lines: CartLine[];
   discount: AppliedDiscount | null;
+};
+
+export type SaleWriteRequest = {
+  status: BillStatus;
+  id?: string;
+  billNo?: string;
+  owner: { id: string; name: string };
+  pharmacist: { id: string; name: string };
+  customer: Customer | null;
+  paymentMethod: StorePaymentMethod;
+  purchaseMethod: PurchaseMethod;
+  billDate: string;
+  subtotal: number;
+  netPayable: number;
+  customerPaid: number | null;
+  changeDue: number;
+  discount: AppliedDiscount | null;
+  lines: CartLine[];
 };
 
 export const OWNERS: Owner[] = [
@@ -153,5 +172,3 @@ export const PHARMACISTS: Pharmacist[] = [
   { id: 'p2', name: 'Ph. Somchai T.' },
   { id: 'p3', name: 'Ph. Kanokwan R.' },
 ];
-
-export const SAVED_SALES_KEY = 'pharm_recent_sales';

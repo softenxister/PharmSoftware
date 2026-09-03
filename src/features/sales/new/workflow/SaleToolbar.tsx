@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Settings } from 'lucide-react';
+import { ArrowLeftRight, Settings, Trash2 } from 'lucide-react';
 import {
   getPaymentMethodShortcut,
   shouldUsePaymentToggle,
@@ -28,6 +28,9 @@ export function SaleToolbar({ model }: { model: SaleToolbarModel }) {
     canSaveSale,
     toggleSaveMenu,
     saveMenuOpen,
+    canDeleteBill,
+    deleteBillSubmitting,
+    requestDeleteBill,
     openSettings,
   } = model;
 
@@ -109,6 +112,18 @@ export function SaleToolbar({ model }: { model: SaleToolbarModel }) {
             </div>
           )}
         </div>
+
+        {canDeleteBill && (
+          <button
+            type="button"
+            className={styles.deleteBillButton}
+            onClick={requestDeleteBill}
+            disabled={deleteBillSubmitting}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+            <span>{t('newSale.deleteBill')}</span>
+          </button>
+        )}
 
         <button type="button" className={styles.gearButton} title={t('newSale.settings')} aria-label={t('newSale.settings')} onClick={openSettings}>
           <Settings size={18} strokeWidth={2} />

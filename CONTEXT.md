@@ -62,6 +62,10 @@ _Avoid_: Uncategorized
 A pharmacy transaction containing products supplied to a Customer, covering its lifecycle from pending payment through paid completion.
 _Avoid_: Checkout, order
 
+**Pending Sale**:
+A Sale saved by the pharmacy but not yet completed through Checkout. It has a durable Sale identity and may be reopened, updated, or deleted before payment.
+_Avoid_: Sale Draft, paid sale
+
 **Checkout**:
 The payment step that transitions a valid Sale to paid completion.
 _Avoid_: Sale, save

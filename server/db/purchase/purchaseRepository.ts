@@ -30,6 +30,13 @@ export type SavedPurchaseBill = {
   lines: SavedPurchaseLine[];
 };
 
+export type SavedPurchaseLineHistory = SavedPurchaseLine & {
+  purchaseBillId: string;
+  billNo: string;
+  date: string;
+  distributor: string;
+};
+
 export type PurchaseBillInput = {
   id?: string;
   invoiceNo?: string;
@@ -104,6 +111,37 @@ export async function readPurchaseBill(id: string): Promise<SavedPurchaseBill | 
     include: purchaseBillGraph,
   });
   return bill ? purchaseBillRowToSavedBill(bill) : null;
+}
+
+export async function readLatestPurchaseLine(
+  productId: string,
+): Promise<SavedPurchaseLineHistory | null> {
+  const bill = await prisma.purchaseBill.findFirst({
+    where: {
+      status: PrismaPurchaseBillStatus.RECEIVED,
+      lines: { some: { productId } },
+    },
+    include: {
+      lines: {
+        where: { productId },
+        orderBy: { id: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: [
+      { purchasedAt: "desc" },
+      { createdAt: "desc" },
+    ],
+  });
+  const line = bill ? purchaseLinesToSavedLines(bill.lines)[0] : undefined;
+  if (!bill || !line) return null;
+  return {
+    ...line,
+    purchaseBillId: bill.id,
+    billNo: bill.billNo,
+    date: bill.purchasedAt.toISOString(),
+    distributor: bill.distributorName,
+  };
 }
 
 export async function readDistributorNames(): Promise<string[]> {

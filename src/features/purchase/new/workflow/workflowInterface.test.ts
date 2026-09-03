@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const workflowSource = readFileSync(new URL("./usePurchaseWorkflow.ts", import.meta.url), "utf8");
+const lineEditorSource = readFileSync(new URL("./usePurchaseLineEditor.ts", import.meta.url), "utf8");
 const compositionSource = readFileSync(new URL("../PurchaseEntry.tsx", import.meta.url), "utf8");
 const viewSources = [
   "PurchaseDetailsPanel.tsx",
@@ -36,4 +37,20 @@ test("Purchase workflow exposes cohesive areas without raw state setters", () =>
   }
   assert.doesNotMatch(interfaceBlock, /(?:^|[,{}]\s*)set[A-Z]\w*\s*(?:[,}])/m);
   assert.doesNotMatch(workflowSource, /export type PurchaseWorkflow\b/);
+});
+
+test("Purchase item editing opens the stock editor in a separate safe tab", () => {
+  assert.match(
+    lineEditorSource,
+    /window\.open\(stockEditorHref\(session\.product\.id\), "_blank", "noopener,noreferrer"\)/,
+  );
+});
+
+test("Purchase workflow delegates the complete line-edit lifecycle through one module", () => {
+  assert.match(workflowSource, /usePurchaseLineEditor\(\{/);
+  assert.match(workflowSource, /lineEditor: \{[\s\S]*?\.\.\.purchaseLineEditor\.model/);
+  assert.doesNotMatch(
+    workflowSource,
+    /setLineQty|setLineCost|setFreeQty|setFreeUnit|setLotNo|setExpiryDate|usePurchaseLineHistory/,
+  );
 });

@@ -1,6 +1,9 @@
 import { ProductImage } from "@/components/product/ProductImage";
 import type { PurchaseLineTableModel } from "./usePurchaseWorkflow";
-import { getPurchaseUnitDisplayValue, isPurchaseLineRowActivationKey } from "./purchaseDraft";
+import {
+  isPurchaseLineRowActivationKey,
+  purchaseLineUnitDisplayValue,
+} from "./purchaseLineEditing";
 import styles from "../PurchaseEntry.module.css";
 
 const IconBin = () => (
@@ -17,7 +20,7 @@ export function PurchaseLineTable({ model }: { model: PurchaseLineTableModel }) 
   const {
     t, purchaseLines, isEditable, localizeUnit, editLine, removeLine,
   } = model;
-  const displayUnit = (value: string) => localizeUnit(getPurchaseUnitDisplayValue(value));
+  const displayUnit = (value: string) => localizeUnit(purchaseLineUnitDisplayValue(value));
   if (purchaseLines.length === 0) return null;
   return (
     <div className={styles.purchaseLineTableWrap}>

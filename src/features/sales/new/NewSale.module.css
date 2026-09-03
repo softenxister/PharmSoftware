@@ -33,6 +33,107 @@
   box-sizing: border-box;
 }
 
+.pendingSaleState {
+  display: flex;
+  width: min(560px, calc(100% - 40px));
+  min-height: 250px;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  margin: auto;
+  padding: 36px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 12px 36px rgba(31, 55, 39, 0.08);
+  text-align: center;
+}
+
+.pendingSaleState h1,
+.pendingSaleState p {
+  margin: 0;
+}
+
+.pendingSaleState h1 {
+  font-size: 21px;
+}
+
+.pendingSaleState p {
+  max-width: 430px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.pendingSaleStateIcon {
+  color: var(--danger);
+}
+
+.pendingSaleSpinner {
+  color: var(--primary);
+  animation: pending-sale-spin 900ms linear infinite;
+}
+
+.pendingSaleActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.pendingSalePrimaryButton,
+.pendingSaleSecondaryButton {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pendingSalePrimaryButton {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.pendingSaleSecondaryButton {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.pendingSaleConflict {
+  display: flex;
+  z-index: 3;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #e7bd76;
+  background: var(--amber-soft);
+  color: #754a0d;
+}
+
+.pendingSaleConflictCopy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+}
+
+.pendingSaleConflictCopy strong {
+  font-size: 13.5px;
+}
+
+@keyframes pending-sale-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Row 1 — toolbar ────────────────────────────────────────────── */
 
 .toolbarRow {
@@ -352,6 +453,33 @@
   position: relative;
   display: flex;
   align-items: stretch;
+}
+
+.deleteBillButton {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--app-border));
+  border-radius: 9px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  cursor: pointer;
+  font-family: var(--app-font);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 11px;
+}
+
+.deleteBillButton:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger-soft) 72%, var(--danger));
+}
+
+.deleteBillButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .saveMain {
@@ -1632,10 +1760,25 @@
   background: #9d382f;
 }
 
+.confirmProceedPrimary {
+  border-color: var(--app-action);
+  background: var(--app-action);
+}
+
+.confirmProceedPrimary:hover {
+  background: var(--app-action-dark);
+}
+
 .confirmCancel:focus-visible,
 .confirmProceed:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--primary) 20%, transparent);
   outline-offset: 1px;
+}
+
+.confirmCancel:disabled,
+.confirmProceed:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 /* ── Payment method confirmation ──────────────────────────────── */

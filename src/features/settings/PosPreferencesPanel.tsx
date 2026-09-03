@@ -45,6 +45,11 @@ const preferenceRows: Array<{
     titleKey: "pos.confirmActions",
     descriptionKey: "pos.confirmActionsHint",
   },
+  {
+    key: "showPaymentMethodAfterNetTotal",
+    titleKey: "pos.showPaymentMethodAfterNetTotal",
+    descriptionKey: "pos.showPaymentMethodAfterNetTotalHint",
+  },
 ];
 
 export function PosPreferencesPanel({ user }: { user: PharmUser }) {

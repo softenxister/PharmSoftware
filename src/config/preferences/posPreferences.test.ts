@@ -27,6 +27,7 @@ test("POS preferences use conservative defaults", () => {
     showAvailableStock: false,
     showKeyboardHints: false,
     confirmDestructiveActions: false,
+    showPaymentMethodAfterNetTotal: true,
     defaultSalesLanding: "new-sale",
   });
 });
@@ -66,6 +67,17 @@ test("invalid saved values fall back to safe defaults", () => {
     ...DEFAULT_POS_PREFERENCES,
     showAvailableStock: true,
   });
+});
+
+test("legacy saved preferences continue showing the payment method after Net total", () => {
+  const storage = new MemoryStorage();
+  const account = { name: "Nattaya Staff", role: "staff" } as const;
+  storage.setItem(
+    createPosPreferencesStorageKey(account),
+    JSON.stringify({ showAvailableStock: true }),
+  );
+
+  assert.equal(loadPosPreferences(storage, account).showPaymentMethodAfterNetTotal, true);
 });
 
 test("sales landing choices map to their real sales destinations", () => {

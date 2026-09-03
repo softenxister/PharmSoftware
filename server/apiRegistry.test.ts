@@ -32,6 +32,7 @@ test("the Node server registers every migrated API method and path once", () => 
     "PUT /api/purchase",
     "GET /api/sales",
     "POST /api/sales",
+    "DELETE /api/sales",
     "GET /api/sales/receipt",
     "GET /api/sales/receipt/pdf",
     "GET /api/reports/sales",

@@ -54,57 +54,6 @@ export type PurchaseCorrection = {
 export type PurchaseDiscountType = "percent" | "thb";
 export type PurchaseDiscountTiming = "beforeVat" | "afterVat";
 
-export type PurchaseLineEditorDraft = {
-  unit: string;
-  lineQty: string;
-  lineCost: string;
-  includeFreeQty: boolean;
-  freeQty: string;
-  freeUnit: string;
-  lotNo: string;
-  expiryDate: string;
-};
-
-export function getPurchaseLineEditorDraft(line: PurchaseLine): PurchaseLineEditorDraft {
-  return {
-    unit: line.unit,
-    lineQty: line.qty,
-    lineCost: line.cost,
-    includeFreeQty: line.freeQty.trim().length > 0,
-    freeQty: line.freeQty,
-    freeUnit: line.freeUnit,
-    lotNo: line.lotNo,
-    expiryDate: line.expiryDate,
-  };
-}
-
-export function applyPurchaseLineChange(
-  lines: PurchaseLine[],
-  nextLine: PurchaseLine,
-  editingLineId: string | null,
-): PurchaseLine[] {
-  if (!editingLineId) return [...lines, nextLine];
-  return lines.map((line) => (
-    line.id === editingLineId ? { ...nextLine, id: line.id } : line
-  ));
-}
-
-export function isPurchaseLineRowActivationKey(key: string): boolean {
-  return key === "Enter" || key === " ";
-}
-
-export function getPurchaseLineEnterAction(
-  key: string,
-  flowField: string | undefined,
-): "submit" | "advance" | "ignore" {
-  if (key !== "Enter") return "ignore";
-  return flowField === "expiry" ? "submit" : "advance";
-}
-
-export function getPurchaseUnitDisplayValue(value: string): string {
-  return value.replace(/\[1\]$/, "");
-}
-
 export function selectPurchaseDiscountType(
   value: string,
   type: PurchaseDiscountType,
@@ -184,55 +133,6 @@ export function calculatePurchaseTotals(
   };
 }
 
-export function calculatePurchaseLineActualCost(
-  existingLines: Array<Pick<PurchaseLine, "qty" | "cost">>,
-  draftLine: Pick<PurchaseLine, "qty" | "cost"> & Partial<Pick<
-    PurchaseLine,
-    "freeQty" | "freeUnitMultiplier" | "unitMultiplier"
-  >>,
-  vatIncluded: boolean,
-  discount: string,
-  discountType: PurchaseDiscountType,
-  discountTiming: PurchaseDiscountTiming,
-) {
-  const quantity = positivePurchaseNumber(draftLine.qty);
-  const enteredCost = positivePurchaseNumber(draftLine.cost);
-  if (quantity === 0 || enteredCost === 0) {
-    return { baseCost: enteredCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
-  }
-
-  const totals = calculatePurchaseTotals(
-    [...existingLines, draftLine],
-    vatIncluded,
-    discount,
-    discountType,
-    discountTiming,
-  );
-  if (totals.subtotal === 0) {
-    return { baseCost: enteredCost, discountPerUnit: 0, vatPerUnit: 0, actualCost: 0 };
-  }
-
-  const unitMultiplier = positivePurchaseNumber(String(draftLine.unitMultiplier ?? 1)) || 1;
-  const freeUnitMultiplier = positivePurchaseNumber(String(draftLine.freeUnitMultiplier ?? 1)) || 1;
-  const freeQuantity = positivePurchaseNumber(draftLine.freeQty ?? "");
-  const paidLineSubtotal = quantity * enteredCost;
-  const equivalentQuantity = quantity + ((freeQuantity * freeUnitMultiplier) / unitMultiplier);
-  const lineAllocation = paidLineSubtotal / totals.subtotal;
-  const baseCost = roundPurchaseCurrency(paidLineSubtotal / equivalentQuantity);
-  const discountPerUnit = roundPurchaseCurrency(
-    (totals.discountAmount * lineAllocation) / equivalentQuantity,
-  );
-  const vatPerUnit = roundPurchaseCurrency(
-    (totals.vatAmount * lineAllocation) / equivalentQuantity,
-  );
-  return {
-    baseCost,
-    discountPerUnit,
-    vatPerUnit,
-    actualCost: roundPurchaseCurrency(Math.max(baseCost - discountPerUnit + vatPerUnit, 0)),
-  };
-}
-
 export function getPurchaseItemSearchPriority(
   product: SalesProduct,
   rawQuery: string,
@@ -266,14 +166,4 @@ export function mergePurchaseCatalog(
 ): SalesProduct[] {
   const incomingIds = new Set(incoming.map(({ id }) => id));
   return [...incoming, ...current.filter(({ id }) => !incomingIds.has(id))].slice(0, 200);
-}
-
-export function purchaseUnitMultiplier(product: SalesProduct, packUnit: string): number {
-  if (
-    packUnit === product.pack.packUnit
-    || packUnit === `${product.pack.packUnit}[1]`
-  ) return 1;
-  return product.parentPacks.find((pack) => (
-    `${pack.packUnit}[${pack.childPackQuantity}]` === packUnit
-  ))?.childPackQuantity ?? 1;
 }

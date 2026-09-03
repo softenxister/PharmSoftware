@@ -253,22 +253,13 @@ export function useSaleCart(params: Params) {
   }
 
   function leaveUnsavedSale() {
-    if (requiresPosConfirmation(params.preferences, 'cancel-sale', cartLines.length > 0)) {
-      setPendingConfirmation({ kind: 'cancel-sale' });
-    } else {
-      params.navigateToSales();
-    }
+    params.navigateToSales();
   }
 
   function confirmPendingAction() {
     if (!pendingConfirmation) return;
-    if (pendingConfirmation.kind === 'remove-item') {
-      removeCartLineImmediately(pendingConfirmation.cartKey);
-      setPendingConfirmation(null);
-    } else {
-      setPendingConfirmation(null);
-      params.navigateToSales();
-    }
+    removeCartLineImmediately(pendingConfirmation.cartKey);
+    setPendingConfirmation(null);
   }
 
   function updateCartQty(cartKey: string, quantity: number) {
