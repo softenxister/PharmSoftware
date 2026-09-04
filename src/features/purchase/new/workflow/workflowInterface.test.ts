@@ -42,7 +42,7 @@ test("Purchase workflow exposes cohesive areas without raw state setters", () =>
 test("Purchase item editing opens the stock editor in a separate safe tab", () => {
   assert.match(
     lineEditorSource,
-    /window\.open\(stockEditorHref\(session\.product\.id\), "_blank", "noopener,noreferrer"\)/,
+    /window\.open\(productEditorHref\(session\.product\.id\), "_blank", "noopener,noreferrer"\)/,
   );
 });
 

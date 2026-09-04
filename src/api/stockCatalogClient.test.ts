@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { SalesProduct } from "@server/db/types";
 import {
+  deleteStockProduct,
   invalidateStockCatalog,
   loadStockPage,
   loadStockProductsByIds,
@@ -335,6 +336,25 @@ test("stock saves return the updated product after a fast URL-text save", async 
 
   assert.deepEqual(JSON.parse(savedBody), input);
   assert.equal(saved.imageUrl, input.photoUrl);
+});
+
+test("stock deletion validates the deleted Product identity", async () => {
+  let requestMethod = "";
+  let requestBody = "";
+  const fetcher: typeof fetch = async (_url, init) => {
+    requestMethod = init?.method ?? "";
+    requestBody = String(init?.body);
+    return Response.json({ deletedProductId: "p-test" });
+  };
+
+  await deleteStockProduct("p-test", fetcher);
+
+  assert.equal(requestMethod, "DELETE");
+  assert.deepEqual(JSON.parse(requestBody), { productId: "p-test" });
+  await assert.rejects(
+    () => deleteStockProduct("p-other", fetcher),
+    /Unable to delete stock item/,
+  );
 });
 
 test("a photo URL-only edit uses the fast patch endpoint without downloading", async () => {

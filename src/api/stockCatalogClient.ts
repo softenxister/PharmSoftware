@@ -222,6 +222,27 @@ export async function saveStockProduct(
   return payload.product;
 }
 
+export async function deleteStockProduct(
+  productId: string,
+  fetcher: typeof fetch = fetch,
+): Promise<void> {
+  const response = await fetcher("/api/stock", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productId }),
+  });
+  const data: unknown = await response.json().catch(() => null);
+  const payload = data && typeof data === "object"
+    ? data as { deletedProductId?: unknown; error?: unknown }
+    : {};
+  if (!response.ok || payload.deletedProductId !== productId) {
+    const message = typeof payload.error === "string" && payload.error.trim()
+      ? payload.error
+      : "Unable to delete stock item.";
+    throw new Error(message);
+  }
+}
+
 export async function saveStockProductPhotoUrl(
   productId: string,
   photoUrl: string,

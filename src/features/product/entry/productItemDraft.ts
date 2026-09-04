@@ -1,4 +1,4 @@
-import type { StockItemInput } from "@server/db/types";
+import type { SalesProduct, StockItemInput } from "@server/db/types";
 import type { StoredDosageForm } from "@/lib/productDosageForm";
 import {
   PRODUCT_PACKAGE_VALUES,
@@ -41,6 +41,36 @@ export type ProductPersistenceIdentity = {
   lotNo: string;
   expiryDate: string;
 };
+
+export function productToStockItemInput(product: SalesProduct): StockItemInput {
+  const firstBatch = product.batches[0];
+  return {
+    productId: product.id,
+    photoUrl: product.imageUrl,
+    barcode: [product.barcode, ...(product.barcodes ?? [])].join(", "),
+    itemName: product.itemName,
+    lotNo: firstBatch?.batchNo ?? "",
+    expiryDate: firstBatch?.expiryDate ?? "",
+    location: product.location,
+    manufacturer: product.manufacturerName,
+    sellPrice: String(firstBatch?.sellPriceThb ?? ""),
+    itemCategory: product.category,
+    weightage: String(product.pack.childQuantity),
+    subUnit: product.pack.childUnit,
+    unit: product.pack.packUnit,
+    brandName: product.brandName,
+    ...(product.genericName ? { genericName: product.genericName } : {}),
+    ...(product.legalCategory ? { legalCategory: product.legalCategory } : {}),
+    dosageForm: product.dosageForm,
+    packagingRows: product.parentPacks.map((pack) => ({
+      parentUnit: pack.packUnit,
+      childQuantity: String(pack.childPackQuantity),
+      childUnit: pack.childPackUnit,
+      barcode: (pack.barcodes ?? []).join(", "),
+      sellPrice: pack.sellPriceThb === undefined ? "" : String(pack.sellPriceThb),
+    })),
+  };
+}
 
 export function getProductBarcodeSlots(value: string): string[] {
   return value.split(/[;,]/).map((barcode) => barcode.trim()).slice(0, PRODUCT_BARCODE_SLOT_LIMIT);

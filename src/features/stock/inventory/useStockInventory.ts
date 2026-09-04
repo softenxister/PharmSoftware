@@ -1,27 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
 import type {
   SalesProduct,
   StockInventoryMetadata,
-  StockItemInput,
 } from "@server/db/types";
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
   invalidateStockCatalog,
-  loadStockProductsByIds,
   loadStockPage,
-  saveStockProduct,
-  saveStockProductPhotoUrl,
-  uploadStockProductPhoto,
 } from "@/api/stockCatalogClient";
-import { isStockPhotoUrlOnlyChange } from "@/lib/stockPhotoUrlChange";
+import { useProductEditorLifecycle } from "@/features/product/entry/useProductEditorLifecycle";
 import {
   buildFilterOptions,
   DOSAGE_FORMS,
   createEmptyAppliedFilters,
   createEmptyDraftFilters,
   parseStockRange,
-  productToStockItemInput,
   projectAuthoritativeInventoryPage,
   projectStockInventoryItem,
   SIDEBAR_DEFAULT_WIDTH,
@@ -32,10 +25,6 @@ import {
   type StockTableSort,
   type StockTableSortKey,
 } from "./stockInventoryModel";
-import {
-  stockEditorProductId,
-  withStockEditorProductId,
-} from "./stockEditorRoute";
 
 const EMPTY_INVENTORY_METADATA: StockInventoryMetadata = {
   facets: { legalCategories: [], dosageTypes: [], manufacturers: [], tags: [] },
@@ -44,8 +33,6 @@ const EMPTY_INVENTORY_METADATA: StockInventoryMetadata = {
 
 export function useStockInventory() {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const requestedEditProductId = stockEditorProductId(searchParams);
   const [isSidebarClosed, setIsSidebarClosed] = useState(false);
   const [openFilterPanel, setOpenFilterPanel] = useState<StockFilterPanel | null>(null);
   const [draftFilters, setDraftFilters] = useState(createEmptyDraftFilters);
@@ -63,11 +50,17 @@ export function useStockInventory() {
   const [hasMoreProducts, setHasMoreProducts] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [stockRefreshVersion, setStockRefreshVersion] = useState(0);
-  const [stockWindowOpen, setStockWindowOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<SalesProduct | null>(null);
   const [adjustmentProduct, setAdjustmentProduct] = useState<SalesProduct | null>(null);
   const [detailProduct, setDetailProduct] = useState<SalesProduct | null>(null);
   const [adjustmentSuccess, setAdjustmentSuccess] = useState(false);
+  const productEntry = useProductEditorLifecycle({
+    inventory: { products, total: totalProducts },
+    onReconcile: (inventory) => {
+      setProducts(inventory.products);
+      setTotalProducts(inventory.total);
+    },
+    onRefresh: () => setStockRefreshVersion((version) => version + 1),
+  });
 
   useEffect(() => {
     setPage(1);
@@ -123,27 +116,6 @@ export function useStockInventory() {
     const timeout = window.setTimeout(() => setAdjustmentSuccess(false), 2600);
     return () => window.clearTimeout(timeout);
   }, [adjustmentSuccess]);
-
-  useEffect(() => {
-    if (!requestedEditProductId) return;
-    let cancelled = false;
-
-    async function openLinkedProductEditor() {
-      try {
-        const [product] = await loadStockProductsByIds([requestedEditProductId]);
-        if (cancelled || !product) return;
-        setEditingProduct(product);
-        setStockWindowOpen(true);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    void openLinkedProductEditor();
-    return () => {
-      cancelled = true;
-    };
-  }, [requestedEditProductId]);
 
   const items = useMemo(
     () => products.map(projectStockInventoryItem),
@@ -231,27 +203,6 @@ export function useStockInventory() {
     });
   };
 
-  const openCreateProduct = () => {
-    setEditingProduct(null);
-    setStockWindowOpen(true);
-  };
-
-  const openProductByBarcode = (barcode: string) => {
-    const product = products.find((candidate) => candidate.barcode === barcode);
-    if (product) {
-      setEditingProduct(product);
-      setStockWindowOpen(true);
-      setSearchParams(withStockEditorProductId(searchParams, product.id));
-    }
-  };
-
-  const closeProductEntry = () => {
-    setStockWindowOpen(false);
-    setEditingProduct(null);
-    if (!requestedEditProductId) return;
-    setSearchParams(withStockEditorProductId(searchParams, null), { replace: true });
-  };
-
   const openAdjustmentByBarcode = (barcode: string) => {
     if (user?.role !== "owner") return;
     const product = products.find((candidate) => candidate.barcode === barcode);
@@ -261,47 +212,6 @@ export function useStockInventory() {
   const openDetailByBarcode = (barcode: string) => {
     const product = products.find((candidate) => candidate.barcode === barcode);
     if (product) setDetailProduct(product);
-  };
-
-  const saveProduct = async (item: StockItemInput, photoFile?: File) => {
-    if (!photoFile && editingProduct && isStockPhotoUrlOnlyChange(
-      productToStockItemInput(editingProduct),
-      item,
-    )) {
-      const result = await saveStockProductPhotoUrl(editingProduct.id, item.photoUrl);
-      replaceVisibleProduct({ ...editingProduct, imageUrl: result.imageUrl });
-      invalidateStockCatalog();
-      closeProductEntry();
-      return;
-    }
-    const product = await saveStockProduct(item);
-    const uploadedPhoto = photoFile
-      ? await uploadStockProductPhoto(product.id, photoFile)
-      : null;
-    replaceVisibleProduct(uploadedPhoto
-      ? { ...product, imageUrl: uploadedPhoto.imageUrl }
-      : product);
-    invalidateStockCatalog();
-    setStockRefreshVersion((version) => version + 1);
-    closeProductEntry();
-  };
-
-  const deleteProduct = async () => {
-    if (!editingProduct) throw new Error("No stock item is selected.");
-    const response = await fetch("/api/stock", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: editingProduct.id }),
-    });
-    const data = await response.json() as { deletedProductId?: string; error?: string };
-    if (!response.ok || data.deletedProductId !== editingProduct.id) {
-      throw new Error(data.error || "Unable to delete stock item.");
-    }
-    setProducts((current) => current.filter(({ id }) => id !== data.deletedProductId));
-    setTotalProducts((total) => Math.max(0, total - 1));
-    invalidateStockCatalog();
-    setStockRefreshVersion((version) => version + 1);
-    closeProductEntry();
   };
 
   const saveItemDetail = (product: SalesProduct) => {
@@ -369,15 +279,7 @@ export function useStockInventory() {
       sidebarWidth,
       setSidebarWidth,
     },
-    productEntry: {
-      isOpen: stockWindowOpen,
-      product: editingProduct,
-      openCreate: openCreateProduct,
-      openEdit: openProductByBarcode,
-      close: closeProductEntry,
-      save: saveProduct,
-      delete: deleteProduct,
-    },
+    productEntry,
     adjustment: {
       product: adjustmentProduct,
       open: openAdjustmentByBarcode,

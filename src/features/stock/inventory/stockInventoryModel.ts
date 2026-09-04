@@ -1,4 +1,4 @@
-import type { SalesProduct, StockItemInput } from "@server/db/types";
+import type { SalesProduct } from "@server/db/types";
 import type { StockSort } from "@server/db/stock/stockReadQuery";
 import type {
   StockInventoryPage,
@@ -268,35 +268,5 @@ export function projectAuthoritativeInventoryPage(page: StockInventoryPage) {
     total: page.total,
     hasMore: page.hasMore,
     inventory: page.inventory,
-  };
-}
-
-export function productToStockItemInput(product: SalesProduct): StockItemInput {
-  const firstBatch = product.batches[0];
-  return {
-    productId: product.id,
-    photoUrl: product.imageUrl,
-    barcode: [product.barcode, ...(product.barcodes ?? [])].join(", "),
-    itemName: product.itemName,
-    lotNo: firstBatch?.batchNo ?? "",
-    expiryDate: firstBatch?.expiryDate ?? "",
-    location: product.location,
-    manufacturer: product.manufacturerName,
-    sellPrice: String(firstBatch?.sellPriceThb ?? ""),
-    itemCategory: product.category,
-    weightage: String(product.pack.childQuantity),
-    subUnit: product.pack.childUnit,
-    unit: product.pack.packUnit,
-    brandName: product.brandName,
-    ...(product.genericName ? { genericName: product.genericName } : {}),
-    ...(product.legalCategory ? { legalCategory: product.legalCategory } : {}),
-    dosageForm: product.dosageForm,
-    packagingRows: product.parentPacks.map((pack) => ({
-      parentUnit: pack.packUnit,
-      childQuantity: String(pack.childPackQuantity),
-      childUnit: pack.childPackUnit,
-      barcode: (pack.barcodes ?? []).join(", "),
-      sellPrice: pack.sellPriceThb === undefined ? "" : String(pack.sellPriceThb),
-    })),
   };
 }

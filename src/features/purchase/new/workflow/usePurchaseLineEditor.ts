@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { SalesProduct } from "@server/db/types";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
-import { stockEditorHref } from "@/features/stock/inventory/stockEditorRoute";
+import { productEditorHref } from "@/features/product/entry/productEditorRoute";
 import { localizeUnitExpression } from "@/i18n/productUnits";
 import {
   createPurchaseLineEditing,
@@ -204,7 +204,7 @@ export function usePurchaseLineEditor(input: PurchaseLineEditorInput) {
         handleEnter,
         openStockItem: () => {
           if (!session) return;
-          window.open(stockEditorHref(session.product.id), "_blank", "noopener,noreferrer");
+          window.open(productEditorHref(session.product.id), "_blank", "noopener,noreferrer");
         },
       },
     },

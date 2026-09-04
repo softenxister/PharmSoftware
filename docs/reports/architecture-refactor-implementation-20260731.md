@@ -85,9 +85,13 @@ Expiry behavior imports directly from `src/lib/expiryDate.ts`; the old
 
 ```text
 src/features/product/entry/
-├── ProductEntryForm.tsx                        166
-├── useProductItemDraft.ts                      149
-├── productItemDraft.ts                         214
+├── ProductEntryForm.tsx                        288
+├── useProductItemDraft.ts                      157
+├── productItemDraft.ts                         302
+├── productEditorLifecycle.ts                   196
+├── useProductEditorLifecycle.ts                107
+├── productEditorPersistence.ts                  24
+├── productEditorRoute.ts                        21
 ├── ProductIdentityFields.tsx                   142
 ├── ProductPackagingEditor.tsx                  149
 ├── ProductCompositionPanel.tsx                  47
@@ -96,24 +100,29 @@ src/features/product/entry/
 └── ProductDeleteDialog.tsx                      77
 ```
 
-Product identity and packaging now live under the Product domain. The reusable
-custom searchable control lives at `src/components/forms/SearchableSelect.tsx`.
+Product identity and packaging now live under the Product domain. The deep
+Product editor lifecycle also owns route-linked opening, Product write selection,
+photo ordering, deletion, cache invalidation, and visible-page reconciliation
+behind one hook consumed by Inventory. HTTP and cache access cross a tested
+adapter seam. The reusable custom searchable control lives at
+`src/components/forms/SearchableSelect.tsx`.
 
 ### Stock inventory
 
 ```text
 src/pages/stock/StockPage.tsx                     5
 src/features/stock/inventory/
-├── StockInventory.tsx                           73
-├── useStockInventory.ts                        338
-├── stockInventoryModel.ts                      263
-├── StockInventoryFilters.tsx                   251
-└── StockInventoryTable.tsx                     260
+├── StockInventory.tsx                           77
+├── useStockInventory.ts                        299
+├── stockInventoryModel.ts                      272
+├── StockInventoryFilters.tsx                   280
+└── StockInventoryTable.tsx                     290
 ```
 
-The route page is only an entry seam. The server response is authoritative;
-the removed client-side second filtering pass can no longer disagree with totals
-or pagination.
+The route page is only an entry seam. Inventory owns authoritative reads,
+filters, totals, pagination, and Product form composition, while Product owns
+the editor lifecycle. The removed client-side second filtering pass can no
+longer disagree with totals or pagination.
 
 ### Stock persistence
 

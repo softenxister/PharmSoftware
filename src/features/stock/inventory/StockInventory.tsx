@@ -1,9 +1,9 @@
 import { CheckCircle2 } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import { ProductEntryForm } from "@/features/product/entry/ProductEntryForm";
+import { productToStockItemInput } from "@/features/product/entry/productItemDraft";
 import { StockBatchAdjustmentDialog } from "@/features/stock/StockBatchAdjustmentDialog";
 import { StockItemDetailDialog } from "@/features/stock/StockItemDetailDialog";
-import { productToStockItemInput } from "./stockInventoryModel";
 import { StockInventoryFilters } from "./StockInventoryFilters";
 import { StockInventoryTable } from "./StockInventoryTable";
 import { useStockInventory } from "./useStockInventory";

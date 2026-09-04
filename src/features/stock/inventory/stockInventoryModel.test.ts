@@ -8,7 +8,6 @@ import {
   parseStockRange,
   projectAuthoritativeInventoryPage,
   projectStockInventoryItem,
-  productToStockItemInput,
   reopenStockSidebarFromEdgeDrag,
   roundMarkupPercentForDisplay,
   resizeStockSidebarFromDrag,
@@ -68,14 +67,6 @@ test("inventory renders the authoritative server page without filtering it again
   assert.equal(page.total, 121);
   assert.equal(page.hasMore, false);
   assert.deepEqual(page.inventory, inventory);
-});
-
-test("stock edit input carries imported generic and legal-category values", () => {
-  const input = productToStockItemInput(product);
-
-  assert.equal(input.genericName, "Paracetamol");
-  assert.equal(input.legalCategory, "ยาอันตราย");
-  assert.equal(input.dosageForm, "Tablet");
 });
 
 test("inventory projects dosage form independently from packaging unit", () => {

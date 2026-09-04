@@ -1,16 +1,51 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { SalesProduct } from "@server/db/types";
 import {
   addPackagingRow,
   createProductItemDraft,
   getProductBarcodeSlot,
   getMissingProductFields,
   isProductSaveShortcut,
+  productToStockItemInput,
   selectProductIdentityText,
   serializeProductItemDraft,
   setProductBarcodeSlot,
   updatePackagingRow,
 } from "./productItemDraft";
+
+const persistedProduct: SalesProduct = {
+  id: "product-1",
+  itemName: "Server-selected product",
+  brandName: "Example",
+  manufacturerName: "GPO",
+  pack: { packUnit: "box", childUnit: "tablet", childQuantity: 10, label: "10 tablets" },
+  parentPacks: [],
+  location: "A1",
+  barcode: "8850000000001",
+  category: "Pain Relief",
+  imageUrl: "",
+  weeklySold: 0,
+  genericName: "Paracetamol",
+  legalCategory: "ยาอันตราย",
+  dosageForm: "Tablet",
+  batches: [{
+    batchNo: "LOT-1",
+    expiryDate: "2027-08-01",
+    sellPriceThb: 45,
+    availableStock: 8,
+  }],
+};
+
+test("persisted Products hydrate the complete Product editor input", () => {
+  const input = productToStockItemInput(persistedProduct);
+
+  assert.equal(input.productId, "product-1");
+  assert.equal(input.genericName, "Paracetamol");
+  assert.equal(input.legalCategory, "ยาอันตราย");
+  assert.equal(input.dosageForm, "Tablet");
+  assert.equal(input.lotNo, "LOT-1");
+});
 
 test("product barcode slots are limited to three and preserve slot positions", () => {
   assert.equal(getProductBarcodeSlot("111, 222, 333, 444", 0), "111");
