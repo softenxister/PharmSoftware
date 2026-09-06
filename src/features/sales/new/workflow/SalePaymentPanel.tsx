@@ -2,6 +2,7 @@ import styles from '../NewSale.module.css';
 import { formatBaht } from './saleDraft';
 import { IconClose } from './SalePrimitives';
 import type { SalePaymentPanelModel } from './useSaleWorkflow';
+import { loadHardware } from '@/features/hardware/counterHardware';
 
 export function SalePaymentPanel({ model }: { model: SalePaymentPanelModel }) {
   const {
@@ -33,6 +34,10 @@ export function SalePaymentPanel({ model }: { model: SalePaymentPanelModel }) {
   } = model;
 
   if (!discountOpen) return null;
+  const hardware = loadHardware();
+  const drawerLabel = hardware.drawer === 'printer' ? hardware.drawerPrinter
+    : hardware.drawer === 'serial' ? hardware.port : 'Not configured on this counter';
+  const drawerEnabled = autoOpenCashDrawer && cashDrawerDevice !== 'No Cash Drawer' && paymentMethod === 'Cash';
 
   return (
     <div className={styles.drawerBackdrop} onClick={closePayment}>
@@ -122,8 +127,7 @@ export function SalePaymentPanel({ model }: { model: SalePaymentPanelModel }) {
           <strong>฿{formatBaht(liveChangeDue)}</strong>
         </div>
         <div className={styles.cashDrawerStatus}>
-          <span className={styles.cashDrawerDot} />
-          <span>{autoOpenCashDrawer ? `Cash drawer auto open: ${cashDrawerDevice}` : 'Cash drawer auto open: off'}</span>
+          <span>{drawerEnabled ? `Cash drawer after payment: ${drawerLabel}` : 'Cash drawer auto open: off'}</span>
         </div>
         {saleSubmitError && <div className={styles.drawerError} role="alert">{saleSubmitError}</div>}
 

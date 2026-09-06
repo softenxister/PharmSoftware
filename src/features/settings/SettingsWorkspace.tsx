@@ -8,6 +8,7 @@ import { StaffPanel } from "./StaffPanel";
 import { ProductImageStoragePanel } from "./ProductImageStoragePanel";
 import { StoreProfilePanel } from "./StoreProfilePanel";
 import { SettingsPlaceholder } from "./SettingsPlaceholders";
+import { HardwarePanel } from "./HardwarePanel";
 import { SettingsSidebar, type SettingsSection } from "./SettingsSidebar";
 import styles from "./Settings.module.css";
 
@@ -56,7 +57,8 @@ export function SettingsWorkspace({
             {activeSection === "pos-preferences" && <PosPreferencesPanel user={currentUser} />}
             {activeSection === "staff-management" && isOwner && <StaffPanel />}
             {activeSection === "product-image-storage" && isOwner && <ProductImageStoragePanel />}
-            {activeSection !== "account" && activeSection !== "appearance" && activeSection !== "store-profile" && activeSection !== "pos-preferences" && activeSection !== "staff-management" && activeSection !== "product-image-storage"
+            {activeSection === "printers-drawer" && <HardwarePanel />}
+            {activeSection !== "account" && activeSection !== "appearance" && activeSection !== "store-profile" && activeSection !== "pos-preferences" && activeSection !== "staff-management" && activeSection !== "product-image-storage" && activeSection !== "printers-drawer"
               && <SettingsPlaceholder section={activeSection} />}
           </div>
         </main>

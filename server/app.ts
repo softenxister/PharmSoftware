@@ -38,7 +38,7 @@ const securityOptions = isProduction ? {
   contentSecurityPolicy: {
     defaultSrc: ["'self'"],
     baseUri: ["'self'"],
-    connectSrc: ["'self'"],
+    connectSrc: ["'self'", "wss://localhost:8181", "wss://localhost:8282", "wss://localhost:8383", "wss://localhost:8484"],
     fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
     formAction: ["'self'"],
     frameAncestors: ["'none'"],

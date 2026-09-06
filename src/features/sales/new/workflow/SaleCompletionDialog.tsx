@@ -13,6 +13,8 @@ export function SaleCompletionDialog({ model }: { model: SaleCompletionDialogMod
     paperSize,
     startNewSale,
     newSaleButtonRef,
+    hardwareError,
+    hardwarePending,
   } = model;
 
   if (!invoiceCreated) return null;
@@ -23,6 +25,8 @@ export function SaleCompletionDialog({ model }: { model: SaleCompletionDialogMod
         <div className={styles.invoiceCreatedIcon}><IconTick /></div>
         <h2 className={styles.invoiceCreatedTitle}>{t('newSale.invoiceCreated')}</h2>
         <p className={styles.invoiceCreatedSub}>{t('newSale.paymentReceived')}</p>
+        {hardwareError && <p className={styles.drawerError} role="alert">{hardwareError}</p>}
+        {hardwarePending && <p role="status">Sending drawer command… Check QZ Tray for an approval prompt.</p>}
 
         <div className={styles.invoiceCreatedDetails}>
           <div className={styles.invoiceCreatedRow}>
@@ -62,6 +66,7 @@ export function SaleCompletionDialog({ model }: { model: SaleCompletionDialogMod
         <button
           type="button"
           className={styles.printReceiptBtn}
+          disabled={hardwarePending}
           onClick={() => {
             const nextStep = resolvePaidSaleNextStep('print', invoiceCreated.saleId);
             if (nextStep.kind === 'receipt-route') {
@@ -73,7 +78,7 @@ export function SaleCompletionDialog({ model }: { model: SaleCompletionDialogMod
           <IconPrint />
           {t('newSale.printReceipt')}
         </button>
-        <button ref={newSaleButtonRef} type="button" className={styles.newSaleBtn} onClick={startNewSale}>
+        <button ref={newSaleButtonRef} type="button" className={styles.newSaleBtn} onClick={startNewSale} disabled={hardwarePending}>
           <span className={styles.newSaleBtnIcon} aria-hidden="true">+</span>
           <span>{t('newSale.new')}</span>
         </button>

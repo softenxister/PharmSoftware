@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from "react-router";
 import { useStorePosSettings } from "@/hooks/useStorePosSettings";
 import type { ReceiptPaperSize } from "@/lib/receipt";
 import styles from "./ReceiptPreview.module.css";
+import { loadHardware, pdfBlobBase64, printCounterPdf } from '@/features/hardware/counterHardware';
 
 type ReceiptMetadata = {
   saleId: string;
@@ -24,6 +25,9 @@ export default function ReceiptPreview() {
   const [error, setError] = useState("");
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfObjectUrl, setPdfObjectUrl] = useState("");
+  const [printing, setPrinting] = useState(false);
+  const [printMessage, setPrintMessage] = useState('');
+  const [printError, setPrintError] = useState('');
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const encodedSaleId = encodeURIComponent(saleId);
   const pdfUrl = useMemo(
@@ -84,9 +88,24 @@ export default function ReceiptPreview() {
     setPaperOverride(nextPaper);
   };
 
-  const print = () => {
+  const browserPrint = () => {
     iframeRef.current?.contentWindow?.focus();
     iframeRef.current?.contentWindow?.print();
+  };
+  const print = async () => {
+    if (printing || !pdfObjectUrl || pdfLoading) return;
+    setPrintError(''); setPrintMessage('');
+    const hardware = loadHardware();
+    if (!hardware.printer) { browserPrint(); return; }
+    setPrinting(true);
+    try {
+      const response = await fetch(pdfObjectUrl);
+      if (!response.ok) throw new Error('Unable to read the receipt PDF.');
+      await printCounterPdf(await pdfBlobBase64(await response.blob()), hardware.printer);
+      setPrintMessage(`Receipt submitted to ${hardware.printer}. Check the printer for output.`);
+    } catch (reason) {
+      setPrintError(reason instanceof Error ? reason.message : String(reason));
+    } finally { setPrinting(false); }
   };
 
   return (
@@ -123,12 +142,15 @@ export default function ReceiptPreview() {
             <Download size={16} aria-hidden="true" />
             ดาวน์โหลด PDF
           </a>
-          <button type="button" className={styles.printAction} onClick={print} disabled={!receipt || pdfLoading}>
+          <button type="button" className={styles.printAction} onClick={() => void print()} disabled={!receipt || pdfLoading || !pdfObjectUrl || printing}>
             <Printer size={16} aria-hidden="true" />
-            พิมพ์
+            {printing ? 'กำลังส่ง…' : 'พิมพ์'}
           </button>
         </div>
       </header>
+
+      {printMessage && <p className={styles.legacyNotice} role="status">{printMessage}</p>}
+      {printError && <div className={styles.legacyNotice} role="alert">{printError} <button type="button" onClick={browserPrint} disabled={pdfLoading || !pdfObjectUrl}>Open browser print dialog</button></div>}
 
       {receipt?.isLegacy && (
         <p className={styles.legacyNotice} role="status">

@@ -1,4 +1,4 @@
-import { Printer, Volume2 } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import type { SettingsSection } from "./SettingsSidebar";
 import styles from "./Settings.module.css";
 
@@ -65,27 +65,6 @@ function AccessibilityPlaceholder() {
   );
 }
 
-function DevicesPlaceholder() {
-  return (
-    <section className={styles.panel}>
-      <PlaceholderHeader title="Printers & Cash Drawer" description="Connect and test hardware assigned to this counter." />
-      <PlannedBanner />
-      <div className={styles.placeholderBody}>
-        <div className={styles.deviceGrid}>
-          {[{ title: "Receipt printer", detail: "No printer connected" }, { title: "Automatic cash drawer", detail: "No drawer connected" }].map((device) => (
-            <div className={styles.deviceCard} key={device.title}>
-              <span className={styles.deviceIcon}><Printer size={18} aria-hidden="true" /></span>
-              <span><strong>{device.title}</strong><small>{device.detail}</small></span>
-              <span className={styles.notConnected}>Not connected</span>
-              <button type="button" className={styles.secondaryButton} disabled>Set up</button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ScanFeedbackPlaceholder() {
   return (
     <section className={styles.panel}>
@@ -111,6 +90,5 @@ function ScanFeedbackPlaceholder() {
 export function SettingsPlaceholder({ section }: { section: SettingsSection }) {
   if (section === "appearance") return <AppearancePlaceholder />;
   if (section === "accessibility") return <AccessibilityPlaceholder />;
-  if (section === "printers-drawer") return <DevicesPlaceholder />;
   return <ScanFeedbackPlaceholder />;
 }

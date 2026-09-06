@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { StorePaymentMethod } from '@/config/preferences/storePosSettings';
 import { calculateSalePricing } from './saleDraft';
 import type { AppliedDiscount, DiscountType } from './saleTypes';
+import { openCounterDrawer } from '@/features/hardware/counterHardware';
 
 type PricingLine = {
   quantity: number;
@@ -25,6 +26,8 @@ export function useSalePayment(params: Params) {
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
   const [customerPayInput, setCustomerPayInput] = useState('');
   const [customerPayEdited, setCustomerPayEdited] = useState(false);
+  const [hardwareError, setHardwareError] = useState('');
+  const [hardwarePending, setHardwarePending] = useState(false);
   const customerPayInputRef = useRef<HTMLInputElement | null>(null);
 
   const salePricing = useMemo(
@@ -88,14 +91,15 @@ export function useSalePayment(params: Params) {
     setDiscountOpen(false);
   }
 
-  function openCashDrawer(reason: string) {
-    if (!params.autoOpenCashDrawer || params.cashDrawerDevice === 'No Cash Drawer') return;
-    console.log('Opening cash drawer', {
-      cashDrawerDevice: params.cashDrawerDevice,
-      billingDevice: params.billingDevice,
-      paymentMethod: params.paymentMethod,
-      reason,
-    });
+  async function openCashDrawer() {
+    setHardwareError('');
+    if (!params.autoOpenCashDrawer || params.cashDrawerDevice === 'No Cash Drawer' || params.paymentMethod !== 'Cash') return;
+    setHardwarePending(true);
+    try { await openCounterDrawer(); }
+    catch (error) {
+      setHardwareError(`Payment saved. Cash drawer could not be opened: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    finally { setHardwarePending(false); }
   }
 
   return {
@@ -123,5 +127,7 @@ export function useSalePayment(params: Params) {
     readDraftDiscount,
     clearDiscount,
     openCashDrawer,
+    hardwareError,
+    hardwarePending,
   };
 }

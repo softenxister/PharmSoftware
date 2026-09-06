@@ -411,7 +411,7 @@ export function useSaleWorkflow(user: PharmUser) {
     await refreshSoldProductStock(cartLines.map((line) => line.itemId));
 
     if (!Number.isNaN(paid) && paid >= nextNetPayable) {
-      openCashDrawer('customer payment submitted');
+      void openCashDrawer();
     }
 
     const createdInvoice: InvoiceCreated = {
@@ -777,6 +777,8 @@ export function useSaleWorkflow(user: PharmUser) {
     },
     completionDialog: {
       t,
+      hardwareError: salePayment.hardwareError,
+      hardwarePending: salePayment.hardwarePending,
       invoiceCreated,
       paymentMethodLabel,
       formatDate,

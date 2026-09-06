@@ -26,6 +26,12 @@ The architecture plan has been implemented across the project. The seven large o
 
 ## Implemented module structure
 
+### Counter hardware (added September 2026)
+
+`server/hardware/qzSigning.ts` owns validation and cryptographic signing for silent QZ operations. Authenticated, same-origin route handlers expose the public certificate and signed responses; browser `qzSigning.ts` configures QZ's signing callbacks. Server-side signing does not move device access to the server. Keys live outside tracked source; public certificate trust is installed once per counter.
+
+`src/features/hardware/counterHardware.ts` owns browser-local hardware persistence and QZ Tray transport, shared directly by the settings panel, receipt preview and paid-sale drawer action. QZ Tray runs on the counter PC; the web/API server never controls its own attached devices on behalf of a remote counter. The official QZ browser library is vendored with its license. Existing store-wide POS preferences remain unchanged. See `docs/counter-hardware.md` for compatibility and deployment requirements.
+
 ### Sale workflow
 
 ```text

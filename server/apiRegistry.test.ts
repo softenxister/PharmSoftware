@@ -6,6 +6,8 @@ test("the Node server registers every migrated API method and path once", () => 
   const registered = apiRoutes.map(({ method, path }) => `${method} ${path}`);
   assert.equal(new Set(registered).size, registered.length);
   assert.deepEqual(registered, [
+    "GET /api/hardware/qz-certificate",
+    "POST /api/hardware/qz-sign",
     "GET /api/account",
     "PATCH /api/account",
     "POST /api/auth/change-password",

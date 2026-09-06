@@ -14,6 +14,8 @@ Use these project rules for all future edits in this pharmacy retail software.
 
 ### Domain Ownership Map
 
+- Counter hardware: `src/features/hardware/counterHardware.ts` owns browser-local device selections, QZ Tray connection, discovery, receipt output and drawer commands. `src/features/settings/HardwarePanel.tsx` configures it; sale payment and receipt preview call it directly. Never direct counter hardware operations to the application server.
+- Hardware authorization: `server/hardware/qzSigning.ts` validates and signs supported QZ requests; `server/routes/qzSigning.ts` enforces authentication and same-origin access. Signing keys stay server-only; counter PCs trust only the public certificate.
 - Sale entry: `src/features/sales/new/NewSale.tsx` is the composition seam; `src/features/sales/new/workflow/` owns lifecycle, catalog, cart, payment, persistence, drafts, and focused Sale views.
 - Purchase entry: `src/features/purchase/new/PurchaseEntry.tsx` composes `src/features/purchase/new/workflow/`; draft calculations and guards belong in `purchaseDraft.ts`, request construction in `purchasePersistence.ts`, and shared expiry behavior in `src/lib/expiryDate.ts`.
 - Product entry: `src/features/product/entry/` owns product identity, packaging, composition, regulatory data, photos, draft state, and the complete editor lifecycle behind `useProductEditorLifecycle.ts`. Product route state, write selection, photo ordering, deletion, cache invalidation, and visible-page reconciliation stay inside that lifecycle. Reusable searchable selects belong in `src/components/forms/SearchableSelect.tsx`.

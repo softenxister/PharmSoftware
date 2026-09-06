@@ -31,6 +31,7 @@ import * as productMeasurementNormalization from "./routes/stockMigrations/produ
 import * as stockPhotos from "./routes/stockPhotos";
 import * as stockPhotoUrl from "./routes/stockPhotoUrl";
 import * as storePosSettings from "./routes/storePosSettings";
+import * as qzSigning from "./routes/qzSigning";
 import * as storeProfile from "./routes/storeProfile";
 import * as storeProfileImage from "./routes/storeProfileImage";
 
@@ -48,6 +49,8 @@ const handler = (routeHandler: (request?: Request) => Response | Promise<Respons
 ) => routeHandler(request);
 
 export const apiRoutes: readonly ApiRoute[] = [
+  { method: "GET", path: "/api/hardware/qz-certificate", handler: handler(qzSigning.GET) },
+  { method: "POST", path: "/api/hardware/qz-sign", handler: handler(qzSigning.POST) },
   { method: "GET", path: "/api/account", handler: handler(account.GET) },
   { method: "PATCH", path: "/api/account", handler: handler(account.PATCH) },
   { method: "POST", path: "/api/auth/change-password", handler: handler(changePassword.POST) },

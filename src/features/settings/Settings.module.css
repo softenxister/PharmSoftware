@@ -1839,3 +1839,101 @@
     align-self: flex-end;
   }
 }
+.hardwareBody {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.hardwareHelp {
+  padding: 14px 16px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  background: var(--settings-green-soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.hardwareHelp p { margin: 6px 0 0; }
+.hardwareHelp a { text-decoration: underline; }
+.hardwareSection { display: grid; gap: 12px; min-width: 0; }
+.hardwareField { display: grid; gap: 6px; font-size: 13px; max-width: 560px; min-width: 0; }
+
+.hardwareSelectTrigger {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  background: var(--app-surface);
+  color: var(--app-ink);
+  font: inherit;
+  text-align: left;
+}
+
+.hardwareSelectTrigger > [data-slot="select-value"] {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hardwareSelectTrigger:focus-visible {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px var(--app-accent-soft);
+}
+
+/* Radix portals render outside .page, so use the global theme variables. */
+.hardwareSelectMenu {
+  z-index: 100;
+  box-sizing: border-box;
+  width: var(--radix-select-trigger-width);
+  min-width: 0;
+  max-height: min(240px, var(--radix-select-content-available-height));
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+  color: var(--app-ink);
+  box-shadow: 0 8px 24px rgb(24 43 31 / 16%);
+  translate: none;
+  animation: none;
+}
+
+.hardwareSelectMenu [data-radix-select-viewport] {
+  height: auto;
+  min-width: 0;
+  padding: 4px;
+}
+
+.hardwareSelectItem {
+  min-height: 34px;
+  padding: 8px 30px 8px 10px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.hardwareSelectItem[data-highlighted],
+.hardwareSelectItem[data-state="checked"] {
+  background: var(--app-accent-soft);
+  color: var(--app-highlight-ink);
+}
+
+.hardwareField input {
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  background: var(--settings-surface);
+  color: inherit;
+  font: inherit;
+  min-width: 0;
+}
+.hardwareActions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 13px; }
+.hardwareSection > button { justify-self: start; }
+.hardwareError { color: #a83434; overflow-wrap: anywhere; font-size: 13px; }
