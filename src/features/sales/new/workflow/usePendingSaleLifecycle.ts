@@ -1,39 +1,42 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { StorePaymentMethod } from "@/config/preferences/storePosSettings";
 import {
+  createPendingSaleLoadCoordinator,
   createPendingSaleLifecycle,
   type PendingSaleDraft,
   type PendingSaleOpenResult,
   type PendingSaleSession,
 } from "./pendingSaleLifecycle";
 import { createHttpPendingSaleAdapter } from "./salePersistence";
-import type { Customer } from "./saleTypes";
 
 type PendingSaleLoadState = "idle" | "loading" | "opened" | "unavailable";
 
 export function usePendingSaleLifecycle({
   requestedSaleId,
-  customers,
   dependenciesReady,
   enabledPaymentMethods,
 }: {
   requestedSaleId: string | null;
-  customers: Customer[];
   dependenciesReady: boolean;
   enabledPaymentMethods: readonly StorePaymentMethod[];
 }) {
   const [lifecycle] = useState(() => createPendingSaleLifecycle(createHttpPendingSaleAdapter()));
+  const [loads] = useState(createPendingSaleLoadCoordinator);
   const [session, setSession] = useState<PendingSaleSession | null>(null);
   const [openResult, setOpenResult] = useState<PendingSaleOpenResult | null>(null);
   const [loadState, setLoadState] = useState<PendingSaleLoadState>(
     requestedSaleId ? "loading" : "idle",
   );
   const [retryVersion, setRetryVersion] = useState(0);
-  const openedRequestRef = useRef("");
+
+  useEffect(() => () => {
+    lifecycle.cancelPendingWrites();
+    loads.reset();
+  }, [lifecycle, loads]);
 
   useEffect(() => {
     if (!requestedSaleId) {
-      openedRequestRef.current = "";
+      loads.reset();
       setSession(null);
       setOpenResult(null);
       setLoadState("idle");
@@ -45,19 +48,10 @@ export function usePendingSaleLifecycle({
     }
 
     const requestKey = `${requestedSaleId}:${retryVersion}`;
-    if (openedRequestRef.current === requestKey) return;
-    openedRequestRef.current = requestKey;
-    let cancelled = false;
-    setSession(null);
-    setOpenResult(null);
-    setLoadState("loading");
-
-    void lifecycle.open({
+    const cancel = loads.run(requestKey, () => lifecycle.open({
       saleId: requestedSaleId,
-      customers,
       enabledPaymentMethods,
-    }).then((result) => {
-      if (cancelled) return;
+    }), (result) => {
       setOpenResult(result);
       if (result.kind === "opened") {
         setSession(result.session);
@@ -67,14 +61,16 @@ export function usePendingSaleLifecycle({
       }
     });
 
-    return () => {
-      cancelled = true;
-    };
+    if (!cancel) return;
+    setSession(null);
+    setOpenResult(null);
+    setLoadState("loading");
+    return cancel;
   }, [
-    customers,
     dependenciesReady,
     enabledPaymentMethods,
     lifecycle,
+    loads,
     requestedSaleId,
     retryVersion,
   ]);
@@ -100,11 +96,12 @@ export function usePendingSaleLifecycle({
   ), [lifecycle, session]);
 
   const clear = useCallback(() => {
-    openedRequestRef.current = "";
+    lifecycle.cancelPendingWrites();
+    loads.reset();
     setSession(null);
     setOpenResult(null);
     setLoadState("idle");
-  }, []);
+  }, [lifecycle, loads]);
 
   return {
     session,

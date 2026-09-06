@@ -45,6 +45,7 @@ export function productRowToSalesProduct(
 ): SalesProduct {
   return {
     id: product.id,
+    createdAt: product.createdAt.toISOString(),
     ...(product.externalProductCode ? { externalProductCode: product.externalProductCode } : {}),
     itemName: product.itemName,
     brandName: product.brandName,

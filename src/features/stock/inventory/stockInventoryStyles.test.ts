@@ -32,6 +32,14 @@ test("inventory filters expose all three regulatory records", () => {
   assert.match(inventoryFilters, /filters\.toggleOption\("regulatoryForms", option\)/);
 });
 
+test("inventory filters replace Schedule Type with missing-value checkboxes", () => {
+  assert.doesNotMatch(inventoryFilters, /stock\.scheduleType/);
+  assert.match(inventoryFilters, /id="stock-missing-value-options"/);
+  assert.match(inventoryFilters, /options=\{MISSING_VALUE_OPTIONS\}/);
+  assert.match(inventoryFilters, /filters\.draft\.missingValues/);
+  assert.match(inventoryFilters, /filters\.toggleOption\("missingValues", option\)/);
+});
+
 test("create item action sits at the far right of the inventory toolbar", () => {
   assert.doesNotMatch(inventoryFilters, /t\("stock\.createItem"\)/);
 
@@ -63,11 +71,22 @@ test("sortable inventory headers align their labels with column values instead o
   assert.match(inventoryTable, /sortHeader\("cost", t\("stock\.cost"\), "end"\)/);
   assert.match(inventoryTable, /sortHeader\("markup", t\("stock\.markupShort"\), "end"\)/);
   assert.match(inventoryTable, /sortHeader\("sellPrice", t\("stock\.sellPrice"\), "end"\)/);
+  assert.match(inventoryTable, /sortHeader\("createdAt", t\("stock\.dateAdded"\), "end"\)/);
   assert.doesNotMatch(inventoryTable, /<th>\{t\("stock\.locationShort"\)\}<\/th>/);
   assert.match(
     stockStyles,
     /\.sortButtonEnd\s*{[^}]*flex-direction:\s*row-reverse;[^}]*margin:\s*0 -7px 0 0;/s,
   );
+});
+
+test("inventory row values share the min and max weight except for stock", () => {
+  assert.match(stockStyles, /\.table td\s*{[^}]*font-weight:\s*550;/s);
+  assert.match(stockStyles, /\.itemName\s*{[^}]*font-weight:\s*inherit;/s);
+  assert.match(stockStyles, /\.itemMeta\s*{[^}]*font-weight:\s*inherit;/s);
+  assert.match(stockStyles, /\.priceValue\s*{[^}]*font-weight:\s*inherit;/s);
+  assert.match(stockStyles, /\.dateValue\s*{[^}]*font-weight:\s*inherit;/s);
+  assert.match(stockStyles, /\.marginValue\s*{[^}]*font-weight:\s*inherit;/s);
+  assert.match(stockStyles, /\.stockValue\s*{[^}]*font-weight:\s*850;/s);
 });
 
 test("edit backdrop and inventory header follow the app content boundary", () => {

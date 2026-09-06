@@ -187,6 +187,7 @@ export function useStockInventory() {
       expiryWindows: draftFilters.expiryWindows,
       stockLevels: draftFilters.stockLevels,
       regulatoryForms: draftFilters.regulatoryForms,
+      missingValues: draftFilters.missingValues,
       manufacturers: draftFilters.manufacturers,
       tags: draftFilters.tags,
       stockRange: stockRangeResult.range,

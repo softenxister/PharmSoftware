@@ -50,8 +50,6 @@ export function useSaleWorkflow(user: PharmUser) {
   const { t, formatDate, formatNumber, preferences: appPreferences } = usePreferences();
   const saleCatalog = useSaleCatalog(t);
   const {
-    customers,
-    customersLoaded,
     customerLoadError,
     customer,
     setCustomer,
@@ -149,8 +147,7 @@ export function useSaleWorkflow(user: PharmUser) {
   const unsavedSaleNavigation = useUnsavedChangesNavigation();
   const pendingSale = usePendingSaleLifecycle({
     requestedSaleId: pendingBillId,
-    customers,
-    dependenciesReady: customersLoaded && storeSettingsReady,
+    dependenciesReady: storeSettingsReady,
     enabledPaymentMethods: storeSettings.paymentMethods,
   });
   const editingBillId = pendingSale.session?.saleId ?? null;
@@ -441,6 +438,7 @@ export function useSaleWorkflow(user: PharmUser) {
 
     try {
       const result = await pendingSale.save(currentPendingSaleDraft, { subtotal, netPayable });
+      if (result.kind === 'cancelled') return false;
       if (result.kind !== 'saved') {
         setSaleSubmitError(result.message);
         if (result.kind === 'conflict') setPendingSaleConflict(result.message);
@@ -482,6 +480,7 @@ export function useSaleWorkflow(user: PharmUser) {
     setDeleteBillError('');
     try {
       const result = await pendingSale.remove();
+      if (result.kind === 'cancelled') return;
       if (result.kind !== 'deleted') {
         setDeleteBillError(result.message);
         if (result.kind === 'conflict') {

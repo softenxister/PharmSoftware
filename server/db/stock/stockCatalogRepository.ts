@@ -81,6 +81,7 @@ export function requiresAggregateStockRead(input: StockReadQuery): boolean {
     || filters.expiryWindows.length > 0
     || filters.stockLevels.length > 0
     || filters.regulatoryForms.length > 0
+    || filters.missingValues.length > 0
     || filters.stockRange !== null;
 }
 
@@ -117,6 +118,9 @@ function filteredStockOrderBy(input: StockReadQuery): Prisma.Sql {
   }
   if (input.sort === "sellPrice") {
     return Prisma.sql`${firstStockSellPriceSql} ${direction}, product."itemName" ASC, product.id ASC`;
+  }
+  if (input.sort === "createdAt") {
+    return Prisma.sql`product."createdAt" ${direction}, product."itemName" ASC, product.id ASC`;
   }
   return input.sortDirection === "desc"
     ? Prisma.sql`product."itemName" DESC, product.id DESC`
@@ -387,6 +391,8 @@ export async function readStockProducts(input: StockReadQuery): Promise<StockPro
       ? [{ minimumStock: input.sortDirection }, { itemName: "asc" }, { id: "asc" }]
       : input.sort === "maximum"
         ? [{ maximumStock: input.sortDirection }, { itemName: "asc" }, { id: "asc" }]
+        : input.sort === "createdAt"
+          ? [{ createdAt: input.sortDirection }, { itemName: "asc" }, { id: "asc" }]
         : [{ itemName: input.sortDirection }, { id: input.sortDirection }];
   const [fallbackTotal, productIdRows, metadata] = await Promise.all([
     input.includeInventoryMetadata ? Promise.resolve(null) : prisma.product.count({ where }),

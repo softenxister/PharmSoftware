@@ -1,5 +1,5 @@
 import type { SalesProduct } from "@server/db/types";
-import type { StockSort } from "@server/db/stock/stockReadQuery";
+import type { MissingStockValue, StockSort } from "@server/db/stock/stockReadQuery";
 import type {
   StockInventoryPage,
   StockSortDirection,
@@ -62,6 +62,12 @@ export const EXPIRY_WINDOWS = [
 ] as const;
 
 export const STOCK_LEVELS = ["Out of Stock", "Low Stock", "Normal Stock", "Overstock"] as const;
+export const MISSING_VALUE_OPTIONS: readonly MissingStockValue[] = [
+  "category",
+  "price",
+  "measurement",
+  "barcode",
+];
 
 export type ExpiryWindow = (typeof EXPIRY_WINDOWS)[number];
 export type StockLevel = (typeof STOCK_LEVELS)[number];
@@ -74,6 +80,7 @@ export type StockFilterPanel =
   | "expiry"
   | "stock"
   | "regulatoryForm"
+  | "missingValue"
   | "stockRange"
   | "manufacturer"
   | "tags";
@@ -97,6 +104,7 @@ export type AppliedStockInventoryFilters = {
   tags: string[];
   stockLevels: StockLevel[];
   regulatoryForms: StockRegulatoryForm[];
+  missingValues: MissingStockValue[];
   stockRange: StockRange | null;
 };
 
@@ -107,6 +115,7 @@ export type DraftStockFilters = {
   expiryWindows: ExpiryWindow[];
   stockLevels: StockLevel[];
   regulatoryForms: StockRegulatoryForm[];
+  missingValues: MissingStockValue[];
   manufacturers: string[];
   tags: string[];
   minimumStock: string;
@@ -121,6 +130,7 @@ export type MultiSelectFilterKey = keyof Pick<
   | "expiryWindows"
   | "stockLevels"
   | "regulatoryForms"
+  | "missingValues"
   | "manufacturers"
   | "tags"
 >;
@@ -142,6 +152,7 @@ export type StockInventoryItem = {
   cost: number;
   markupPercent?: number;
   sellPrice: number;
+  createdAt: string;
   imageUrl: string;
   state: StockState;
 };
@@ -158,6 +169,7 @@ export function createEmptyDraftFilters(): DraftStockFilters {
     expiryWindows: [],
     stockLevels: [],
     regulatoryForms: [],
+    missingValues: [],
     manufacturers: [],
     tags: [],
     minimumStock: "",
@@ -175,6 +187,7 @@ export function createEmptyAppliedFilters(): AppliedStockInventoryFilters {
     tags: [],
     stockLevels: [],
     regulatoryForms: [],
+    missingValues: [],
     stockRange: null,
   };
 }
@@ -254,6 +267,7 @@ export function projectStockInventoryItem(product: SalesProduct): StockInventory
       product.averageCostThb,
     ),
     sellPrice: product.batches[0]?.sellPriceThb ?? 0,
+    createdAt: product.createdAt ?? "",
     imageUrl: product.imageUrl,
     state: stock < min ? "low" : stock > max ? "overstock" : "normal",
   };

@@ -20,6 +20,7 @@ test("stock reads default to the first bounded page", () => {
       tags: [],
       stockLevels: [],
       regulatoryForms: [],
+      missingValues: [],
       stockRange: null,
     },
   });
@@ -48,7 +49,7 @@ test("stock reads accept descending item-name order", () => {
 });
 
 test("stock reads accept sortable inventory columns and reject unknown sort keys", () => {
-  for (const sort of ["minimum", "maximum", "stock", "cost", "markup", "sellPrice"]) {
+  for (const sort of ["minimum", "maximum", "stock", "cost", "markup", "sellPrice", "createdAt"]) {
     const parsed = parseStockReadQuery(
       `http://pharm.test/api/stock?sort=${sort}&direction=desc`,
     );
@@ -82,6 +83,7 @@ test("stock read limits are clamped and search input is normalized", () => {
       tags: [],
       stockLevels: [],
       regulatoryForms: [],
+      missingValues: [],
       stockRange: null,
     },
   });
@@ -110,6 +112,8 @@ test("stock reads parse bounded repeated inventory filters", () => {
       + "&tag=Best+seller"
       + "&stockLevel=Low+Stock"
       + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+11"
+      + "&missing=category"
+      + "&missing=barcode"
       + "&stockMin=5"
       + "&stockMax=20",
   );
@@ -123,6 +127,7 @@ test("stock reads parse bounded repeated inventory filters", () => {
     tags: ["Best seller"],
     stockLevels: ["Low Stock"],
     regulatoryForms: ["ข.ย. 11"],
+    missingValues: ["category", "barcode"],
     stockRange: { min: 5, max: 20 },
   });
 });
@@ -130,12 +135,13 @@ test("stock reads parse bounded repeated inventory filters", () => {
 test("stock reads discard invalid inventory filter values and ranges", () => {
   const parsed = parseStockReadQuery(
     "http://pharm.test/api/stock?expiry=Tomorrow&stockLevel=Nearly+empty&dosageType=ml"
-      + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+12&stockMin=-1&stockMax=none",
+      + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+12&missing=photo&stockMin=-1&stockMax=none",
   );
 
   assert.deepEqual(parsed.filters.expiryWindows, []);
   assert.deepEqual(parsed.filters.stockLevels, []);
   assert.deepEqual(parsed.filters.regulatoryForms, []);
+  assert.deepEqual(parsed.filters.missingValues, []);
   assert.deepEqual(parsed.filters.dosageTypes, []);
   assert.equal(parsed.filters.stockRange, null);
 });

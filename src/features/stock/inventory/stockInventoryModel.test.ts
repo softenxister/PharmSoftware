@@ -15,6 +15,7 @@ import {
 
 const product: SalesProduct = {
   id: "product-1",
+  createdAt: "2026-08-31T04:30:00.000Z",
   itemName: "Server-selected product",
   brandName: "Example",
   manufacturerName: "GPO",
@@ -63,6 +64,7 @@ test("inventory renders the authoritative server page without filtering it again
   assert.equal(page.items[0].state, "low");
   assert.equal(page.items[0].markupPercent, 50);
   assert.equal(page.items[0].cost, 30);
+  assert.equal(page.items[0].createdAt, "2026-08-31T04:30:00.000Z");
   assert.equal(page.page, 3);
   assert.equal(page.total, 121);
   assert.equal(page.hasMore, false);
@@ -107,6 +109,7 @@ test("inventory drafts expose only filters backed by the authoritative server re
     expiryWindows: [],
     stockLevels: [],
     regulatoryForms: [],
+    missingValues: [],
     manufacturers: [],
     tags: [],
     minimumStock: "",

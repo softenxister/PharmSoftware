@@ -63,6 +63,7 @@ export type PendingSaleOpenResult =
     };
 
 export type PendingSaleSaveResult =
+  | { kind: "cancelled" }
   | {
       kind: "saved";
       session: PendingSaleSession;
@@ -71,12 +72,12 @@ export type PendingSaleSaveResult =
   | { kind: "conflict" | "failed"; message: string };
 
 export type PendingSaleDeleteResult =
+  | { kind: "cancelled" }
   | { kind: "deleted" }
   | { kind: "conflict" | "failed"; message: string };
 
 type OpenPendingSaleInput = {
   saleId: string;
-  customers: Customer[];
   enabledPaymentMethods: readonly StorePaymentMethod[];
 };
 
@@ -86,6 +87,38 @@ type SavePendingSaleInput = {
   subtotal: number;
   netPayable: number;
 };
+
+export function createPendingSaleLoadCoordinator() {
+  let activeKey: string | null = null;
+  let completedKey: string | null = null;
+  let generation = 0;
+
+  return {
+    reset(): void {
+      generation += 1;
+      activeKey = null;
+      completedKey = null;
+    },
+    run<T>(requestKey: string, load: () => Promise<T>, accept: (result: T) => void): (() => void) | null {
+      if (activeKey === requestKey || completedKey === requestKey) return null;
+      completedKey = null;
+      activeKey = requestKey;
+      const requestGeneration = ++generation;
+      void load().then((result) => {
+        if (generation !== requestGeneration) return;
+        activeKey = null;
+        completedKey = requestKey;
+        accept(result);
+      });
+      return () => {
+        if (generation === requestGeneration && activeKey === requestKey) {
+          activeKey = null;
+          generation += 1;
+        }
+      };
+    },
+  };
+}
 
 function canonicalDraft(draft: PendingSaleDraft): string {
   return JSON.stringify({
@@ -122,9 +155,23 @@ function purchaseMethod(value: string): PurchaseMethod {
   return value === "delivery" ? "delivery" : "pickup";
 }
 
+function customerFromSavedSale(sale: SavedSale): Customer | null {
+  if (sale.customer) return sale.customer;
+  if (!sale.customerId) return null;
+  return {
+    id: sale.customerId,
+    name: sale.customerName,
+    mobile: sale.customerMobile,
+    isMember: sale.isMember,
+    points: 0,
+    membershipRank: "Bronze",
+    topItemIds: [],
+    allergies: [],
+  };
+}
+
 function draftFromSavedSale(
   sale: SavedSale,
-  customers: Customer[],
   enabledPaymentMethods: readonly StorePaymentMethod[],
 ): PendingSaleDraft {
   return {
@@ -133,7 +180,7 @@ function draftFromSavedSale(
     purchaseMethod: purchaseMethod(sale.purchaseMethod),
     billDate: sale.billDate || sale.date.slice(0, 10),
     pharmacistId: sale.pharmacistId ?? PHARMACISTS[0].id,
-    customer: customers.find(({ id }) => id === sale.customerId) ?? null,
+    customer: customerFromSavedSale(sale),
     lines: sale.lines,
     discount: sale.discount,
   };
@@ -168,6 +215,7 @@ function pendingSaleRequest(input: SavePendingSaleInput): SaleWriteRequest {
 
 export function createPendingSaleLifecycle(adapter: PendingSaleAdapter) {
   const baselines = new WeakMap<PendingSaleSession, string>();
+  let writeGeneration = 0;
 
   const createSession = (
     sale: NonNullable<SalesApiResponse["sale"]>,
@@ -183,6 +231,10 @@ export function createPendingSaleLifecycle(adapter: PendingSaleAdapter) {
   };
 
   return {
+    cancelPendingWrites(): void {
+      // The server write may finish; only its obsolete UI outcome is discarded.
+      writeGeneration += 1;
+    },
     async open(input: OpenPendingSaleInput): Promise<PendingSaleOpenResult> {
       try {
         const loaded = await adapter.load(input.saleId);
@@ -195,7 +247,6 @@ export function createPendingSaleLifecycle(adapter: PendingSaleAdapter) {
         }
         const draft = draftFromSavedSale(
           loaded.sale,
-          input.customers,
           input.enabledPaymentMethods,
         );
         return {
@@ -224,8 +275,10 @@ export function createPendingSaleLifecycle(adapter: PendingSaleAdapter) {
     },
 
     async save(input: SavePendingSaleInput): Promise<PendingSaleSaveResult> {
+      const generation = writeGeneration;
       try {
         const result = await adapter.save(pendingSaleRequest(input));
+        if (generation !== writeGeneration) return { kind: "cancelled" };
         if (result.kind === "conflict") return result;
         return {
           kind: "saved",
@@ -233,6 +286,7 @@ export function createPendingSaleLifecycle(adapter: PendingSaleAdapter) {
           session: createSession(result.sale, input.draft),
         };
       } catch (error) {
+        if (generation !== writeGeneration) return { kind: "cancelled" };
         return {
           kind: "failed",
           message: error instanceof Error ? error.message : "Unable to save this Pending Sale.",
@@ -241,9 +295,12 @@ export function createPendingSaleLifecycle(adapter: PendingSaleAdapter) {
     },
 
     async delete(session: PendingSaleSession): Promise<PendingSaleDeleteResult> {
+      const generation = writeGeneration;
       try {
-        return await adapter.delete(session.saleId);
+        const result = await adapter.delete(session.saleId);
+        return generation === writeGeneration ? result : { kind: "cancelled" };
       } catch (error) {
+        if (generation !== writeGeneration) return { kind: "cancelled" };
         return {
           kind: "failed",
           message: error instanceof Error ? error.message : "Unable to delete this Pending Sale.",

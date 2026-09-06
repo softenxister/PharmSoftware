@@ -5,7 +5,7 @@ import {
   loadPendingSale,
   postSale,
 } from './salePersistence';
-import type { SaleWriteRequest } from './saleTypes';
+import type { Customer, SavedSale, SaleWriteRequest } from './saleTypes';
 
 const request: SaleWriteRequest = {
   status: 'pending',
@@ -84,4 +84,60 @@ test('loading a Pending Sale fails explicitly when the database API is unavailab
     loadPendingSale('pending-1', fetcher as typeof fetch),
     /Unable to load pending sale/,
   );
+});
+
+const pendingSale: SavedSale = {
+  id: 'pending-member', billNo: 'INV-1', date: '2026-09-03T00:00:00.000Z',
+  customerId: 'member-1', customerName: 'Anong', customerMobile: '0812345678',
+  isMember: true, itemCount: 1, paymentMethod: 'Cash', purchaseMethod: 'pickup',
+  netTotal: 50, status: 'pending', ownerId: 'o1', billDate: '2026-09-03',
+  pharmacistId: 'p1', lines: request.lines, discount: null,
+};
+const member: Customer = {
+  id: 'member-1', name: 'Anong', mobile: '0812345678', isMember: true,
+  points: 120, membershipRank: 'Silver', topItemIds: ['product-1'],
+  allergies: [{ id: 'ingredient-1', canonicalName: 'Paracetamol' }],
+};
+
+test('reopening a member bill loads its allergy and loyalty data without the member directory', async () => {
+  const fetcher: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.startsWith('/api/sales?')) return Response.json({ sales: [pendingSale] });
+    if (url === '/api/members?memberId=member-1') return Response.json({ member });
+    if (url.startsWith('/api/stock?')) return Response.json({ products: [], page: 1, pageSize: 1, total: 0, hasMore: false });
+    throw new Error(`Unexpected request: ${url}`);
+  };
+  const loaded = await loadPendingSale(pendingSale.id, fetcher);
+  assert.deepEqual(loaded?.sale.customer, member);
+});
+
+test('reopening fails instead of inventing an allergy-free member when their profile is unavailable', async () => {
+  for (const response of [
+    Response.json({ error: 'Unavailable' }, { status: 503 }),
+    Response.json({ error: 'Missing' }, { status: 404 }),
+    Response.json({ member: { ...member, id: 'another-member' } }),
+    Response.json({ member: { ...member, allergies: undefined } }),
+  ]) {
+    const fetcher: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.startsWith('/api/sales?')) return Response.json({ sales: [pendingSale] });
+      if (url.startsWith('/api/members?')) return response;
+      return Response.json({ products: [], page: 1, pageSize: 1, total: 0, hasMore: false });
+    };
+    await assert.rejects(loadPendingSale(pendingSale.id, fetcher), /Pending Sale customer/);
+  }
+});
+
+test('walk-in bills reopen without a member request', async () => {
+  const fetcher: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url.startsWith('/api/sales?')) {
+      return Response.json({ sales: [{ ...pendingSale, customerId: null, isMember: false }] });
+    }
+    if (url.startsWith('/api/stock?')) return Response.json({ products: [], page: 1, pageSize: 1, total: 0, hasMore: false });
+    throw new Error(`Unexpected request: ${url}`);
+  };
+  const loaded = await loadPendingSale(pendingSale.id, fetcher);
+  assert.equal(loaded?.sale.customer, null);
+  assert.deepEqual(loaded?.sale.lines, request.lines);
 });

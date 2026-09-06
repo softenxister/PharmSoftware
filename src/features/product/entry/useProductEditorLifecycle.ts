@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { useSearchParams } from "react-router";
 import type { SalesProduct, StockItemInput } from "@server/db/types";
 import {
@@ -38,7 +38,7 @@ export function useProductEditorLifecycle(input: UseProductEditorLifecycleInput)
     if (requestedProductId) replaceRouteProduct(null, true);
   }, [replaceRouteProduct, requestedProductId]);
 
-  useEffect(() => {
+  const synchronizeRoute = useEffectEvent(() => {
     if (!requestedProductId) {
       if (session?.mode === "edit") setSession(null);
       return;
@@ -58,7 +58,12 @@ export function useProductEditorLifecycle(input: UseProductEditorLifecycleInput)
     return () => {
       cancelled = true;
     };
-  }, [lifecycle, replaceRouteProduct, requestedProductId, session?.product?.id]);
+  });
+
+  // Row clicks update the session before the router commits its transition.
+  // Synchronize only when the URL changes, using the latest session so the
+  // previous URL cannot close or reload the editor during that interval.
+  useEffect(() => synchronizeRoute(), [requestedProductId]);
 
   const openCreate = useCallback(() => {
     setSession(lifecycle.openCreate());

@@ -72,6 +72,7 @@ function stockPageUrl(options: StockPageOptions): string {
     for (const regulatoryForm of filters.regulatoryForms) {
       params.append("regulatoryForm", regulatoryForm);
     }
+    for (const missingValue of filters.missingValues) params.append("missing", missingValue);
     if (filters.stockRange?.min !== null && filters.stockRange?.min !== undefined) {
       params.set("stockMin", String(filters.stockRange.min));
     }

@@ -6,6 +6,7 @@ import type { PendingSaleAdapter } from './pendingSaleLifecycle';
 import { productsToCatalog } from './saleCatalog';
 import {
   type CatalogItem,
+  type Customer,
   type SaleWriteRequest,
   type SavedSale,
   type SalesApiResponse,
@@ -71,8 +72,24 @@ export async function loadPendingSale(
     (bill) => bill.id === pendingBillId && bill.status === 'pending',
   );
   if (!sale || !Array.isArray(sale.lines) || sale.lines.length === 0) return null;
-  const products = await loadStockProductsByIds(sale.lines.map((line) => line.itemId), fetcher);
-  return { sale, catalog: productsToCatalog(products) };
+  const [products, customer] = await Promise.all([
+    loadStockProductsByIds(sale.lines.map((line) => line.itemId), fetcher),
+    loadPendingSaleCustomer(sale, fetcher),
+  ]);
+  return { sale: { ...sale, customer }, catalog: productsToCatalog(products) };
+}
+
+async function loadPendingSaleCustomer(sale: SavedSale, fetcher: typeof fetch): Promise<Customer | null> {
+  if (!sale.customerId || !sale.isMember) return sale.customer ?? null;
+  const response = await fetcher(`/api/members?memberId=${encodeURIComponent(sale.customerId)}`, {
+    cache: 'no-store',
+  });
+  const data = await response.json() as { member?: Customer };
+  if (!response.ok || !data.member || data.member.id !== sale.customerId
+    || !Array.isArray(data.member.allergies)) {
+    throw new Error('Unable to load the Pending Sale customer.');
+  }
+  return data.member;
 }
 
 export async function refreshSoldProductCatalog(

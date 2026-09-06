@@ -5,7 +5,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { ChevronDown } from "lucide-react";
 import { usePreferences } from "@/app/providers/PreferencesProvider";
 import { shouldCloseDropdown } from "@/lib/dropdownInteraction";
 import {
@@ -21,6 +20,7 @@ import {
 import {
   clampStockSidebarWidth,
   EXPIRY_WINDOWS,
+  MISSING_VALUE_OPTIONS,
   reopenStockSidebarFromEdgeDrag,
   resizeStockSidebarFromDrag,
   SIDEBAR_MAX_WIDTH,
@@ -48,6 +48,12 @@ export function StockInventoryFilters({
     (option: string) => getStockCategoryLabel(preferences.locale, option),
     [preferences.locale],
   );
+  const localizeMissingValue = useCallback((option: string) => {
+    if (option === "category") return t("stock.missingItemCategory");
+    if (option === "price") return t("stock.missingPrice");
+    if (option === "measurement") return t("stock.missingMeasurement");
+    return t("stock.missingBarcode");
+  }, [t]);
 
   useEffect(() => {
     if (filters.openPanel === null) return;
@@ -175,12 +181,17 @@ export function StockInventoryFilters({
             onToggleOption={(option) => filters.toggleOption("regulatoryForms", option)}
             searchable={false}
           />
-          <button type="button" className={styles.filterButton}>
-            <span className={styles.filterText}>
-              <span className={styles.filterLabel}>{t("stock.scheduleType")}</span>
-            </span>
-            <ChevronDown size={16} aria-hidden="true" />
-          </button>
+          <StockFilterDropdown
+            id="stock-missing-value-options"
+            label={t("stock.missingValue")}
+            options={MISSING_VALUE_OPTIONS}
+            selectedOptions={filters.draft.missingValues}
+            isOpen={filters.openPanel === "missingValue"}
+            onToggle={() => filters.togglePanel("missingValue")}
+            onToggleOption={(option) => filters.toggleOption("missingValues", option)}
+            searchable={false}
+            getOptionLabel={localizeMissingValue}
+          />
           <StockFilterDropdown
             id="stock-expiry-options"
             label={t("stock.expiry")}

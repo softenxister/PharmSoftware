@@ -48,6 +48,23 @@ test("sidebar metadata pre-aggregates stock batches once for every filter", () =
   assert.doesNotMatch(query.text, /\bHAVING\b/i);
 });
 
+test("missing-value filters combine selected checks with OR conditions", () => {
+  const input = parseStockReadQuery(
+    "http://pharm.test/api/stock?inventory=1"
+      + "&missing=category&missing=price&missing=measurement&missing=barcode",
+  );
+
+  const query = stockInventoryMetadataSql(input);
+
+  assert.match(query.text, /product\."categoryId" IS NULL/i);
+  assert.match(query.text, /NOT EXISTS[\s\S]*priced_batch\."sellPriceThb" > 0/i);
+  assert.match(query.text, /product\."childQuantity" <= 0/i);
+  assert.match(query.text, /product\."packUnit"/i);
+  assert.match(query.text, /product\."childUnit"/i);
+  assert.match(query.text, /product\.barcode LIKE 'PHARM-%'/i);
+  assert.match(query.text, /categoryId[\s\S]+ OR [\s\S]+sellPriceThb[\s\S]+ OR [\s\S]+childQuantity[\s\S]+ OR [\s\S]+barcode LIKE/i);
+});
+
 test("legal-category facet keeps alternative options after a legal category is selected", () => {
   const input = parseStockReadQuery(
     "http://pharm.test/api/stock?inventory=1"

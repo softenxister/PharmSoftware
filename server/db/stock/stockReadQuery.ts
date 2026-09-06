@@ -23,6 +23,7 @@ const VALID_EXPIRY_WINDOWS = new Set([
 const VALID_STOCK_LEVELS = new Set(["Out of Stock", "Low Stock", "Normal Stock", "Overstock"]);
 const VALID_REGULATORY_FORMS = new Set<string>(STOCK_REGULATORY_FORMS);
 const VALID_DOSAGE_FORMS = new Set<string>(DOSAGE_FORMS);
+const VALID_MISSING_VALUES = new Set(["category", "price", "measurement", "barcode"]);
 
 const STOCK_SORTS = [
   "name",
@@ -33,9 +34,11 @@ const STOCK_SORTS = [
   "cost",
   "markup",
   "sellPrice",
+  "createdAt",
 ] as const;
 export type StockSort = (typeof STOCK_SORTS)[number];
 export type StockSortDirection = "asc" | "desc";
+export type MissingStockValue = "category" | "price" | "measurement" | "barcode";
 
 export type StockReadFilters = {
   categories: string[];
@@ -46,6 +49,7 @@ export type StockReadFilters = {
   tags: string[];
   stockLevels: string[];
   regulatoryForms: StockRegulatoryForm[];
+  missingValues: MissingStockValue[];
   stockRange: { min: number | null; max: number | null } | null;
 };
 
@@ -120,6 +124,11 @@ export function parseStockReadQuery(url: string): StockReadQuery {
       "regulatoryForm",
       VALID_REGULATORY_FORMS,
     ) as StockRegulatoryForm[],
+    missingValues: repeatedFilterValues(
+      params,
+      "missing",
+      VALID_MISSING_VALUES,
+    ) as MissingStockValue[],
     stockRange: parseStockRange(params),
   };
 

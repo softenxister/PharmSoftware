@@ -3,6 +3,7 @@ import {
   ArrowUp,
   ChevronsUpDown,
   Edit3,
+  MoreVertical,
   PackagePlus,
   Plus,
   Search,
@@ -24,7 +25,7 @@ export function StockInventoryTable({
 }: {
   controller: StockInventoryController;
 }) {
-  const { t, formatNumber, preferences } = usePreferences();
+  const { t, formatDate, formatNumber, preferences } = usePreferences();
 
   const stateLabel = (state: StockState) => {
     if (state === "low") return t("stock.belowMinimum");
@@ -129,6 +130,9 @@ export function StockInventoryTable({
                 <th aria-sort={ariaSort("sellPrice")}>
                   {sortHeader("sellPrice", t("stock.sellPrice"), "end")}
                 </th>
+                <th aria-sort={ariaSort("createdAt")}>
+                  {sortHeader("createdAt", t("stock.dateAdded"), "end")}
+                </th>
                 <th className={styles.actionCol} aria-label={t("stock.itemActions")} />
               </tr>
             </thead>
@@ -218,33 +222,58 @@ export function StockInventoryTable({
                     </span>
                   </td>
                   <td>
+                    {item.createdAt && (
+                      <time className={styles.dateValue} dateTime={item.createdAt}>
+                        {formatDate(item.createdAt, {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </time>
+                    )}
+                  </td>
+                  <td>
                     <span className={styles.actionCell}>
-                      {controller.user?.role === "owner" && (
+                      <span className={styles.rowActionMenu}>
                         <button
                           type="button"
-                          className={styles.actionButton}
-                          title={t("stock.adjust")}
-                          aria-label={t("stock.adjustFor", { name: item.name })}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            controller.adjustment.open(item.id);
-                          }}
+                          className={styles.actionMenuTrigger}
+                          title={t("stock.itemActions")}
+                          aria-label={`${t("stock.itemActions")}: ${item.name}`}
+                          aria-haspopup="menu"
+                          onClick={(event) => event.stopPropagation()}
                         >
-                          <PackagePlus size={17} aria-hidden="true" />
+                          <MoreVertical size={18} aria-hidden="true" />
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        className={styles.actionButton}
-                        title={t("stock.setItemDetail")}
-                        aria-label={t("stock.setItemDetailFor", { name: item.name })}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          controller.itemDetail.open(item.id);
-                        }}
-                      >
-                        <Edit3 size={16} aria-hidden="true" />
-                      </button>
+                        <span className={styles.actionMenu} role="menu">
+                          {controller.user?.role === "owner" && (
+                            <button
+                              type="button"
+                              className={styles.actionMenuItem}
+                              role="menuitem"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                controller.adjustment.open(item.id);
+                              }}
+                            >
+                              <PackagePlus size={15} aria-hidden="true" />
+                              {t("stock.adjust")}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={styles.actionMenuItem}
+                            role="menuitem"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              controller.itemDetail.open(item.id);
+                            }}
+                          >
+                            <Edit3 size={15} aria-hidden="true" />
+                            {t("stock.setItemDetail")}
+                          </button>
+                        </span>
+                      </span>
                     </span>
                   </td>
                 </tr>

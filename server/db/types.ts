@@ -57,6 +57,7 @@ export type ParentPack = {
 
 export type SalesProduct = {
   id: string;
+  createdAt?: string;
   externalProductCode?: string;
   itemName: string;
   brandName: string;

@@ -74,6 +74,7 @@ test("Pending Sale state is delegated through the lifecycle interface", () => {
   assert.match(workflowSource, /usePendingSaleLifecycle\(/);
   assert.match(workflowSource, /pendingSale\.hasMeaningfulChanges\(currentPendingSaleDraft\)/);
   assert.match(workflowSource, /pendingSale\.save\(currentPendingSaleDraft/);
+  assert.doesNotMatch(workflowSource, /dependenciesReady:\s*customersLoaded/);
   assert.doesNotMatch(workflowSource, /pendingSaleDraftSignature|SAVED_SALES_KEY|localStorage/);
 });
 

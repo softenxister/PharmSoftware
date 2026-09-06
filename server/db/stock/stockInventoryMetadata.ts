@@ -141,6 +141,29 @@ function regulatoryFormCondition(form: StockRegulatoryForm): Prisma.Sql {
   )`;
 }
 
+function missingValueCondition(value: StockReadQuery["filters"]["missingValues"][number]): Prisma.Sql {
+  if (value === "category") return Prisma.sql`product."categoryId" IS NULL`;
+  if (value === "price") {
+    return Prisma.sql`NOT EXISTS (
+      SELECT 1
+      FROM "ProductBatch" priced_batch
+      WHERE priced_batch."productId" = product.id
+        AND priced_batch."sellPriceThb" > 0
+    )`;
+  }
+  if (value === "measurement") {
+    return Prisma.sql`(
+      product."childQuantity" <= 0
+      OR BTRIM(COALESCE(product."packUnit", '')) = ''
+      OR BTRIM(COALESCE(product."childUnit", '')) = ''
+    )`;
+  }
+  return Prisma.sql`(
+    BTRIM(COALESCE(product.barcode, '')) = ''
+    OR product.barcode LIKE 'PHARM-%'
+  )`;
+}
+
 export function stockInventorySqlFilters(
   input: StockReadQuery,
 ): Prisma.Sql[] {
@@ -190,6 +213,12 @@ export function stockInventorySqlFilters(
   if (filters.regulatoryForms.length > 0) {
     where.push(Prisma.sql`(${Prisma.join(
       filters.regulatoryForms.map(regulatoryFormCondition),
+      " OR ",
+    )})`);
+  }
+  if (filters.missingValues.length > 0) {
+    where.push(Prisma.sql`(${Prisma.join(
+      filters.missingValues.map(missingValueCondition),
       " OR ",
     )})`);
   }

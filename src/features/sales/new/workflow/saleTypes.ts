@@ -139,6 +139,7 @@ export type SavedSale = {
   billDate: string;
   pharmacistId: string | null;
   customerId: string | null;
+  customer?: Customer | null;
   lines: CartLine[];
   discount: AppliedDiscount | null;
 };

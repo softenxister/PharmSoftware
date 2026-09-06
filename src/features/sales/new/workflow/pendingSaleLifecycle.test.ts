@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createPendingSaleLoadCoordinator,
   createPendingSaleLifecycle,
   type PendingSaleAdapter,
   type PendingSaleDraft,
@@ -54,11 +55,101 @@ const customer = {
   allergies: [],
 };
 
+test("a cancelled Pending Sale load can restart with the same request key", async () => {
+  const loads = createPendingSaleLoadCoordinator();
+  const response = Promise.resolve("opened");
+  const received: string[] = [];
+  const run = () => loads.run("sale-pending-1:0", () => response, (value) => received.push(value));
+  const cancel = run();
+  assert.ok(cancel);
+  assert.equal(run(), null);
+  cancel();
+  assert.ok(run());
+  await response;
+  assert.deepEqual(received, ["opened"]);
+  assert.equal(run(), null);
+  loads.reset();
+  assert.ok(run());
+  await response;
+  assert.deepEqual(received, ["opened", "opened"]);
+});
+
+test("returning to an opened bill after cancelling another load starts a fresh load", async () => {
+  const loads = createPendingSaleLoadCoordinator();
+  const response = Promise.resolve("opened");
+  const received: string[] = [];
+  loads.run("sale-a:0", () => response, (value) => received.push(value));
+  await response;
+  const cancel = loads.run("sale-b:0", () => response, (value) => received.push(value));
+  cancel();
+  assert.ok(loads.run("sale-a:0", () => response, (value) => received.push(value)));
+  await response;
+  assert.deepEqual(received, ["opened", "opened"]);
+});
+
+test("clearing a Pending Sale load discards its eventual response", async () => {
+  const loads = createPendingSaleLoadCoordinator();
+  let resolve: (value: string) => void;
+  const response = new Promise<string>((done) => { resolve = done; });
+  const received: string[] = [];
+  loads.run("sale-a:0", () => response, (value) => received.push(value));
+  loads.reset();
+  resolve("old sale");
+  await response;
+  assert.deepEqual(received, []);
+});
+
+test("effect cleanup and restart accept only the replacement load for the same bill", async () => {
+  const loads = createPendingSaleLoadCoordinator();
+  let resolveFirst: (value: string) => void;
+  let resolveSecond: (value: string) => void;
+  const first = new Promise<string>((done) => { resolveFirst = done; });
+  const second = new Promise<string>((done) => { resolveSecond = done; });
+  const received: string[] = [];
+  const cancel = loads.run("sale-a:0", () => first, (value) => received.push(value));
+  cancel();
+  loads.run("sale-a:0", () => second, (value) => received.push(value));
+  cancel(); // A late cleanup must not cancel the replacement request.
+  resolveFirst("stale");
+  await first;
+  assert.deepEqual(received, []);
+  resolveSecond("current");
+  await second;
+  assert.deepEqual(received, ["current"]);
+});
+
+test("changing bill IDs ignores a late response from the previous bill", async () => {
+  const loads = createPendingSaleLoadCoordinator();
+  let resolveFirst: (value: string) => void;
+  const first = new Promise<string>((done) => { resolveFirst = done; });
+  const received: string[] = [];
+  loads.run("sale-a:0", () => first, (value) => received.push(value));
+  const second = Promise.resolve("sale-b");
+  loads.run("sale-b:0", () => second, (value) => received.push(value));
+  await second;
+  resolveFirst("sale-a");
+  await first;
+  assert.deepEqual(received, ["sale-b"]);
+});
+
+test("a failed Pending Sale load can retry without duplicate hydration after completion", async () => {
+  const loads = createPendingSaleLoadCoordinator();
+  const received: string[] = [];
+  const failure = Promise.resolve("unavailable");
+  loads.run("sale-a:0", () => failure, (value) => received.push(value));
+  await failure;
+  assert.equal(loads.run("sale-a:0", () => failure, (value) => received.push(value)), null);
+  const retry = Promise.resolve("opened");
+  loads.run("sale-a:1", () => retry, (value) => received.push(value));
+  await retry;
+  assert.deepEqual(received, ["unavailable", "opened"]);
+});
+
 function fakeAdapter(overrides: Partial<PendingSaleAdapter> = {}) {
   const savedRequests: Parameters<PendingSaleAdapter["save"]>[0][] = [];
   const deletedIds: string[] = [];
   const adapter: PendingSaleAdapter = {
-    load: async () => ({ sale: savedSale, catalog: [] }),
+    load: async () => ({ sale: { ...savedSale, customer }, catalog: [] }),
     save: async (request) => {
       savedRequests.push(request);
       return {
@@ -84,7 +175,6 @@ async function openedLifecycle(adapter: PendingSaleAdapter) {
   const lifecycle = createPendingSaleLifecycle(adapter);
   const result = await lifecycle.open({
     saleId: savedSale.id,
-    customers: [customer],
     enabledPaymentMethods: ["Cash", "Bank transfer"],
   });
   assert.equal(result.kind, "opened");
@@ -93,7 +183,9 @@ async function openedLifecycle(adapter: PendingSaleAdapter) {
 }
 
 test("opening a Pending Sale returns one hydrated draft and a clean session", async () => {
-  const { adapter } = fakeAdapter();
+  const { adapter } = fakeAdapter({
+    load: async () => ({ sale: { ...savedSale, customer }, catalog: [] }),
+  });
   const { lifecycle, result } = await openedLifecycle(adapter);
 
   assert.equal(result.session.saleId, savedSale.id);
@@ -102,6 +194,48 @@ test("opening a Pending Sale returns one hydrated draft and a clean session", as
   assert.equal(result.draft.paymentMethod, "Cash");
   assert.deepEqual(result.draft.lines, savedSale.lines);
   assert.equal(lifecycle.hasMeaningfulChanges(result.session, result.draft), false);
+});
+
+test("opening a Pending Sale uses its customer snapshot without waiting for the member list", async () => {
+  const saleWithCustomer = { ...savedSale, customer };
+  const { adapter } = fakeAdapter({
+    load: async () => ({ sale: saleWithCustomer, catalog: [] }),
+  });
+  const lifecycle = createPendingSaleLifecycle(adapter);
+
+  const result = await lifecycle.open({
+    saleId: savedSale.id,
+    enabledPaymentMethods: ["Cash", "Bank transfer"],
+  });
+
+  assert.equal(result.kind, "opened");
+  if (result.kind !== "opened") throw new Error("Pending Sale did not open.");
+  assert.deepEqual(result.draft.customer, customer);
+});
+
+test("opening a Pending Sale can use the compact sale customer fields", async () => {
+  const { adapter } = fakeAdapter({
+    load: async () => ({ sale: savedSale, catalog: [] }),
+  });
+  const lifecycle = createPendingSaleLifecycle(adapter);
+
+  const result = await lifecycle.open({
+    saleId: savedSale.id,
+    enabledPaymentMethods: ["Cash"],
+  });
+
+  assert.equal(result.kind, "opened");
+  if (result.kind !== "opened") throw new Error("Pending Sale did not open.");
+  assert.deepEqual(result.draft.customer, {
+    id: savedSale.customerId,
+    name: savedSale.customerName,
+    mobile: savedSale.customerMobile,
+    isMember: savedSale.isMember,
+    points: 0,
+    membershipRank: "Bronze",
+    topItemIds: [],
+    allergies: [],
+  });
 });
 
 test("every persisted Pending Sale field participates in meaningful-change detection", async () => {
@@ -177,7 +311,6 @@ test("missing records and adapter failures become explicit open outcomes", async
   const missingLifecycle = createPendingSaleLifecycle(missing.adapter);
   assert.deepEqual(await missingLifecycle.open({
     saleId: "missing",
-    customers: [],
     enabledPaymentMethods: ["Cash"],
   }), {
     kind: "unavailable",
@@ -189,7 +322,6 @@ test("missing records and adapter failures become explicit open outcomes", async
   const failedLifecycle = createPendingSaleLifecycle(failed.adapter);
   assert.deepEqual(await failedLifecycle.open({
     saleId: "missing",
-    customers: [],
     enabledPaymentMethods: ["Cash"],
   }), {
     kind: "unavailable",
@@ -223,4 +355,20 @@ test("deleting a Pending Sale uses only its durable identity", async () => {
 
   assert.deepEqual(await lifecycle.delete(result.session), { kind: "deleted" });
   assert.deepEqual(deletedIds, [savedSale.id]);
+});
+
+test("leaving a Pending Sale discards late save and delete results", async () => {
+  let resolveSave: (value: Awaited<ReturnType<PendingSaleAdapter['save']>>) => void;
+  let resolveDelete: (value: Awaited<ReturnType<PendingSaleAdapter['delete']>>) => void;
+  const saveResponse = new Promise<Awaited<ReturnType<PendingSaleAdapter['save']>>>((done) => { resolveSave = done; });
+  const deleteResponse = new Promise<Awaited<ReturnType<PendingSaleAdapter['delete']>>>((done) => { resolveDelete = done; });
+  const { adapter } = fakeAdapter({ save: () => saveResponse, delete: () => deleteResponse });
+  const { lifecycle, result } = await openedLifecycle(adapter);
+  const saving = lifecycle.save({ session: result.session, draft: result.draft, subtotal: 25, netPayable: 25 });
+  const deleting = lifecycle.delete(result.session);
+  lifecycle.cancelPendingWrites();
+  resolveSave({ kind: 'saved', sale: { id: savedSale.id, billNo: savedSale.billNo, date: savedSale.date, status: 'pending' } });
+  resolveDelete({ kind: 'deleted' });
+  assert.deepEqual(await saving, { kind: 'cancelled' });
+  assert.deepEqual(await deleting, { kind: 'cancelled' });
 });

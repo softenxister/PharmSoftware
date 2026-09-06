@@ -210,6 +210,7 @@ test("inventory filters request one server-filtered page instead of the complete
       tags: ["Best seller"],
       stockLevels: ["Low Stock"],
       regulatoryForms: ["ข.ย. 11"],
+      missingValues: ["price", "measurement"],
       stockRange: { min: 5, max: 20 },
     },
   }, fetcher);
@@ -225,6 +226,8 @@ test("inventory filters request one server-filtered page instead of the complete
       + "&tag=Best+seller"
       + "&stockLevel=Low+Stock"
       + "&regulatoryForm=%E0%B8%82.%E0%B8%A2.+11"
+      + "&missing=price"
+      + "&missing=measurement"
       + "&stockMin=5"
       + "&stockMax=20",
   ]);

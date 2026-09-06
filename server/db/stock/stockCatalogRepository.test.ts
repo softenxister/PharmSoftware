@@ -22,6 +22,7 @@ test("stock-derived filters still use the aggregate stock query", () => {
     "expiry=Within+30+days",
     "stockMin=1",
     "regulatoryForm=ข.ย.+11",
+    "missing=price",
   ]) {
     const input = parseStockReadQuery(`http://pharm.test/api/stock?${query}`);
     assert.equal(requiresAggregateStockRead(input), true, query);
